@@ -1,0 +1,141 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* next-themes drives dark mode via a class on <html>. */
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+ * Almailgroup Task Management Portal — strict monochrome design tokens.
+ *
+ * The palette is deliberately colourless: pure white / pure black anchors with
+ * the zinc ramp in between. No saturated hues are defined anywhere, so a stray
+ * `bg-blue-500` in a component is an obvious outlier during review.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  --radius: 0.5rem;
+
+  /* Surfaces */
+  --background: #ffffff;
+  --foreground: #09090b; /* zinc-950 */
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+
+  /* Actions — inverted against the surface for maximum contrast. */
+  --primary: #09090b;
+  --primary-foreground: #fafafa; /* zinc-50 */
+  --secondary: #f4f4f5; /* zinc-100 */
+  --secondary-foreground: #18181b; /* zinc-900 */
+
+  /* Recessive text and fills */
+  --muted: #f4f4f5; /* zinc-100 */
+  --muted-foreground: #71717a; /* zinc-500 */
+  --accent: #f4f4f5; /* zinc-100 */
+  --accent-foreground: #18181b;
+
+  /* Destructive stays greyscale in normal states; colour is reserved for
+   * genuinely irreversible actions so it actually reads as a warning. */
+  --destructive: #18181b;
+  --destructive-foreground: #fafafa;
+
+  /* 1px micro-borders are the primary separation device in this UI. */
+  --border: #e4e4e7; /* zinc-200 */
+  --input: #e4e4e7;
+  --ring: #a1a1aa; /* zinc-400 */
+}
+
+.dark {
+  --background: #000000;
+  --foreground: #fafafa; /* zinc-50 */
+  --card: #09090b; /* zinc-950 — lifts cards off pure-black page */
+  --card-foreground: #fafafa;
+  --popover: #09090b;
+  --popover-foreground: #fafafa;
+
+  --primary: #fafafa;
+  --primary-foreground: #09090b;
+  --secondary: #18181b; /* zinc-900 */
+  --secondary-foreground: #fafafa;
+
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa; /* zinc-400 */
+  --accent: #27272a; /* zinc-800 */
+  --accent-foreground: #fafafa;
+
+  --destructive: #fafafa;
+  --destructive-foreground: #09090b;
+
+  --border: #27272a; /* zinc-800 */
+  --input: #27272a;
+  --ring: #52525b; /* zinc-600 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Typographic baseline: compact but legible, tuned for dense task lists. */
+    font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Explicit hierarchy — weights carry the structure, not colour or size alone. */
+  h1 { @apply text-2xl font-semibold tracking-tight; line-height: 1.2; }
+  h2 { @apply text-lg font-semibold tracking-tight; line-height: 1.3; }
+  h3 { @apply text-sm font-medium tracking-tight; line-height: 1.4; }
+
+  /* Keyboard focus is always visible; pointer focus never draws a ring. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  /* Thin, unobtrusive scrollbars for the Kanban columns and comment threads. */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 3px;
+  }
+}
