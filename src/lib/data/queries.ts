@@ -37,9 +37,20 @@ export const requireProfile = cache(async (): Promise<Profile> => {
     .eq("id", user.id)
     .maybeSingle();
 
-  // The signup trigger creates this row. A missing profile means the user was
-  // created out of band, so send them back through auth rather than crashing.
-  if (!profile) redirect("/login");
+  // The handle_new_user trigger creates this row at signup. Its absence means
+  // the account exists in auth but not in the app — typically the migrations
+  // were never applied, or the user was created out of band.
+  //
+  // Redirecting straight to /login would loop, because the middleware sends
+  // anyone holding a valid session back to /dashboard. Go via the sign-out
+  // route, which can actually clear the session, and say what is wrong.
+  if (!profile) {
+    redirect(
+      `/auth/signout?error=${encodeURIComponent(
+        "Your account has no profile yet. If this is a new deployment, the database migrations may not have been applied.",
+      )}`,
+    );
+  }
 
   return profile;
 });
