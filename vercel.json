@@ -3,9 +3,6 @@
   "framework": "nextjs",
   "buildCommand": "next build",
   "installCommand": "npm ci",
-  "regions": [
-    "zrh1"
-  ],
   "crons": [
     {
       "path": "/api/reminders/dispatch",

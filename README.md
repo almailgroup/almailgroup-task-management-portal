@@ -454,13 +454,13 @@ emails link back to, so a stale value sends new users to the wrong host.
 
 ### Regions
 
-`vercel.json` pins functions to `zrh1` (Zurich), matching the Supabase project's
-`eu-central-2` (Zurich). Keeping both in the same city means a page render does
-not cross a continent to reach the database and back.
+**Not pinned.** `vercel.json` deliberately carries no `regions` key: on the
+Hobby plan that property stops deployments from being created at all — silently,
+with nothing appearing in the deployments list to explain why.
 
-If you move the Supabase project, change this to match — Vercel's code for a
-city is its airport code, so Frankfurt is `fra1`, London `lhr1`, Dublin `dub1`.
+The Supabase project is in `eu-central-2` (Zurich), so the ideal placement is
+`zrh1`. Reaching it needs a Pro plan, where the region can be set under
+**Settings → Functions → Function Region**. Until then functions run in
+Vercel's default region and each query crosses to it and back — noticeable,
+but not worth breaking deployments over.
 
-On the Hobby plan functions run in a single region, which is all this needs.
-Confirm it took under **Settings → Functions → Function Region** after the next
-deploy.
