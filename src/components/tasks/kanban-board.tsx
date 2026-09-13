@@ -1,0 +1,288 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCorners,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { DragInstructions, TaskCard } from "@/components/tasks/task-card";
+import { moveTask } from "@/lib/data/task-actions";
+import { TASK_STATUSES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import type {
+  TaskStatus,
+  TaskWithAssignees,
+} from "@/lib/supabase/database.types";
+
+/** Matches POSITION_STEP in task-actions. */
+const POSITION_STEP = 1024;
+
+/**
+ * Minimalist Kanban board.
+ *
+ * Card order is optimistic: the local list is reordered immediately and the
+ * single affected row is persisted in the background. If the write is rejected
+ * (RLS, or the task moved underneath us) the board is reverted and the user is
+ * told.
+ */
+export function KanbanBoard({
+  tasks,
+  projectId,
+  onOpenTask,
+  onCreateTask,
+}: {
+  tasks: TaskWithAssignees[];
+  projectId: string;
+  onOpenTask: (task: TaskWithAssignees) => void;
+  onCreateTask: (status: TaskStatus) => void;
+}) {
+  const router = useRouter();
+  const [items, setItems] = React.useState(tasks);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+
+  // Re-sync when the server sends a new list (refresh, realtime, filters).
+  React.useEffect(() => setItems(tasks), [tasks]);
+
+  const sensors = useSensors(
+    // A small distance threshold keeps a click on the card title from
+    // registering as a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const columns = React.useMemo(() => {
+    const grouped = new Map<TaskStatus, TaskWithAssignees[]>();
+    for (const status of TASK_STATUSES) grouped.set(status.value, []);
+    for (const task of items) grouped.get(task.status)?.push(task);
+    for (const list of grouped.values())
+      list.sort((a, b) => a.position - b.position);
+    return grouped;
+  }, [items]);
+
+  const activeTask = items.find((task) => task.id === activeId) ?? null;
+
+  function onDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
+  async function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveId(null);
+    if (!over) return;
+
+    const taskId = String(active.id);
+    const task = items.find((entry) => entry.id === taskId);
+    if (!task) return;
+
+    // Dropping on a column droppable gives a status; dropping on a card gives
+    // that card's id, from which the target column is derived.
+    const overId = String(over.id);
+    const overTask = items.find((entry) => entry.id === overId);
+    const targetStatus = (
+      overTask ? overTask.status : stripColumnPrefix(overId)
+    ) as TaskStatus;
+
+    if (!TASK_STATUSES.some((status) => status.value === targetStatus)) return;
+
+    const column = (columns.get(targetStatus) ?? []).filter(
+      (entry) => entry.id !== taskId,
+    );
+
+    // Insert before the card we were dropped on, or at the end of the column.
+    const dropIndex = overTask
+      ? column.findIndex((entry) => entry.id === overTask.id)
+      : column.length;
+    const index = dropIndex === -1 ? column.length : dropIndex;
+
+    const position = midpoint(
+      column[index - 1]?.position,
+      column[index]?.position,
+    );
+
+    if (task.status === targetStatus && task.position === position) return;
+
+    const previous = items;
+    setItems((current) =>
+      current.map((entry) =>
+        entry.id === taskId
+          ? { ...entry, status: targetStatus, position }
+          : entry,
+      ),
+    );
+
+    const outcome = await moveTask(taskId, projectId, targetStatus, position);
+
+    if (!outcome.ok) {
+      setItems(previous);
+      toast.error(outcome.error);
+      return;
+    }
+
+    router.refresh();
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragCancel={() => setActiveId(null)}
+      accessibility={{
+        screenReaderInstructions: {
+          draggable:
+            "Press space or enter to pick up this task, arrow keys to move it, space or enter to drop.",
+        },
+      }}
+    >
+      <DragInstructions />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {TASK_STATUSES.map((status) => {
+          const columnTasks = columns.get(status.value) ?? [];
+
+          return (
+            <Column
+              key={status.value}
+              status={status.value}
+              label={status.label}
+              count={columnTasks.length}
+              onCreate={() => onCreateTask(status.value)}
+            >
+              <SortableContext
+                items={columnTasks.map((task) => task.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {columnTasks.map((task) => (
+                  <SortableCard
+                    key={task.id}
+                    task={task}
+                    onOpen={() => onOpenTask(task)}
+                  />
+                ))}
+              </SortableContext>
+
+              {columnTasks.length === 0 && (
+                <p className="rounded-md border border-dashed border-border px-2 py-6 text-center text-xs text-muted-foreground">
+                  Nothing here
+                </p>
+              )}
+            </Column>
+          );
+        })}
+      </div>
+
+      {/* Follows the cursor so the card does not visually jump on pick-up. */}
+      <DragOverlay dropAnimation={null}>
+        {activeTask && (
+          <TaskCard
+            task={activeTask}
+            className="rotate-1 border-foreground/30 shadow-lg"
+          />
+        )}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function Column({
+  status,
+  label,
+  count,
+  onCreate,
+  children,
+}: {
+  status: TaskStatus;
+  label: string;
+  count: number;
+  onCreate: () => void;
+  children: React.ReactNode;
+}) {
+  // Column-level droppable, so an empty column still accepts a card.
+  const { setNodeRef, isOver } = useDroppable({ id: `column:${status}` });
+
+  return (
+    <section
+      ref={setNodeRef}
+      aria-label={label}
+      className={cn(
+        "flex min-h-[10rem] flex-col gap-2 rounded-lg border border-border bg-muted/30 p-2 transition-colors",
+        isOver && "border-foreground/30 bg-muted/60",
+      )}
+    >
+      <header className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-xs font-medium">{label}</h3>
+          <span className="text-xs text-muted-foreground">{count}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onCreate}
+          aria-label={`Add task to ${label}`}
+        >
+          <Plus />
+        </Button>
+      </header>
+
+      <div className="flex flex-col gap-2">{children}</div>
+    </section>
+  );
+}
+
+function SortableCard({
+  task,
+  onOpen,
+}: {
+  task: TaskWithAssignees;
+  onOpen: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: task.id });
+
+  return (
+    <TaskCard
+      ref={setNodeRef}
+      task={task}
+      onOpen={onOpen}
+      dragging={isDragging}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+    />
+  );
+}
+
+function stripColumnPrefix(id: string): string {
+  return id.startsWith("column:") ? id.slice("column:".length) : id;
+}
+
+/** Midpoint between two neighbours, so only the moved row needs writing. */
+function midpoint(before?: number, after?: number): number {
+  if (before === undefined && after === undefined) return POSITION_STEP;
+  if (before === undefined) return (after as number) - POSITION_STEP;
+  if (after === undefined) return before + POSITION_STEP;
+  return (before + after) / 2;
+}

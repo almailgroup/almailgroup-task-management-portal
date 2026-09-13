@@ -31,10 +31,16 @@ function isPublicRoute(pathname: string) {
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  // Without credentials there is no session to refresh; let the request through
-  // so the app can render its own "not configured" guidance.
+  // Without credentials there is no session to refresh, and any authenticated
+  // page would throw when it built a client. Send those to the landing page,
+  // which explains what is missing, instead of surfacing a 500.
   if (!isSupabaseConfigured()) {
-    return supabaseResponse;
+    if (isPublicRoute(request.nextUrl.pathname)) return supabaseResponse;
+
+    const setupUrl = request.nextUrl.clone();
+    setupUrl.pathname = "/";
+    setupUrl.search = "";
+    return NextResponse.redirect(setupUrl);
   }
 
   const supabase = createServerClient<Database>(
