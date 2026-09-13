@@ -36,10 +36,10 @@ export function TaskTable({
   return (
     <>
       {/* Desktop */}
-      <div className="hidden overflow-hidden rounded-lg border border-border md:block">
+      <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-xs)] md:block">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left">
+            <tr className="border-b border-border bg-muted/60 text-left">
               <Th className="w-[45%]">Task</Th>
               <Th>Status</Th>
               <Th>Priority</Th>

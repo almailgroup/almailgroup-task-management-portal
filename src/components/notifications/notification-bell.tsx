@@ -190,7 +190,7 @@ export function NotificationBell({
                     onClick={() => onOpenItem(notification)}
                     className={cn(
                       "flex items-start gap-2.5 px-3 py-2.5 transition-colors hover:bg-accent/60",
-                      notification.read_at === null && "bg-muted/40",
+                      notification.read_at === null && "bg-accent/40",
                     )}
                   >
                     <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

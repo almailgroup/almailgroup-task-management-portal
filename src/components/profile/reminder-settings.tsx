@@ -141,7 +141,7 @@ export function ReminderSettings({
                 Disconnect Telegram
               </Button>
             ) : code ? (
-              <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+              <div className="rounded-md border border-border bg-muted p-3 text-sm">
                 <p className="leading-relaxed">
                   Open{" "}
                   {botUsername ? (

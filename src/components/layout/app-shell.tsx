@@ -61,8 +61,8 @@ export function AppShell({
   return (
     <div className="min-h-svh bg-background">
       {/* Desktop rail */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-background lg:block">
-        <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-chrome-border bg-chrome lg:block">
+        <div className="flex h-14 items-center gap-2.5 border-b border-chrome-border px-4">
           <Link
             href="/today"
             className="group flex items-center gap-2.5 rounded-md transition-opacity hover:opacity-80"
@@ -98,8 +98,8 @@ export function AppShell({
             className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-border bg-background">
-            <div className="flex h-14 items-center justify-between border-b border-border px-4">
+          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-chrome-border bg-chrome">
+            <div className="flex h-14 items-center justify-between border-b border-chrome-border px-4">
               <span className="text-sm font-medium tracking-tight">
                 Almailgroup
               </span>
@@ -125,7 +125,7 @@ export function AppShell({
       )}
 
       <div className="lg:pl-60">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/75 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 sm:px-6">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <Button
               variant="ghost"

@@ -14,7 +14,7 @@ const buttonVariants = cva(
           "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[var(--shadow-xs)]",
         /** 1px micro-border, the workhorse for most actions. */
         outline:
-          "border border-input bg-background hover:border-foreground/25 hover:bg-accent hover:text-accent-foreground",
+          "border border-input bg-card hover:border-foreground/25 hover:bg-accent hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",

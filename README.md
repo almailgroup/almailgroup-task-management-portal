@@ -215,19 +215,26 @@ Notes on how this is enforced:
 
 ## Design system
 
-The palette is strictly monochrome: pure white and pure black anchors with the
-`zinc` ramp between them. No saturated hue is defined anywhere in
-`src/app/globals.css` — a palette audit of the compiled CSS finds only neutrals
-and black-alpha scrims.
+The palette is a near-neutral cool grey, anchored on `#f3f3f4` in light mode
+and `#2c2d32` in dark. Softer than pure black and white, which is easier to
+read against for a full working day, and it buys the thing a white page cannot:
+**panels can lift off the background**.
 
-- **Surfaces** — white on light; pure black page with `zinc-950` cards on dark.
-- **Separation** — 1px `zinc-200` / `zinc-800` micro-borders rather than shadows.
+
+- **Surfaces** — three tones, always in the same order: chrome (sidebar and
+  header) sits behind the page, the page behind its cards. In dark mode the
+  page is the darkest tone and panels step *up* towards the light, so depth
+  reads from the ramp with almost no shadow at all.
+- **Separation** — 1px micro-borders, plus the tonal step between surfaces.
 - **Status** — differentiated by badge fill weight, not colour.
 - **Priority** — a four-bar greyscale severity ramp.
 - **Overdue** — weight plus a dotted underline rather than red.
 - **Themes** — light/dark via `next-themes`; all tokens redefined under `.dark`.
-- **Elevation** — four very restrained black-alpha shadows. With no colour to
-  lean on, anything heavier reads as muddy grey rather than a raised surface.
+- **Elevation** — four restrained shadows, tinted with the palette's own ink
+  rather than pure black, and all but removed in dark mode where tone already
+  does the work.
+- **Contrast** — every text/surface pair is checked against WCAG AA. The
+  tightest is muted text on a card in dark mode at 4.92:1.
 - **Motion** — one easing curve for the whole interface, and everything is
   disabled under `prefers-reduced-motion`.
 

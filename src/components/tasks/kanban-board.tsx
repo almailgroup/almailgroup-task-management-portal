@@ -252,8 +252,9 @@ function Column({
       ref={setNodeRef}
       aria-label={label}
       className={cn(
-        "flex min-h-[10rem] flex-col gap-2 rounded-lg border border-border bg-muted/30 p-2 transition-colors",
-        isOver && "border-foreground/30 bg-muted/60",
+        "flex min-h-[10rem] flex-col gap-2 rounded-lg border border-border/70 bg-chrome/60 p-2 transition-colors",
+        // A dashed ring on the target column reads faster than a fill change.
+        isOver && "border-dashed border-foreground/40 bg-accent/50",
       )}
     >
       <header className="flex items-center justify-between gap-2 px-1">

@@ -44,7 +44,7 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4",
-          "border border-border bg-background p-5 shadow-[var(--shadow-lg)] sm:rounded-xl",
+          "border border-border bg-popover p-5 shadow-[var(--shadow-lg)] sm:rounded-xl",
           "max-h-[92svh] overflow-y-auto scrollbar-thin",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",

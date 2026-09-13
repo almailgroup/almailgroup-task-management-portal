@@ -15,61 +15,73 @@
 :root {
   --radius: 0.5rem;
 
-  /* Surfaces */
-  --background: #ffffff;
-  --foreground: #09090b; /* zinc-950 */
+  /* Surfaces.
+   * The page is a soft grey and cards are pure white, so a panel reads as a
+   * raised surface rather than as an outline drawn on the same tone. That
+   * separation is what the old white-on-white palette could not give. */
+  --background: #f3f3f4;
+  --foreground: #1b1c20;
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #1b1c20;
   --popover: #ffffff;
-  --popover-foreground: #09090b;
+  --popover-foreground: #1b1c20;
 
   /* Actions — inverted against the surface for maximum contrast. */
-  --primary: #09090b;
-  --primary-foreground: #fafafa; /* zinc-50 */
-  --secondary: #f4f4f5; /* zinc-100 */
-  --secondary-foreground: #18181b; /* zinc-900 */
+  --primary: #1b1c20;
+  --primary-foreground: #fbfbfc;
+  --secondary: #eaeaec;
+  --secondary-foreground: #1b1c20;
 
   /* Recessive text and fills */
-  --muted: #f4f4f5; /* zinc-100 */
-  --muted-foreground: #71717a; /* zinc-500 */
-  --accent: #f4f4f5; /* zinc-100 */
-  --accent-foreground: #18181b;
+  --muted: #eaeaec;
+  --muted-foreground: #61636d;
+  --accent: #e4e4e8;
+  --accent-foreground: #1b1c20;
 
   /* Destructive stays greyscale in normal states; colour is reserved for
    * genuinely irreversible actions so it actually reads as a warning. */
-  --destructive: #18181b;
-  --destructive-foreground: #fafafa;
+  --destructive: #1b1c20;
+  --destructive-foreground: #fbfbfc;
 
   /* 1px micro-borders are the primary separation device in this UI. */
-  --border: #e4e4e7; /* zinc-200 */
-  --input: #e4e4e7;
-  --ring: #a1a1aa; /* zinc-400 */
+  --border: #dedee3;
+  --input: #d5d6dc;
+  --ring: #8a8c96;
+
+  /* Chrome — sidebar and header sit behind the content they frame. */
+  --chrome: #ededef;
+  --chrome-border: #e1e1e6;
 }
 
 .dark {
-  --background: #000000;
-  --foreground: #fafafa; /* zinc-50 */
-  --card: #09090b; /* zinc-950 — lifts cards off pure-black page */
-  --card-foreground: #fafafa;
-  --popover: #09090b;
-  --popover-foreground: #fafafa;
+  /* Same idea inverted: the page is the darkest tone and panels step up
+   * towards the light, so depth reads without any shadow at all. */
+  --background: #2c2d32;
+  --foreground: #ecedf0;
+  --card: #34353b;
+  --card-foreground: #ecedf0;
+  --popover: #34353b;
+  --popover-foreground: #ecedf0;
 
-  --primary: #fafafa;
-  --primary-foreground: #09090b;
-  --secondary: #18181b; /* zinc-900 */
-  --secondary-foreground: #fafafa;
+  --primary: #ecedf0;
+  --primary-foreground: #26272b;
+  --secondary: #3b3c43;
+  --secondary-foreground: #ecedf0;
 
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa; /* zinc-400 */
-  --accent: #27272a; /* zinc-800 */
-  --accent-foreground: #fafafa;
+  --muted: #3b3c43;
+  --muted-foreground: #a2a4ad;
+  --accent: #45464e;
+  --accent-foreground: #ecedf0;
 
-  --destructive: #fafafa;
-  --destructive-foreground: #09090b;
+  --destructive: #ecedf0;
+  --destructive-foreground: #26272b;
 
-  --border: #27272a; /* zinc-800 */
-  --input: #27272a;
-  --ring: #52525b; /* zinc-600 */
+  --border: #41424a;
+  --input: #4a4b54;
+  --ring: #7c7e89;
+
+  --chrome: #292a2e;
+  --chrome-border: #3a3b42;
 }
 
 @theme inline {
@@ -92,6 +104,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chrome: var(--chrome);
+  --color-chrome-border: var(--chrome-border);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -104,10 +118,10 @@
   /* Elevation. Monochrome interfaces have no colour to lean on, so depth has
    * to come from very restrained shadows — anything heavier reads as muddy
    * grey rather than as a raised surface. */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.04);
-  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.16), 0 4px 12px -4px rgb(0 0 0 / 0.06);
+  --shadow-xs: 0 1px 2px 0 rgb(17 18 22 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(17 18 22 / 0.07), 0 1px 2px -1px rgb(17 18 22 / 0.05);
+  --shadow-md: 0 6px 16px -4px rgb(17 18 22 / 0.10), 0 2px 6px -2px rgb(17 18 22 / 0.05);
+  --shadow-lg: 0 16px 40px -12px rgb(17 18 22 / 0.20), 0 4px 12px -4px rgb(17 18 22 / 0.08);
 
   /* One timing for everything, so the interface moves as a single system. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -116,6 +130,15 @@
 @layer base {
   * {
     @apply border-border;
+  }
+
+  /* In dark mode the surfaces already step apart by tone, so shadows only
+   * muddy them. Depth there comes from the ramp, not from darkness. */
+  .dark {
+    --shadow-xs: 0 0 0 0 transparent;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.20);
+    --shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.35);
+    --shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 0.50);
   }
 
   body {

@@ -60,7 +60,7 @@ export function BoardSkeleton() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, column) => (
-          <div key={column} className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-2">
+          <div key={column} className="flex flex-col gap-2 rounded-lg border border-border bg-chrome/60 p-2">
             <Skeleton className="h-4 w-24" />
             {Array.from({ length: column === 0 ? 3 : 2 }).map((_, card) => (
               <Skeleton key={card} className="h-[4.5rem] rounded-md" />
