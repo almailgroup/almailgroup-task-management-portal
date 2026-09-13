@@ -14,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { ProjectSwitcher } from "@/components/layout/project-switcher";
+import { SidebarClock } from "@/components/layout/sidebar-clock";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { cn } from "@/lib/utils";
 import type { Profile, Project } from "@/lib/supabase/database.types";
@@ -121,6 +122,10 @@ export function SidebarNav({
               ))
             )}
           </div>
+        </div>
+
+        <div className="border-t border-border pt-1.5">
+          <SidebarClock />
         </div>
       </div>
 
