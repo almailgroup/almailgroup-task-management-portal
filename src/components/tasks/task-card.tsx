@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Timer } from "lucide-react";
 
 import {
   AssigneeStack,
   DueDate,
   PriorityIndicator,
 } from "@/components/tasks/task-meta";
+import { formatElapsed } from "@/lib/dates";
+import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
@@ -51,9 +53,35 @@ export const TaskCard = React.forwardRef<
         </div>
         <AssigneeStack assignees={task.assignees} max={2} />
       </div>
+
+      <ElapsedSinceCreated createdAt={task.created_at} />
     </div>
   );
 });
+
+/**
+ * How long the task has been open, ticking every second.
+ *
+ * Renders a fixed-width placeholder before hydration rather than nothing, so
+ * the card does not change height the moment the timer starts.
+ */
+function ElapsedSinceCreated({ createdAt }: { createdAt: string }) {
+  const now = useNow();
+
+  return (
+    <p
+      className="mt-2.5 flex items-center gap-1.5 border-t border-border/60 pt-2 text-xs text-muted-foreground"
+      // Formatted with the viewer's locale, so it waits for hydration too.
+      title={now === null ? undefined : `Created ${new Date(createdAt).toLocaleString()}`}
+    >
+      <Timer className="size-3.5 shrink-0" />
+      <span className="tabular-nums">
+        {now === null ? "--:--:--" : formatElapsed(createdAt, now)}
+      </span>
+      <span className="sr-only">since this task was created</span>
+    </p>
+  );
+}
 
 /** Screen-reader hint describing how to move a card with the keyboard. */
 export function DragInstructions() {

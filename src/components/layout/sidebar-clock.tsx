@@ -9,11 +9,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const timeFormat = new Intl.DateTimeFormat(undefined, {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+/** No seconds here: the label is announced on focus, not read as a ticker. */
+const labelTimeFormat = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
   minute: "2-digit",
 });
@@ -61,38 +68,17 @@ function monthGrid(month: Date): Date[] {
 }
 
 /**
- * Live clock pinned to the foot of the sidebar. Clicking it opens a calendar
- * on the current month with today marked.
+ * Live clock pinned to the foot of the sidebar, ticking to the second.
+ * Clicking it opens a calendar on the current month with today marked.
  *
  * Nothing time-dependent renders until after mount: the server has no way to
  * know the viewer's clock or timezone, so rendering it during SSR would
  * guarantee a hydration mismatch.
  */
 export function SidebarClock() {
-  const [now, setNow] = React.useState<Date | null>(null);
+  const nowMs = useNow();
   const [open, setOpen] = React.useState(false);
   const [viewMonth, setViewMonth] = React.useState<Date | null>(null);
-
-  React.useEffect(() => {
-    setNow(new Date());
-
-    let timer: ReturnType<typeof setTimeout>;
-
-    // Re-tick on the minute boundary rather than every second: the display
-    // has minute resolution, so a per-second interval would be wasted renders.
-    const schedule = () => {
-      const current = new Date();
-      const msToNextMinute =
-        60_000 - (current.getSeconds() * 1000 + current.getMilliseconds());
-      timer = setTimeout(() => {
-        setNow(new Date());
-        schedule();
-      }, msToNextMinute);
-    };
-
-    schedule();
-    return () => clearTimeout(timer);
-  }, []);
 
   // Opening always lands on the month the viewer is currently in.
   const handleOpenChange = (next: boolean) => {
@@ -100,7 +86,7 @@ export function SidebarClock() {
     setOpen(next);
   };
 
-  const today = now ?? null;
+  const today = nowMs === null ? null : new Date(nowMs);
   const month = viewMonth ?? today;
   const days = month ? monthGrid(month) : [];
   const viewingThisMonth =
@@ -127,14 +113,14 @@ export function SidebarClock() {
         )}
         aria-label={
           today
-            ? `${timeFormat.format(today)}, ${fullDateFormat.format(today)}. Open calendar`
+            ? `${labelTimeFormat.format(today)}, ${fullDateFormat.format(today)}. Open calendar`
             : "Open calendar"
         }
       >
         <CalendarDays className="size-4 shrink-0" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium tabular-nums leading-tight text-foreground">
-            {today ? timeFormat.format(today) : "--:--"}
+            {today ? timeFormat.format(today) : "--:--:--"}
           </span>
           <span className="block truncate text-xs leading-tight">
             {today ? dateFormat.format(today) : " "}

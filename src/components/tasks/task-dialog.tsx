@@ -176,8 +176,12 @@ export function TaskDialog({
               <FieldError message={errors?.description} />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
+            {/* Four tracks, with the due date spanning two: a datetime-local
+                input needs ~210px of content box and one third of this dialog
+                gives it 197px, which pushed the native calendar button out
+                past the field's own border. */}
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <Label htmlFor="status">Status</Label>
                 <Select
                   name="status"
@@ -207,7 +211,7 @@ export function TaskDialog({
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <Label htmlFor="priority">Priority</Label>
                 <Select name="priority" defaultValue={task?.priority ?? "medium"}>
                   <SelectTrigger id="priority">
@@ -223,7 +227,7 @@ export function TaskDialog({
                 </Select>
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
                 <Label htmlFor="dueAt">Due date &amp; time</Label>
                 <Input
                   id="dueAt"

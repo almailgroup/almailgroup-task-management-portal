@@ -55,3 +55,21 @@ export function relativeDay(iso: string): string {
   if (days > 0) return `in ${days} days`;
   return `${Math.abs(days)} days ago`;
 }
+
+/**
+ * Elapsed time as hours:minutes:seconds, counting from an instant to now.
+ *
+ * Hours are not wrapped into days on purpose — a task open for three days
+ * reads as "73:04:11", which is what was asked for and keeps the field a
+ * single, comparable number.
+ */
+export function formatElapsed(fromIso: string, nowMs: number): string {
+  const seconds = Math.max(
+    0,
+    Math.floor((nowMs - new Date(fromIso).getTime()) / 1000),
+  );
+  const pad = (n: number) => `${n}`.padStart(2, "0");
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${hours}:${pad(minutes)}:${pad(seconds % 60)}`;
+}
