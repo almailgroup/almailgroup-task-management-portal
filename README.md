@@ -97,6 +97,7 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0007_attachments.sql`           | Attachments table, storage bucket and policies |
 | `…0008_notifications.sql`         | Notifications table and trigger fan-out       |
 | `…0009_member_view_only_details.sql` | Members are view-only on task details      |
+| `…0010_fix_delete_task_audit.sql` | Lets a task with assignees be deleted         |
 
 ### 3. Register the first user
 
