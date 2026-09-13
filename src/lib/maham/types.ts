@@ -1,0 +1,73 @@
+/**
+ * MAHAM AI — shared types.
+ *
+ * Deliberately free of React and of Supabase: the same shapes travel from the
+ * chat panel, through the Server Action, to the Cloudflare Worker that will
+ * front Gemini. Keeping them in one plain module is what lets the Worker be
+ * dropped in without touching the UI.
+ */
+
+import type {
+  TaskPriority,
+  TaskStatus,
+} from "@/lib/supabase/database.types";
+
+export type MahamRole = "user" | "assistant";
+
+export type MahamMessage = {
+  id: string;
+  role: MahamRole;
+  text: string;
+  /** ISO instant. Rendered in the viewer's timezone after hydration. */
+  at: string;
+};
+
+/** A task flattened to what the assistant needs to talk about it. */
+export type MahamTask = {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  project: string | null;
+  dueAt: string | null;
+  followUpAt: string | null;
+  assignees: string[];
+  createdAt: string;
+};
+
+/**
+ * Everything MAHAM knows when it answers, gathered under the caller's own
+ * permissions. A member's snapshot holds only the tasks assigned to them,
+ * because row-level security already scopes the query that builds it — the
+ * assistant inherits the permission model rather than re-implementing it.
+ */
+export type MahamSnapshot = {
+  /** Who is asking, so the answer can say "you" and mean it. */
+  viewer: { name: string; role: string };
+  /** ISO instant the snapshot was taken, for relative phrasing. */
+  takenAt: string;
+  tasks: MahamTask[];
+  counts: {
+    total: number;
+    todo: number;
+    inProgress: number;
+    inReview: number;
+    done: number;
+    overdue: number;
+    dueToday: number;
+    unassigned: number;
+    noDueDate: number;
+  };
+};
+
+/** What the chat panel sends. */
+export type MahamRequest = {
+  /** Full turn history, oldest first, including the question just asked. */
+  messages: MahamMessage[];
+};
+
+/** What comes back. `source` says which brain answered. */
+export type MahamAnswer = {
+  text: string;
+  source: "gemini" | "local";
+};

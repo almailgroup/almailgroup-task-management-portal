@@ -440,6 +440,64 @@ which takes days. Outside a 24-hour window since the user last messaged you,
 only approved templates are delivered; free-text messages are rejected. Set
 `TWILIO_WHATSAPP_TEMPLATE_SID` once you have one approved.
 
+## MAHAM AI
+
+The in-app assistant, reached from the button above the clock at the foot of
+the sidebar. It answers questions about where work stands: what is overdue,
+what is due today, what to pick up next, what is waiting in review, and how
+the board is split by status.
+
+### What it can see
+
+Nothing you could not already open yourself. `buildSnapshot` in
+`src/lib/maham/snapshot.ts` reads through the ordinary RLS-scoped queries, so
+a member's snapshot holds only the tasks assigned to them and a manager's
+holds their projects. The assistant has no permission logic of its own and no
+service-role access; it cannot widen what you see.
+
+The snapshot is built server-side on every question. The browser never holds
+it, and never learns the Worker's address or its secret.
+
+### Connecting Gemini
+
+Until `MAHAM_WORKER_URL` is set, answers come from the local brain in
+`src/lib/maham/local-brain.ts` — deterministic, counted straight off the
+board, and honest about the questions it cannot take. That brain stays on
+afterwards as the fallback when the Worker call fails, so the panel is never
+simply dead.
+
+Set `MAHAM_WORKER_URL` (and ideally `MAHAM_WORKER_SECRET`) and the Server
+Action forwards instead. The Worker receives:
+
+```jsonc
+POST <MAHAM_WORKER_URL>
+Authorization: Bearer <MAHAM_WORKER_SECRET>   // only if the secret is set
+
+{
+  "messages": [{ "id": "…", "role": "user", "text": "What is overdue?", "at": "…" }],
+  "snapshot": {
+    "viewer":  { "name": "…", "role": "manager" },
+    "takenAt": "2026-09-13T19:00:00.000Z",
+    "tasks":   [{ "id": "…", "title": "…", "status": "todo", "priority": "high",
+                  "project": "Gemellry", "dueAt": "…", "followUpAt": null,
+                  "assignees": ["…"], "createdAt": "…" }],
+    "counts":  { "total": 12, "todo": 4, "inProgress": 3, "inReview": 2, "done": 3,
+                 "overdue": 1, "dueToday": 2, "unassigned": 1, "noDueDate": 4 }
+  }
+}
+```
+
+and must reply with `{ "text": "…" }`. Anything else — a non-2xx status, an
+empty `text`, or no answer within 20 seconds — falls back to the local brain
+rather than surfacing an error.
+
+The Gemini API key belongs on the Worker, as a Cloudflare secret. It must not
+be added to Vercel: anything this app holds is one `NEXT_PUBLIC_` typo away
+from the browser, and the Worker exists precisely so the key never travels.
+
+The shapes above are `src/lib/maham/types.ts`, which is deliberately free of
+React and Supabase imports so the Worker can share the file verbatim.
+
 ## Deploying to Vercel
 
 1. **Apply the migrations** to your Supabase project (see above) — do this

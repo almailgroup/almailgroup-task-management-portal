@@ -8,6 +8,7 @@ import {
   Hash,
   LayoutDashboard,
   Plus,
+  Sparkles,
   Sunrise,
   Users,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ProjectSwitcher } from "@/components/layout/project-switcher";
 import { SidebarClock } from "@/components/layout/sidebar-clock";
+import { MahamChat } from "@/components/maham/maham-chat";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { cn } from "@/lib/utils";
 import type { Profile, Project } from "@/lib/supabase/database.types";
@@ -35,6 +37,7 @@ export function SidebarNav({
 }) {
   const pathname = usePathname();
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [mahamOpen, setMahamOpen] = React.useState(false);
 
   const canCreateProject = profile.role === "admin" || profile.role === "manager";
 
@@ -124,12 +127,38 @@ export function SidebarNav({
           </div>
         </div>
 
-        <div className="border-t border-border pt-1.5">
+        <div className="flex flex-col gap-1 border-t border-border pt-1.5">
+          <button
+            type="button"
+            onClick={() => setMahamOpen(true)}
+            className={cn(
+              "group/maham flex items-center gap-2.5 rounded-md border border-border bg-card px-2 py-2 text-left transition-colors",
+              "hover:border-foreground/25 hover:bg-accent",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+            )}
+          >
+            <span
+              aria-hidden
+              className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"
+            >
+              <Sparkles className="size-3.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium leading-tight">
+                MAHAM AI
+              </span>
+              <span className="block truncate text-xs leading-tight text-muted-foreground">
+                Ask about your tasks
+              </span>
+            </span>
+          </button>
+
           <SidebarClock />
         </div>
       </div>
 
       <ProjectDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <MahamChat open={mahamOpen} onOpenChange={setMahamOpen} />
     </>
   );
 }
