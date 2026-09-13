@@ -49,6 +49,7 @@ export function KanbanBoard({
   tasks,
   projectId,
   canComplete,
+  canCreate,
   onOpenTask,
   onCreateTask,
 }: {
@@ -56,6 +57,8 @@ export function KanbanBoard({
   projectId: string | null;
   /** Whether the viewer may move cards into Done. */
   canComplete: boolean;
+  /** Whether the viewer may add a task to a column. */
+  canCreate: boolean;
   onOpenTask: (task: TaskWithAssignees) => void;
   onCreateTask: (status: TaskStatus) => void;
 }) {
@@ -187,6 +190,7 @@ export function KanbanBoard({
               status={status.value}
               label={status.label}
               count={columnTasks.length}
+              canCreate={canCreate}
               onCreate={() => onCreateTask(status.value)}
             >
               <SortableContext
@@ -229,12 +233,14 @@ function Column({
   status,
   label,
   count,
+  canCreate,
   onCreate,
   children,
 }: {
   status: TaskStatus;
   label: string;
   count: number;
+  canCreate: boolean;
   onCreate: () => void;
   children: React.ReactNode;
 }) {
@@ -255,14 +261,16 @@ function Column({
           <h3 className="text-xs font-medium">{label}</h3>
           <span className="text-xs text-muted-foreground">{count}</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onCreate}
-          aria-label={`Add task to ${label}`}
-        >
-          <Plus />
-        </Button>
+        {canCreate && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onCreate}
+            aria-label={`Add task to ${label}`}
+          >
+            <Plus />
+          </Button>
+        )}
       </header>
 
       <div className="flex flex-col gap-2">{children}</div>

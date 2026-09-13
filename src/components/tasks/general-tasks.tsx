@@ -218,6 +218,7 @@ export function GeneralTasks({
           tasks={filtered}
           projectId={null}
           canComplete={canManage}
+          canCreate={canManage}
           onOpenTask={openTask}
           onCreateTask={createTask}
         />

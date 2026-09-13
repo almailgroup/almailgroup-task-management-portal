@@ -123,6 +123,7 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0012_project_membership.sql`    | Projects become private to their members      |
 | `…0013_follow_ups.sql`            | Follow-up dates and notes, audited            |
 | `…0014_reminders.sql`             | Reminder preferences and outbound queue       |
+| `…0015_members_see_only_assigned.sql` | Members see only their own tasks          |
 
 ### 3. Register the first user
 
@@ -156,8 +157,9 @@ On top of visibility, **writes** are gated by role:
 | --------------------------------------------- | :---: | :----------: | :---------------------: |
 | Create / edit projects                        |  yes  | yes          | no                      |
 | Delete a project                              |  yes  | own projects | no                      |
-| Create tasks in a project                     |  yes  | yes          | yes                     |
+| Create tasks in a project                     |  yes  | yes          | **no**                  |
 | Create **general** tasks                      |  yes  | yes          | no                      |
+| See a task                                    |  all  | whole project | **only tasks assigned to them** |
 | Edit title, description, priority, due date   |  yes  | yes          | **no — view only**      |
 | Add or remove assignees                       |  yes  | yes          | **no**                  |
 | Change a task's status                        |  yes  | yes          | assigned or created only |
@@ -177,9 +179,13 @@ On top of visibility, **writes** are gated by role:
 | Upload their own profile picture              |  yes  | yes          | yes                     |
 
 **The member's lane.** Planning belongs to managers; members execute. A member
-receives a task, works on it, attaches the result, comments, and moves it to In
-Review. They cannot rewrite what they were asked to do, reassign it, remove
-themselves from it, or delete the discussion around it.
+sees **only the tasks assigned to them** — a project they belong to appears in
+their sidebar so they can reach their own work, but none of the team's other
+tasks in it are visible, and neither are the comments or files on them. On a
+task they have been given they can read it, move its status up to In Review,
+comment, and attach files. They do not create tasks, delete them, rewrite what
+they were asked to do, reassign it, remove themselves from it, or delete the
+discussion around it.
 
 Notes on how this is enforced:
 

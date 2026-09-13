@@ -92,6 +92,9 @@ export function ProjectWorkspace({
     profile.role === "admin" ||
     (profile.role === "manager" && project.created_by === profile.id);
   const canComplete = profile.role === "admin" || profile.role === "manager";
+  // Members no longer create or delete tasks; they work the ones assigned to
+  // them. Hiding the control states that instead of letting the save fail.
+  const canCreate = canComplete;
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -162,10 +165,12 @@ export function ProjectWorkspace({
             team={team}
             canManage={profile.role === "admin" || profile.role === "manager"}
           />
-          <Button size="sm" onClick={() => createTask("todo")}>
-            <Plus />
-            New task
-          </Button>
+          {canCreate && (
+            <Button size="sm" onClick={() => createTask("todo")}>
+              <Plus />
+              New task
+            </Button>
+          )}
 
           {canManageProject && (
             <DropdownMenu>
@@ -289,6 +294,7 @@ export function ProjectWorkspace({
           tasks={filtered}
           projectId={project.id}
           canComplete={canComplete}
+          canCreate={canCreate}
           onOpenTask={openTask}
           onCreateTask={createTask}
         />
