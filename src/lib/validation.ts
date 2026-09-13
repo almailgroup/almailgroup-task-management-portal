@@ -52,6 +52,8 @@ export const projectSchema = z.object({
     .optional(),
 });
 
+export const userRoleSchema = z.enum(["admin", "manager", "member"]);
+
 export const taskStatusSchema = z.enum([
   "todo",
   "in_progress",

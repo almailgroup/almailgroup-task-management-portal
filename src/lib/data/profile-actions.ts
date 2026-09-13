@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -10,7 +11,7 @@ import {
   ok,
   type ActionResult,
 } from "@/lib/action-result";
-import { profileSchema } from "@/lib/validation";
+import { profileSchema, userRoleSchema } from "@/lib/validation";
 import type { UserRole } from "@/lib/supabase/database.types";
 
 export async function updateProfile(
@@ -57,11 +58,19 @@ export async function updateMemberRole(
   userId: string,
   role: UserRole,
 ): Promise<ActionResult<void>> {
+  // A Server Action is a public endpoint, so the arguments are validated at
+  // runtime rather than trusted from the TypeScript signature.
+  const parsed = userRoleSchema.safeParse(role);
+  if (!parsed.success) return fail("Unknown role.");
+  if (!z.string().uuid().safeParse(userId).success) {
+    return fail("Unknown member.");
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("profiles")
-    .update({ role })
+    .update({ role: parsed.data })
     .eq("id", userId)
     .select("id")
     .maybeSingle();
