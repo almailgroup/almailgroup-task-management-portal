@@ -152,3 +152,21 @@ export const fileAttachmentSchema = z.object({
 
 export type LinkAttachmentInput = z.infer<typeof linkAttachmentSchema>;
 export type FileAttachmentInput = z.infer<typeof fileAttachmentSchema>;
+
+/** A follow-up: when to chase a task, and optionally what to chase. */
+export const followUpSchema = z.object({
+  followUpAt: z
+    .string()
+    .regex(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/,
+      "Pick a date and time",
+    )
+    .transform((value) => new Date(value).toISOString()),
+  note: z
+    .string()
+    .trim()
+    .max(500, "Note must be 500 characters or fewer")
+    .optional(),
+});
+
+export type FollowUpInput = z.infer<typeof followUpSchema>;

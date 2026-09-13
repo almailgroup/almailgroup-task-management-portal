@@ -10,7 +10,7 @@ import {
   ok,
   type ActionResult,
 } from "@/lib/action-result";
-import { taskSchema, taskStatusSchema } from "@/lib/validation";
+import { followUpSchema, taskSchema, taskStatusSchema } from "@/lib/validation";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 
 /**
@@ -285,4 +285,78 @@ export async function changeTaskStatus(
 
   revalidateTaskViews(projectId);
   return ok({ status: data.status });
+}
+
+/**
+ * Move a task's due date without opening the whole edit form.
+ *
+ * Rescheduling is the single most common edit during a daily review — work
+ * slips and gets pushed — so it gets its own narrow action rather than
+ * round-tripping every field.
+ */
+export async function rescheduleTask(
+  taskId: string,
+  projectId: string | null,
+  dueAt: string | null,
+): Promise<ActionResult<{ dueAt: string | null }>> {
+  if (dueAt !== null && Number.isNaN(new Date(dueAt).getTime())) {
+    return fail("That is not a valid date.");
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .update({ due_at: dueAt })
+    .eq("id", taskId)
+    .select("due_at")
+    .maybeSingle();
+
+  if (error) return fail(describeDatabaseError(error));
+  if (!data) return fail("You do not have permission to reschedule this task.");
+
+  revalidateTaskViews(projectId);
+  revalidatePath("/today");
+  return ok({ dueAt: data.due_at });
+}
+
+/** Set or clear when a task should next be chased. */
+export async function setFollowUp(
+  taskId: string,
+  projectId: string | null,
+  input: { followUpAt: string; note?: string } | null,
+): Promise<ActionResult<void>> {
+  const supabase = await createClient();
+
+  // Clearing the date clears the note with it; the database rejects a note
+  // with no date, since it would never surface in the follow-up list.
+  const payload =
+    input === null
+      ? { follow_up_at: null, follow_up_note: null }
+      : (() => {
+          const parsed = followUpSchema.safeParse(input);
+          if (!parsed.success) return null;
+          return {
+            follow_up_at: parsed.data.followUpAt,
+            follow_up_note: parsed.data.note?.trim() || null,
+          };
+        })();
+
+  if (payload === null && input !== null) {
+    return fail("Pick a valid date and time to follow up.");
+  }
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(payload!)
+    .eq("id", taskId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return fail(describeDatabaseError(error));
+  if (!data) return fail("You do not have permission to set a follow-up.");
+
+  revalidateTaskViews(projectId);
+  revalidatePath("/today");
+  return ok(undefined);
 }

@@ -267,3 +267,30 @@ export const getProjectMembers = cache(
       );
   },
 );
+
+/**
+ * Tasks carrying a follow-up date, soonest first.
+ *
+ * RLS scopes this to what the caller can see, so a manager gets the whole
+ * chase list while a member only sees follow-ups on their own work.
+ */
+export const getFollowUps = cache(
+  async (
+    opts: { generalOnly?: boolean } = {},
+  ): Promise<TaskWithAssignees[]> => {
+    const supabase = await createClient();
+    let query = supabase
+      .from("tasks")
+      .select("*, assignments:task_assignments(user:profiles(*))")
+      .not("follow_up_at", "is", null)
+      .neq("status", "done")
+      .order("follow_up_at", { ascending: true });
+
+    if (opts.generalOnly) query = query.is("project_id", null);
+
+    const { data } = await query;
+    return (data ?? []).map((row) =>
+      withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
+    );
+  },
+);

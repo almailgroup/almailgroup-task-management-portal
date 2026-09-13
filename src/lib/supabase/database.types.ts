@@ -38,6 +38,8 @@ export type TaskActivityAction =
   | "status_changed"
   | "priority_changed"
   | "due_date_changed"
+  | "follow_up_set"
+  | "follow_up_cleared"
   | "assignee_added"
   | "assignee_removed"
   | "commented";
@@ -116,6 +118,9 @@ export type Database = {
           priority: TaskPriority;
           /** Absolute instant, including time of day. */
           due_at: string | null;
+          /** When this task should next be chased. */
+          follow_up_at: string | null;
+          follow_up_note: string | null;
           position: number;
           created_by: string | null;
           created_at: string;
@@ -129,6 +134,8 @@ export type Database = {
           status?: TaskStatus;
           priority?: TaskPriority;
           due_at?: string | null;
+          follow_up_at?: string | null;
+          follow_up_note?: string | null;
           position?: number;
           created_by: string;
           created_at?: string;
@@ -140,6 +147,8 @@ export type Database = {
           status?: TaskStatus;
           priority?: TaskPriority;
           due_at?: string | null;
+          follow_up_at?: string | null;
+          follow_up_note?: string | null;
           position?: number;
         };
         Relationships: [

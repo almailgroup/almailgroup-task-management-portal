@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Columns3, List, Plus, Search } from "lucide-react";
+import { Columns3, List, PhoneCall, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskTable } from "@/components/tasks/task-table";
+import { FollowUpList } from "@/components/tasks/follow-up-list";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import type {
@@ -33,16 +34,20 @@ import type {
  */
 export function GeneralTasks({
   tasks,
+  followUps,
   team,
   profile,
 }: {
   tasks: TaskWithAssignees[];
+  followUps: TaskWithAssignees[];
   team: Profile[];
   profile: Profile;
 }) {
   const liveTasks = useTaskStream({ projectId: null, initial: tasks });
 
-  const [view, setView] = React.useState<"board" | "list">("board");
+  const [view, setView] = React.useState<"board" | "list" | "followups">(
+    "board",
+  );
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<TaskStatus | "all">("all");
   const [priority, setPriority] = React.useState<TaskPriority | "all">("all");
@@ -112,7 +117,9 @@ export function GeneralTasks({
       <div className="flex flex-wrap items-center gap-2">
         <Tabs
           value={view}
-          onValueChange={(value) => setView(value as "board" | "list")}
+          onValueChange={(value) =>
+            setView(value as "board" | "list" | "followups")
+          }
         >
           <TabsList>
             <TabsTrigger value="board">
@@ -122,6 +129,15 @@ export function GeneralTasks({
             <TabsTrigger value="list">
               <List />
               List
+            </TabsTrigger>
+            <TabsTrigger value="followups">
+              <PhoneCall />
+              Follow-ups
+              {followUps.length > 0 && (
+                <span className="ml-0.5 tabular-nums opacity-70">
+                  {followUps.length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -191,7 +207,13 @@ export function GeneralTasks({
         </span>
       </div>
 
-      {view === "board" ? (
+      {view === "followups" ? (
+        <FollowUpList
+          tasks={followUps}
+          canManage={canManage}
+          onOpenTask={openTask}
+        />
+      ) : view === "board" ? (
         <KanbanBoard
           tasks={filtered}
           projectId={null}

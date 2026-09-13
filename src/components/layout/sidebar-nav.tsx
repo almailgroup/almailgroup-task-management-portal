@@ -3,7 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, Hash, LayoutDashboard, Plus, Users } from "lucide-react";
+import {
+  ClipboardList,
+  Hash,
+  LayoutDashboard,
+  Plus,
+  Sunrise,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ProjectSwitcher } from "@/components/layout/project-switcher";
@@ -52,6 +59,13 @@ export function SidebarNav({
             icon={<LayoutDashboard />}
             label="Dashboard"
             active={pathname === "/dashboard"}
+            onNavigate={onNavigate}
+          />
+          <NavLink
+            href="/today"
+            icon={<Sunrise />}
+            label="Today"
+            active={pathname === "/today"}
             onNavigate={onNavigate}
           />
           <NavLink

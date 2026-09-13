@@ -18,6 +18,10 @@ function describe(entry: TaskActivityWithActor): string {
       return `moved it from ${to(entry.old_value)} to ${to(entry.new_value)}`;
     case "priority_changed":
       return `changed priority from ${entry.old_value ?? "none"} to ${entry.new_value ?? "none"}`;
+    case "follow_up_set":
+      return `set a follow-up for ${entry.new_value ?? "later"}`;
+    case "follow_up_cleared":
+      return "cleared the follow-up";
     case "due_date_changed":
       return entry.new_value
         ? `set the due date to ${entry.new_value}`

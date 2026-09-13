@@ -45,6 +45,14 @@ monochrome interface.
   managers and admins.
 - **Notifications** — live in-app bell for assignment, comments, @mentions,
   review requests and completions.
+- **Today** — the daily review: overdue, due today, in progress, awaiting
+  review, follow-ups to chase now, and a per-person view of where the day is
+  concentrated. Every row reschedules inline.
+- **Quick reschedule** — move a due date from any task row without opening the
+  form: later today, tomorrow, in 3 days, next Monday, in a week, or a picker.
+- **Follow-ups** — give a task a date to chase it on and a note saying what to
+  chase. The General tasks page has a follow-up tab split into due and coming
+  up.
 - **Dashboard** — six clickable tiles (To Do, Pending, In Review, Completed,
   Due Today, Overdue), each opening the matching task list at `/tasks`,
   overall progress,
@@ -106,6 +114,7 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0010_fix_delete_task_audit.sql` | Lets a task with assignees be deleted         |
 | `…0011_due_time_and_positions.sql`| due_at with time, job_title, avatars bucket   |
 | `…0012_project_membership.sql`    | Projects become private to their members      |
+| `…0013_follow_ups.sql`            | Follow-up dates and notes, audited            |
 
 ### 3. Register the first user
 
@@ -155,6 +164,8 @@ On top of visibility, **writes** are gated by role:
 | Add or remove project members                 |  yes  | yes          | no                      |
 | Change roles                                  |  yes  | no           | no                      |
 | Set job positions                             |  yes  | no           | no                      |
+| Reschedule a due date                         |  yes  | yes          | no                      |
+| Set a follow-up date and note                 |  yes  | yes          | no                      |
 | Upload their own profile picture              |  yes  | yes          | yes                     |
 
 **The member's lane.** Planning belongs to managers; members execute. A member
@@ -269,7 +280,7 @@ npx supabase gen types typescript --project-id <ref> --schema public \
 - `projects` — id, name, description, created_by, created_at, updated_at
 - `project_members` — project_id, user_id, added_by, added_at
 - `tasks` — id, project_id, title, description, status, priority, due_at,
-  position, created_by, created_at, updated_at
+  follow_up_at, follow_up_note, position, created_by, created_at, updated_at
 - `task_assignments` — task_id, user_id, assigned_at
 - `comments` — id, task_id, user_id, content, created_at, updated_at
 - `task_activity` — id, task_id, actor_id, action, field, old_value, new_value,

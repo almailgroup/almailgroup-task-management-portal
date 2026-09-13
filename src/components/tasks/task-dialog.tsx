@@ -30,6 +30,7 @@ import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { toDateTimeLocal } from "@/components/tasks/task-meta";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
+import { FollowUpPanel } from "@/components/tasks/follow-up-panel";
 import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
 import { CommentThread } from "@/components/tasks/comment-thread";
 import { TaskActivityFeed } from "@/components/tasks/task-activity-feed";
@@ -289,6 +290,7 @@ export function TaskDialog({
 
         {task && (
           <>
+            <FollowUpPanel task={task} canManage={canEditDetails} />
             <Separator />
             <Tabs defaultValue="comments">
               <TabsList>
