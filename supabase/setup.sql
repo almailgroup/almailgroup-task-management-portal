@@ -13,6 +13,9 @@
 --   20260913000003_row_level_security.sql
 --   20260913000004_realtime.sql
 --   20260913000005_protect_last_admin.sql
+--   20260913000006_general_tasks_and_review_gate.sql
+--   20260913000007_attachments.sql
+--   20260913000008_notifications.sql
 -- ---------------------------------------------------------------------------
 
 -- =========================================================================
@@ -805,3 +808,526 @@ drop trigger if exists profiles_protect_last_admin on public.profiles;
 create trigger profiles_protect_last_admin
   before update on public.profiles
   for each row execute function public.prevent_last_admin_demotion();
+
+-- =========================================================================
+-- 20260913000006_general_tasks_and_review_gate.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- General tasks and the review gate
+--
+-- 1. Tasks may now exist outside any project ("general tasks"). Creating one
+--    is restricted to managers and admins.
+-- 2. Only a manager or admin may mark a task done. Everyone else tops out at
+--    'in_review', so finished work is reviewed before it is closed.
+-- ---------------------------------------------------------------------------
+
+-- --------------------------------------------------------------------------
+-- General tasks: project_id becomes optional.
+-- --------------------------------------------------------------------------
+
+alter table public.tasks alter column project_id drop not null;
+
+comment on column public.tasks.project_id is
+  'NULL marks a general task: assigned work that belongs to no project.';
+
+-- Board ordering for the general list, mirroring the per-project index.
+create index if not exists tasks_general_status_position_idx
+  on public.tasks (status, position)
+  where project_id is null;
+
+-- Only managers and admins may open general tasks; anyone may still create a
+-- task inside a project.
+drop policy if exists "authenticated users create tasks" on public.tasks;
+create policy "authenticated users create tasks"
+  on public.tasks for insert
+  to authenticated
+  with check (
+    created_by = auth.uid()
+    and (project_id is not null or public.is_manager_or_admin())
+  );
+
+-- --------------------------------------------------------------------------
+-- Review gate
+--
+-- Enforced as a trigger rather than in the RLS policy because the rule is
+-- about a transition: a WITH CHECK expression cannot see the previous row, so
+-- it could not tell "a member is closing this task" from "a member edited the
+-- title of a task that was already closed".
+--
+-- Moving out of 'done' is restricted to the same roles. Letting an assignee
+-- reopen a task would undo the reviewer's decision, which is the very thing
+-- the gate exists to protect.
+-- --------------------------------------------------------------------------
+
+create or replace function public.enforce_review_gate()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.status is distinct from old.status
+     and 'done' in (new.status::text, old.status::text)
+     and not public.is_manager_or_admin()
+  then
+    if new.status = 'done' then
+      raise exception 'Only a manager or admin can mark a task done. Move it to In Review instead.'
+        using errcode = 'insufficient_privilege';
+    else
+      raise exception 'Only a manager or admin can reopen a completed task.'
+        using errcode = 'insufficient_privilege';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists tasks_enforce_review_gate on public.tasks;
+create trigger tasks_enforce_review_gate
+  before update on public.tasks
+  for each row execute function public.enforce_review_gate();
+
+-- Exposed so the UI can disable the Done option up front rather than letting
+-- the user discover the rule by hitting an error.
+create or replace function public.can_complete_tasks()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select public.is_manager_or_admin();
+$$;
+
+grant execute on function public.can_complete_tasks() to authenticated;
+
+-- =========================================================================
+-- 20260913000007_attachments.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Task attachments — uploaded files and external links.
+--
+-- Both kinds live in one table so the task detail view renders a single list.
+-- A row is either a file (storage_path set) or a link (url set), never both.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.task_attachments (
+  id           uuid primary key default gen_random_uuid(),
+  task_id      uuid not null references public.tasks (id) on delete cascade,
+  uploaded_by  uuid references public.profiles (id) on delete set null,
+  kind         text not null check (kind in ('file', 'link')),
+  name         text not null,
+  storage_path text,
+  url          text,
+  mime_type    text,
+  size_bytes   bigint,
+  created_at   timestamptz not null default now(),
+
+  constraint task_attachments_name_length check (length(btrim(name)) between 1 and 255),
+
+  -- Exactly one of storage_path / url, matching `kind`.
+  constraint task_attachments_shape check (
+    (kind = 'file' and storage_path is not null and url is null)
+    or (kind = 'link' and url is not null and storage_path is null)
+  ),
+
+  -- Only http(s) links. Blocks javascript: and data: URLs, which would
+  -- otherwise become a stored-XSS vector the moment one is rendered as a link.
+  constraint task_attachments_url_scheme check (
+    url is null or url ~* '^https?://'
+  ),
+
+  constraint task_attachments_size check (
+    size_bytes is null or (size_bytes >= 0 and size_bytes <= 26214400)
+  )
+);
+
+create index if not exists task_attachments_task_idx
+  on public.task_attachments (task_id, created_at desc);
+
+create unique index if not exists task_attachments_storage_path_key
+  on public.task_attachments (storage_path)
+  where storage_path is not null;
+
+comment on table public.task_attachments is
+  'Files and links attached to a task. Files live in the task-attachments bucket.';
+
+-- --------------------------------------------------------------------------
+-- Row Level Security
+-- --------------------------------------------------------------------------
+
+alter table public.task_attachments enable row level security;
+alter table public.task_attachments force row level security;
+
+drop policy if exists "attachments are readable by authenticated users" on public.task_attachments;
+create policy "attachments are readable by authenticated users"
+  on public.task_attachments for select
+  to authenticated
+  using (auth.uid() is not null);
+
+-- Anyone who may edit the task may attach to it.
+drop policy if exists "task editors add attachments" on public.task_attachments;
+create policy "task editors add attachments"
+  on public.task_attachments for insert
+  to authenticated
+  with check (
+    uploaded_by = auth.uid()
+    and (public.is_manager_or_admin() or public.can_edit_task(task_id))
+  );
+
+drop policy if exists "uploaders and managers remove attachments" on public.task_attachments;
+create policy "uploaders and managers remove attachments"
+  on public.task_attachments for delete
+  to authenticated
+  using (uploaded_by = auth.uid() or public.is_manager_or_admin());
+
+grant select, insert, delete on public.task_attachments to authenticated;
+
+-- --------------------------------------------------------------------------
+-- Storage bucket
+--
+-- Private: objects are reached through short-lived signed URLs, so an
+-- attachment cannot be read by guessing its path.
+--
+-- Guarded on the storage schema existing, so this migration also applies to a
+-- plain Postgres instance (CI, local validation) that has no Supabase Storage.
+-- Object keys are "<task_id>/<uuid>-<filename>", so the first path segment
+-- identifies the task an object belongs to.
+-- --------------------------------------------------------------------------
+
+do $$
+begin
+  if to_regclass('storage.buckets') is null then
+    raise notice 'storage schema not found - skipping bucket and object policies';
+    return;
+  end if;
+
+  insert into storage.buckets (id, name, public, file_size_limit)
+  values ('task-attachments', 'task-attachments', false, 26214400)
+  on conflict (id) do update
+    set public = false,
+        file_size_limit = excluded.file_size_limit;
+
+  execute $p$drop policy if exists "attachment objects readable by authenticated" on storage.objects$p$;
+  execute $p$create policy "attachment objects readable by authenticated"
+    on storage.objects for select
+    to authenticated
+    using (bucket_id = 'task-attachments' and auth.uid() is not null)$p$;
+
+  execute $p$drop policy if exists "attachment objects writable by task editors" on storage.objects$p$;
+  execute $p$create policy "attachment objects writable by task editors"
+    on storage.objects for insert
+    to authenticated
+    with check (
+      bucket_id = 'task-attachments'
+      and owner = auth.uid()
+      and (
+        public.is_manager_or_admin()
+        or public.can_edit_task(nullif(split_part(name, '/', 1), '')::uuid)
+      )
+    )$p$;
+
+  execute $p$drop policy if exists "attachment objects removable by owner or manager" on storage.objects$p$;
+  execute $p$create policy "attachment objects removable by owner or manager"
+    on storage.objects for delete
+    to authenticated
+    using (
+      bucket_id = 'task-attachments'
+      and (owner = auth.uid() or public.is_manager_or_admin())
+    )$p$;
+end $$;
+
+-- =========================================================================
+-- 20260913000008_notifications.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Notifications
+--
+-- Written by database triggers rather than application code, so an event
+-- cannot be missed because some path forgot to raise it. Each row is private
+-- to its recipient.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.notifications (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  actor_id   uuid references public.profiles (id) on delete set null,
+  type       text not null,
+  title      text not null,
+  body       text,
+  task_id    uuid references public.tasks (id) on delete cascade,
+  project_id uuid references public.projects (id) on delete cascade,
+  read_at    timestamptz,
+  created_at timestamptz not null default now(),
+
+  constraint notifications_type_known check (
+    type in (
+      'task_assigned',
+      'task_unassigned',
+      'task_commented',
+      'task_mentioned',
+      'task_review_requested',
+      'task_completed'
+    )
+  )
+);
+
+-- Drives the unread badge and the newest-first list.
+create index if not exists notifications_user_created_idx
+  on public.notifications (user_id, created_at desc);
+create index if not exists notifications_user_unread_idx
+  on public.notifications (user_id)
+  where read_at is null;
+
+alter table public.notifications enable row level security;
+alter table public.notifications force row level security;
+
+-- Strictly private: unlike the rest of this schema, a notification is visible
+-- only to its recipient.
+drop policy if exists "users read their own notifications" on public.notifications;
+create policy "users read their own notifications"
+  on public.notifications for select
+  to authenticated
+  using (user_id = auth.uid());
+
+-- Recipients may only mark as read; the content is written by triggers.
+drop policy if exists "users update their own notifications" on public.notifications;
+create policy "users update their own notifications"
+  on public.notifications for update
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "users delete their own notifications" on public.notifications;
+create policy "users delete their own notifications"
+  on public.notifications for delete
+  to authenticated
+  using (user_id = auth.uid());
+
+-- No INSERT policy or grant: rows come only from the SECURITY DEFINER triggers
+-- below, so nobody can forge a notification to another user.
+grant select, update, delete on public.notifications to authenticated;
+
+-- --------------------------------------------------------------------------
+-- Helper
+-- --------------------------------------------------------------------------
+
+create or replace function public.push_notification(
+  recipient uuid,
+  actor uuid,
+  kind text,
+  heading text,
+  detail text,
+  task uuid,
+  project uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  -- Never notify someone about their own action, and never about a missing user.
+  if recipient is null or recipient = coalesce(actor, '00000000-0000-0000-0000-000000000000'::uuid) then
+    return;
+  end if;
+
+  insert into public.notifications (user_id, actor_id, type, title, body, task_id, project_id)
+  values (recipient, actor, kind, heading, detail, task, project);
+end;
+$$;
+
+-- --------------------------------------------------------------------------
+-- Assignment
+-- --------------------------------------------------------------------------
+
+create or replace function public.notify_assignment()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  t public.tasks%rowtype;
+begin
+  if tg_op = 'INSERT' then
+    select * into t from public.tasks where id = new.task_id;
+    perform public.push_notification(
+      new.user_id, auth.uid(), 'task_assigned',
+      'You were assigned a task', t.title, t.id, t.project_id
+    );
+  else
+    select * into t from public.tasks where id = old.task_id;
+    -- The task may already be gone when the assignment cascades away.
+    if found then
+      perform public.push_notification(
+        old.user_id, auth.uid(), 'task_unassigned',
+        'You were removed from a task', t.title, t.id, t.project_id
+      );
+    end if;
+  end if;
+
+  return null;
+end;
+$$;
+
+drop trigger if exists task_assignments_notify_insert on public.task_assignments;
+create trigger task_assignments_notify_insert
+  after insert on public.task_assignments
+  for each row execute function public.notify_assignment();
+
+drop trigger if exists task_assignments_notify_delete on public.task_assignments;
+create trigger task_assignments_notify_delete
+  after delete on public.task_assignments
+  for each row execute function public.notify_assignment();
+
+-- --------------------------------------------------------------------------
+-- Status changes
+--
+-- Reaching 'in_review' tells whoever has to review it. Reaching 'done' tells
+-- the people who worked on it.
+-- --------------------------------------------------------------------------
+
+create or replace function public.notify_status_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  actor uuid := auth.uid();
+  recipient uuid;
+begin
+  if new.status is not distinct from old.status then
+    return null;
+  end if;
+
+  if new.status = 'in_review' then
+    -- The task's creator reviews it; for general tasks with no creator left,
+    -- fall back to every manager and admin.
+    if new.created_by is not null then
+      perform public.push_notification(
+        new.created_by, actor, 'task_review_requested',
+        'A task is ready for review', new.title, new.id, new.project_id
+      );
+    else
+      for recipient in
+        select id from public.profiles where role in ('admin', 'manager')
+      loop
+        perform public.push_notification(
+          recipient, actor, 'task_review_requested',
+          'A task is ready for review', new.title, new.id, new.project_id
+        );
+      end loop;
+    end if;
+
+  elsif new.status = 'done' then
+    for recipient in
+      select user_id from public.task_assignments where task_id = new.id
+      union
+      select new.created_by where new.created_by is not null
+    loop
+      perform public.push_notification(
+        recipient, actor, 'task_completed',
+        'A task was marked done', new.title, new.id, new.project_id
+      );
+    end loop;
+  end if;
+
+  return null;
+end;
+$$;
+
+drop trigger if exists tasks_notify_status_change on public.tasks;
+create trigger tasks_notify_status_change
+  after update on public.tasks
+  for each row execute function public.notify_status_change();
+
+-- --------------------------------------------------------------------------
+-- Comments and @mentions
+--
+-- Mentions are matched against profile names here so that a comment written
+-- from anywhere — the app, the SQL editor, a future integration — still
+-- notifies the people it names.
+-- --------------------------------------------------------------------------
+
+create or replace function public.notify_comment()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  t public.tasks%rowtype;
+  recipient uuid;
+  mentioned uuid[];
+begin
+  select * into t from public.tasks where id = new.task_id;
+  if not found then
+    return null;
+  end if;
+
+  -- Anyone named with @Full Name, or @local-part of their email.
+  select coalesce(array_agg(p.id), '{}')
+    into mentioned
+  from public.profiles p
+  where p.id <> coalesce(new.user_id, '00000000-0000-0000-0000-000000000000'::uuid)
+    and (
+      (p.full_name is not null and new.content ilike '%@' || p.full_name || '%')
+      or new.content ilike '%@' || split_part(p.email, '@', 1) || '%'
+    );
+
+  foreach recipient in array mentioned loop
+    perform public.push_notification(
+      recipient, new.user_id, 'task_mentioned',
+      'You were mentioned in a comment', left(new.content, 140), t.id, t.project_id
+    );
+  end loop;
+
+  -- Everyone else with a stake in the task: its assignees and its creator.
+  for recipient in
+    select a.user_id from public.task_assignments a where a.task_id = t.id
+    union
+    select t.created_by where t.created_by is not null
+  loop
+    if not (recipient = any(mentioned)) then
+      perform public.push_notification(
+        recipient, new.user_id, 'task_commented',
+        'New comment on a task', left(new.content, 140), t.id, t.project_id
+      );
+    end if;
+  end loop;
+
+  return null;
+end;
+$$;
+
+drop trigger if exists comments_notify on public.comments;
+create trigger comments_notify
+  after insert on public.comments
+  for each row execute function public.notify_comment();
+
+-- --------------------------------------------------------------------------
+-- Realtime — the bell updates without a refresh.
+-- --------------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    raise notice 'publication supabase_realtime not found - skipping';
+    return;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'notifications'
+  ) then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+end $$;

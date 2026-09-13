@@ -20,6 +20,17 @@ export type UserRole = "admin" | "manager" | "member";
 export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
+export type AttachmentKind = "file" | "link";
+
+/** `notifications.type` — stored as text with a check constraint. */
+export type NotificationType =
+  | "task_assigned"
+  | "task_unassigned"
+  | "task_commented"
+  | "task_mentioned"
+  | "task_review_requested"
+  | "task_completed";
+
 /** `task_activity.action` — stored as text with a check constraint. */
 export type TaskActivityAction =
   | "created"
@@ -93,7 +104,8 @@ export type Database = {
       tasks: {
         Row: {
           id: string;
-          project_id: string;
+          /** NULL marks a general task, belonging to no project. */
+          project_id: string | null;
           title: string;
           description: string | null;
           status: TaskStatus;
@@ -106,7 +118,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          project_id: string;
+          project_id?: string | null;
           title: string;
           description?: string | null;
           status?: TaskStatus;
@@ -234,6 +246,65 @@ export type Database = {
           },
         ];
       };
+      task_attachments: {
+        Row: {
+          id: string;
+          task_id: string;
+          uploaded_by: string | null;
+          kind: AttachmentKind;
+          name: string;
+          storage_path: string | null;
+          url: string | null;
+          mime_type: string | null;
+          size_bytes: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          uploaded_by: string;
+          kind: AttachmentKind;
+          name: string;
+          storage_path?: string | null;
+          url?: string | null;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey";
+            columns: ["task_id"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      /** Private to each recipient. Rows are written only by database triggers. */
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          actor_id: string | null;
+          type: NotificationType;
+          title: string;
+          body: string | null;
+          task_id: string | null;
+          project_id: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: { read_at?: string | null };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_task_id_fkey";
+            columns: ["task_id"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -259,6 +330,12 @@ export type TaskAssignment =
   Database["public"]["Tables"]["task_assignments"]["Row"];
 export type Comment = Database["public"]["Tables"]["comments"]["Row"];
 export type TaskActivity = Database["public"]["Tables"]["task_activity"]["Row"];
+export type TaskAttachment =
+  Database["public"]["Tables"]["task_attachments"]["Row"];
+export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
+
+/** A notification joined with the person who caused it. */
+export type NotificationWithActor = Notification & { actor: Profile | null };
 
 /** A task joined with the profiles assigned to it. */
 export type TaskWithAssignees = Task & { assignees: Profile[] };

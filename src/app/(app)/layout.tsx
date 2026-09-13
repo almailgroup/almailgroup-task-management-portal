@@ -1,5 +1,10 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { getProjects, requireProfile } from "@/lib/data/queries";
+import {
+  getNotifications,
+  getProjects,
+  getUnreadNotificationCount,
+  requireProfile,
+} from "@/lib/data/queries";
 
 /**
  * Authenticated layout. `requireProfile()` redirects to /login when there is no
@@ -10,13 +15,20 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [profile, projects] = await Promise.all([
+  const [profile, projects, notifications, unreadCount] = await Promise.all([
     requireProfile(),
     getProjects(),
+    getNotifications(),
+    getUnreadNotificationCount(),
   ]);
 
   return (
-    <AppShell profile={profile} projects={projects}>
+    <AppShell
+      profile={profile}
+      projects={projects}
+      notifications={notifications}
+      unreadCount={unreadCount}
+    >
       {children}
     </AppShell>
   );

@@ -8,8 +8,13 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { UserMenu } from "@/components/layout/user-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import type { Profile, Project } from "@/lib/supabase/database.types";
+import type {
+  Notification,
+  Profile,
+  Project,
+} from "@/lib/supabase/database.types";
 
 /**
  * Authenticated chrome: a fixed sidebar on desktop, an overlay drawer below
@@ -19,11 +24,15 @@ import type { Profile, Project } from "@/lib/supabase/database.types";
 export function AppShell({
   profile,
   projects,
+  notifications,
+  unreadCount,
   activeProjectId,
   children,
 }: {
   profile: Profile;
   projects: Project[];
+  notifications: Notification[];
+  unreadCount: number;
   activeProjectId?: string;
   children: React.ReactNode;
 }) {
@@ -116,6 +125,11 @@ export function AppShell({
           </Button>
 
           <div className="flex flex-1 items-center justify-end gap-1">
+            <NotificationBell
+              profile={profile}
+              initialItems={notifications}
+              initialUnread={unreadCount}
+            />
             <ThemeToggle />
             <UserMenu profile={profile} />
           </div>

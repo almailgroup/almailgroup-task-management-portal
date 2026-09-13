@@ -34,17 +34,30 @@ function parseTaskForm(formData: FormData) {
   });
 }
 
+/**
+ * Revalidate the view a task lives in. General tasks (no project) live on
+ * /general; everything else on its project page.
+ */
+function revalidateTaskViews(projectId: string | null) {
+  revalidatePath(projectId ? `/projects/${projectId}` : "/general");
+  revalidatePath("/dashboard");
+}
+
 /** Next position at the end of a status column. */
 async function nextPosition(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  projectId: string,
+  projectId: string | null,
   status: TaskStatus,
 ): Promise<number> {
-  const { data } = await supabase
+  const query = supabase
     .from("tasks")
     .select("position")
-    .eq("project_id", projectId)
-    .eq("status", status)
+    .eq("status", status);
+
+  // A general task is ordered among the other general tasks.
+  const { data } = await (projectId
+    ? query.eq("project_id", projectId)
+    : query.is("project_id", null))
     .order("position", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -53,7 +66,7 @@ async function nextPosition(
 }
 
 export async function createTask(
-  projectId: string,
+  projectId: string | null,
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
@@ -100,21 +113,20 @@ export async function createTask(
     // The task itself was created; report the partial failure rather than
     // pretending the whole thing worked.
     if (assignError) {
-      revalidatePath(`/projects/${projectId}`);
+      revalidateTaskViews(projectId);
       return fail(
         "Task created, but the assignees could not be saved. Try editing the task.",
       );
     }
   }
 
-  revalidatePath(`/projects/${projectId}`);
-  revalidatePath("/dashboard");
+  revalidateTaskViews(projectId);
   return ok({ id: data.id });
 }
 
 export async function updateTask(
   taskId: string,
-  projectId: string,
+  projectId: string | null,
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
@@ -144,8 +156,7 @@ export async function updateTask(
   const syncError = await syncAssignees(supabase, taskId, parsed.data.assigneeIds);
   if (syncError) return fail(syncError);
 
-  revalidatePath(`/projects/${projectId}`);
-  revalidatePath("/dashboard");
+  revalidateTaskViews(projectId);
   return ok({ id: taskId });
 }
 
@@ -200,7 +211,7 @@ async function syncAssignees(
  */
 export async function moveTask(
   taskId: string,
-  projectId: string,
+  projectId: string | null,
   status: string,
   position: number,
 ): Promise<ActionResult<{ id: string }>> {
@@ -220,14 +231,13 @@ export async function moveTask(
   if (error) return fail(describeDatabaseError(error));
   if (!data) return fail("You do not have permission to move this task.");
 
-  revalidatePath(`/projects/${projectId}`);
-  revalidatePath("/dashboard");
+  revalidateTaskViews(projectId);
   return ok({ id: taskId });
 }
 
 export async function deleteTask(
   taskId: string,
-  projectId: string,
+  projectId: string | null,
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await createClient();
 
@@ -241,7 +251,6 @@ export async function deleteTask(
   if (error) return fail(describeDatabaseError(error));
   if (!data) return fail("You do not have permission to delete this task.");
 
-  revalidatePath(`/projects/${projectId}`);
-  revalidatePath("/dashboard");
+  revalidateTaskViews(projectId);
   return ok({ id: taskId });
 }

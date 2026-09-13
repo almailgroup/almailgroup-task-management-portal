@@ -97,3 +97,32 @@ export type ProfileInput = z.infer<typeof profileSchema>;
 export type ProjectInput = z.infer<typeof projectSchema>;
 export type TaskInput = z.infer<typeof taskSchema>;
 export type CommentInput = z.infer<typeof commentSchema>;
+
+/** A link attachment. Only http(s) is accepted, matching the DB constraint. */
+export const linkAttachmentSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Give the link a name")
+    .max(255, "Name must be 255 characters or fewer"),
+  url: z
+    .string()
+    .trim()
+    .min(1, "URL is required")
+    .max(2048, "That URL is too long")
+    .refine(
+      (value) => /^https?:\/\//i.test(value),
+      "Link must start with http:// or https://",
+    ),
+});
+
+/** Metadata for a file already uploaded to storage by the browser client. */
+export const fileAttachmentSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  storagePath: z.string().trim().min(1).max(1024),
+  mimeType: z.string().trim().max(255).optional(),
+  sizeBytes: z.number().int().nonnegative().max(26_214_400),
+});
+
+export type LinkAttachmentInput = z.infer<typeof linkAttachmentSchema>;
+export type FileAttachmentInput = z.infer<typeof fileAttachmentSchema>;

@@ -48,11 +48,14 @@ const POSITION_STEP = 1024;
 export function KanbanBoard({
   tasks,
   projectId,
+  canComplete,
   onOpenTask,
   onCreateTask,
 }: {
   tasks: TaskWithAssignees[];
-  projectId: string;
+  projectId: string | null;
+  /** Whether the viewer may move cards into Done. */
+  canComplete: boolean;
   onOpenTask: (task: TaskWithAssignees) => void;
   onCreateTask: (status: TaskStatus) => void;
 }) {
@@ -105,6 +108,21 @@ export function KanbanBoard({
     ) as TaskStatus;
 
     if (!TASK_STATUSES.some((status) => status.value === targetStatus)) return;
+
+    // The database enforces this too; refusing here keeps the card from
+    // visibly jumping into Done and then snapping back.
+    if (!canComplete && targetStatus !== task.status) {
+      if (targetStatus === "done") {
+        toast.error(
+          "Only a manager or admin can mark a task done. Move it to In Review instead.",
+        );
+        return;
+      }
+      if (task.status === "done") {
+        toast.error("Only a manager or admin can reopen a completed task.");
+        return;
+      }
+    }
 
     const column = (columns.get(targetStatus) ?? []).filter(
       (entry) => entry.id !== taskId,

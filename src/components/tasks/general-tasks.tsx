@@ -1,26 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import {
-  Columns3,
-  List,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
-import { toast } from "sonner";
+import { Columns3, List, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,63 +13,48 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProjectDialog } from "@/components/projects/project-dialog";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskTable } from "@/components/tasks/task-table";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
-import { deleteProject } from "@/lib/data/project-actions";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import type {
   Profile,
-  Project,
   TaskPriority,
   TaskStatus,
   TaskWithAssignees,
 } from "@/lib/supabase/database.types";
 
-type View = "board" | "list";
-
 /**
- * Project workspace: view switcher, filters, and the Kanban/list views.
+ * General tasks: work assigned to people that belongs to no project.
  *
- * Filtering is client-side. The project task set is small enough that round
- * tripping every keystroke would be slower and less pleasant than filtering
- * the list already in memory.
+ * Only managers and admins can create one — enforced by RLS, mirrored here by
+ * hiding the button rather than letting the save fail.
  */
-export function ProjectWorkspace({
-  project,
+export function GeneralTasks({
   tasks,
   team,
   profile,
 }: {
-  project: Project;
   tasks: TaskWithAssignees[];
   team: Profile[];
   profile: Profile;
 }) {
-  const router = useRouter();
+  const liveTasks = useTaskStream({ projectId: null, initial: tasks });
 
-  // Keeps the board in sync when teammates change tasks elsewhere.
-  const liveTasks = useTaskStream({ projectId: project.id, initial: tasks });
-
-  const [view, setView] = React.useState<View>("board");
+  const [view, setView] = React.useState<"board" | "list">("board");
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<TaskStatus | "all">("all");
   const [priority, setPriority] = React.useState<TaskPriority | "all">("all");
-  const [assignee, setAssignee] = React.useState<string>("all");
+  const [assignee, setAssignee] = React.useState("all");
 
-  const [taskDialogOpen, setTaskDialogOpen] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(
     null,
   );
-  const [newTaskStatus, setNewTaskStatus] = React.useState<TaskStatus>("todo");
-  const [projectDialogOpen, setProjectDialogOpen] = React.useState(false);
+  const [newStatus, setNewStatus] = React.useState<TaskStatus>("todo");
 
-  const canManageProject =
-    profile.role === "admin" ||
-    (profile.role === "manager" && project.created_by === profile.id);
-  const canComplete = profile.role === "admin" || profile.role === "manager";
+  const canManage = profile.role === "admin" || profile.role === "manager";
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -98,7 +66,7 @@ export function ProjectWorkspace({
       if (assignee === "unassigned") {
         if (task.assignees.length > 0) return false;
       } else if (assignee !== "all") {
-        if (!task.assignees.some((person) => person.id === assignee)) return false;
+        if (!task.assignees.some((p) => p.id === assignee)) return false;
       }
 
       if (needle) {
@@ -110,77 +78,42 @@ export function ProjectWorkspace({
     });
   }, [liveTasks, query, status, priority, assignee]);
 
-  const filtersActive =
-    query.trim() !== "" ||
-    status !== "all" ||
-    priority !== "all" ||
-    assignee !== "all";
-
   function openTask(task: TaskWithAssignees) {
     setActiveTask(task);
-    setTaskDialogOpen(true);
+    setDialogOpen(true);
   }
 
   function createTask(columnStatus: TaskStatus) {
     setActiveTask(null);
-    setNewTaskStatus(columnStatus);
-    setTaskDialogOpen(true);
-  }
-
-  async function onDeleteProject() {
-    const outcome = await deleteProject(project.id);
-    if (!outcome.ok) {
-      toast.error(outcome.error);
-      return;
-    }
-    toast.success("Project deleted");
-    router.push("/dashboard");
-    router.refresh();
+    setNewStatus(columnStatus);
+    setDialogOpen(true);
   }
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate">{project.name}</h1>
-          {project.description && (
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              {project.description}
-            </p>
-          )}
+        <div>
+          <h1>General tasks</h1>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {canManage
+              ? "Work that belongs to no project. Assign it to anyone on the team."
+              : "Work assigned to you outside of any project."}
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {canManage && (
           <Button size="sm" onClick={() => createTask("todo")}>
             <Plus />
-            New task
+            New general task
           </Button>
-
-          {canManageProject && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Project actions">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setProjectDialogOpen(true)}>
-                  <Pencil />
-                  Edit project
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={onDeleteProject}>
-                  <Trash2 />
-                  Delete project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+        )}
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Tabs value={view} onValueChange={(value) => setView(value as View)}>
+        <Tabs
+          value={view}
+          onValueChange={(value) => setView(value as "board" | "list")}
+        >
           <TabsList>
             <TabsTrigger value="board">
               <Columns3 />
@@ -200,7 +133,7 @@ export function ProjectWorkspace({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search tasks"
             className="h-9 pl-8"
-            aria-label="Search tasks"
+            aria-label="Search general tasks"
           />
         </div>
 
@@ -253,21 +186,6 @@ export function ProjectWorkspace({
           </SelectContent>
         </Select>
 
-        {filtersActive && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setQuery("");
-              setStatus("all");
-              setPriority("all");
-              setAssignee("all");
-            }}
-          >
-            Clear
-          </Button>
-        )}
-
         <span className="ml-auto text-xs text-muted-foreground">
           {filtered.length} of {liveTasks.length}
         </span>
@@ -276,8 +194,8 @@ export function ProjectWorkspace({
       {view === "board" ? (
         <KanbanBoard
           tasks={filtered}
-          projectId={project.id}
-          canComplete={canComplete}
+          projectId={null}
+          canComplete={canManage}
           onOpenTask={openTask}
           onCreateTask={createTask}
         />
@@ -286,19 +204,13 @@ export function ProjectWorkspace({
       )}
 
       <TaskDialog
-        open={taskDialogOpen}
-        onOpenChange={setTaskDialogOpen}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
         task={activeTask}
-        projectId={project.id}
+        projectId={null}
         team={team}
         currentProfile={profile}
-        defaultStatus={newTaskStatus}
-      />
-
-      <ProjectDialog
-        open={projectDialogOpen}
-        onOpenChange={setProjectDialogOpen}
-        project={project}
+        defaultStatus={newStatus}
       />
     </div>
   );

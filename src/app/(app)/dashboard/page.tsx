@@ -161,7 +161,7 @@ function TaskListCard({
           tasks.map((task) => (
             <Link
               key={task.id}
-              href={`/projects/${task.project_id}`}
+              href={taskHref(task)}
               className="flex items-center justify-between gap-3 rounded-md border border-border px-2.5 py-2 transition-colors hover:border-foreground/25"
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -179,6 +179,11 @@ function TaskListCard({
       </CardContent>
     </Card>
   );
+}
+
+/** Where a task lives: its project board, or the general list. */
+function taskHref(task: { project_id: string | null }) {
+  return task.project_id ? `/projects/${task.project_id}` : "/general";
 }
 
 function EmptyState({ canCreate }: { canCreate: boolean }) {

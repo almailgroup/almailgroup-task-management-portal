@@ -33,6 +33,14 @@ monochrome interface.
 - **Audit history** — every task change recorded by database triggers.
 - **Realtime** — live comment threads and live task updates.
 - **@mentions** — autocomplete in the comment box.
+- **Attachments** — files (up to 25 MB, private storage, signed-URL download)
+  and external links on any task.
+- **Review gate** — assignees move work to In Review; only a manager or admin
+  marks it Done.
+- **General tasks** — assigned work belonging to no project, created by
+  managers and admins.
+- **Notifications** — live in-app bell for assignment, comments, @mentions,
+  review requests and completions.
 - **Dashboard** — completed vs pending, overdue, due today, overall progress,
   your assigned work, items needing attention, and per-user workload.
 
@@ -85,6 +93,9 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0003_row_level_security.sql`    | RLS policies and table grants                 |
 | `…0004_realtime.sql`              | Realtime publication, replica identity        |
 | `…0005_protect_last_admin.sql`    | Prevents locking out the last admin           |
+| `…0006_general_tasks_and_review_gate.sql` | Nullable project_id, review gate      |
+| `…0007_attachments.sql`           | Attachments table, storage bucket and policies |
+| `…0008_notifications.sql`         | Notifications table and trigger fan-out       |
 
 ### 3. Register the first user
 
@@ -98,15 +109,19 @@ This is a single-tenant internal portal, so every signed-in employee can **read*
 the whole workspace — that is what makes project switching, assignee pickers and
 @mentions work. **Writes** are what the roles gate:
 
-| Action                        | Admin | Manager        | Team Member            |
-| ----------------------------- | :---: | :------------: | :--------------------: |
-| Create / edit projects        |  yes  | yes            | no                     |
-| Delete a project              |  yes  | own projects   | no                     |
-| Create tasks                  |  yes  | yes            | yes                    |
-| Edit / delete any task        |  yes  | yes            | own or assigned only   |
-| Comment                       |  yes  | yes            | yes                    |
-| Delete others' comments       |  yes  | no             | no                     |
-| Change roles                  |  yes  | no             | no                     |
+| Action                          | Admin | Manager        | Team Member            |
+| ------------------------------- | :---: | :------------: | :--------------------: |
+| Create / edit projects          |  yes  | yes            | no                     |
+| Delete a project                |  yes  | own projects   | no                     |
+| Create tasks in a project       |  yes  | yes            | yes                    |
+| Create **general** tasks        |  yes  | yes            | no                     |
+| Edit / delete any task          |  yes  | yes            | own or assigned only   |
+| Move a task to **Done**         |  yes  | yes            | **no — In Review only**|
+| Reopen a completed task         |  yes  | yes            | no                     |
+| Attach files and links          |  yes  | yes            | on tasks they can edit |
+| Comment                         |  yes  | yes            | yes                    |
+| Delete others' comments         |  yes  | no             | no                     |
+| Change roles                    |  yes  | no             | no                     |
 
 Notes on how this is enforced:
 
@@ -120,6 +135,15 @@ Notes on how this is enforced:
   which is what makes the audit log genuinely append-only.
 - Users can edit their own name and avatar but not their role: a trigger blocks
   self-promotion, and another prevents removing the last admin.
+- The **review gate** is a trigger, not a policy. The rule is about a
+  *transition* — a `WITH CHECK` expression cannot see the previous row, so it
+  could not tell "a member is closing this task" from "a member edited the
+  title of a task that was already closed".
+- **Notifications are private**, the one exception to the read-wide model: a
+  row is visible only to its recipient. They have no INSERT policy or grant,
+  so nobody can forge one — rows come only from triggers.
+- Attachment links are constrained to `http(s)` in the database, so a
+  `javascript:` URL cannot be stored and later rendered as a link.
 
 ## Design system
 
@@ -205,6 +229,14 @@ npx supabase gen types typescript --project-id <ref> --schema public \
 - `comments` — id, task_id, user_id, content, created_at, updated_at
 - `task_activity` — id, task_id, actor_id, action, field, old_value, new_value,
   created_at
+- `task_attachments` — id, task_id, uploaded_by, kind (file|link), name,
+  storage_path, url, mime_type, size_bytes, created_at
+- `notifications` — id, user_id, actor_id, type, title, body, task_id,
+  project_id, read_at, created_at
+
+`tasks.project_id` is nullable: NULL marks a **general task**. Files live in
+the private `task-attachments` storage bucket, reached only through short-lived
+signed URLs.
 
 Enums: `user_role` (admin, manager, member), `task_status` (todo, in_progress,
 in_review, done), `task_priority` (low, medium, high, urgent).

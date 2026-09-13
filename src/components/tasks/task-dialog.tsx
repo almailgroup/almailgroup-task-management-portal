@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
+import { AttachmentPanel } from "@/components/tasks/attachment-panel";
 import { CommentThread } from "@/components/tasks/comment-thread";
 import { TaskActivityFeed } from "@/components/tasks/task-activity-feed";
 import { createTask, deleteTask, updateTask } from "@/lib/data/task-actions";
@@ -56,13 +57,15 @@ export function TaskDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   task: TaskWithAssignees | null;
-  projectId: string;
+  projectId: string | null;
   team: Profile[];
   currentProfile: Profile;
   defaultStatus?: TaskStatus;
 }) {
   const router = useRouter();
   const editing = Boolean(task);
+  const canComplete =
+    currentProfile.role === "admin" || currentProfile.role === "manager";
 
   const [pending, setPending] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
@@ -174,12 +177,23 @@ export function TaskDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {TASK_STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
+                    <SelectItem
+                      key={status.value}
+                      value={status.value}
+                      // Only managers and admins close a task. Disabling the
+                      // option states the rule instead of letting the save fail.
+                      disabled={status.value === "done" && !canComplete}
+                    >
                       {status.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!canComplete && (
+                <p className="text-xs text-muted-foreground">
+                  Move to In Review when finished; a manager marks it done.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -259,6 +273,7 @@ export function TaskDialog({
             <Tabs defaultValue="comments">
               <TabsList>
                 <TabsTrigger value="comments">Comments</TabsTrigger>
+                <TabsTrigger value="files">Files</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
               </TabsList>
 
@@ -266,6 +281,13 @@ export function TaskDialog({
                 <CommentThread
                   taskId={task.id}
                   team={team}
+                  currentProfile={currentProfile}
+                />
+              </TabsContent>
+
+              <TabsContent value="files">
+                <AttachmentPanel
+                  taskId={task.id}
                   currentProfile={currentProfile}
                 />
               </TabsContent>

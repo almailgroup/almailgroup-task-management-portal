@@ -6,10 +6,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type {
   CommentWithAuthor,
+  NotificationWithActor,
   Profile,
   Project,
   Task,
   TaskActivityWithActor,
+  TaskAttachment,
   TaskWithAssignees,
 } from "@/lib/supabase/database.types";
 
@@ -179,4 +181,66 @@ export const getAllTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   return (data ?? []).map((row) =>
     withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
   );
+});
+
+/** Tasks belonging to no project — the General Tasks list. */
+export const getGeneralTasks = cache(async (): Promise<TaskWithAssignees[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tasks")
+    .select("*, assignments:task_assignments(user:profiles(*))")
+    .is("project_id", null)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  return (data ?? []).map((row) =>
+    withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
+  );
+});
+
+export const getTaskAttachments = cache(
+  async (taskId: string): Promise<TaskAttachment[]> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("task_attachments")
+      .select("*")
+      .eq("task_id", taskId)
+      .order("created_at", { ascending: false });
+
+    return data ?? [];
+  },
+);
+
+/**
+ * The signed-in user's notifications, newest first.
+ *
+ * RLS restricts this to their own rows, so there is no user filter here.
+ */
+export const getNotifications = cache(
+  async (limit = 30): Promise<NotificationWithActor[]> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("notifications")
+      .select("*, actor:profiles(*)")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    return (data ?? []) as unknown as NotificationWithActor[];
+  },
+);
+
+export const getUnreadNotificationCount = cache(async (): Promise<number> => {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .is("read_at", null);
+
+  return count ?? 0;
+});
+
+/** Whether the signed-in user may mark tasks done (manager or admin). */
+export const canCompleteTasks = cache(async (): Promise<boolean> => {
+  const profile = await requireProfile();
+  return profile.role === "admin" || profile.role === "manager";
 });
