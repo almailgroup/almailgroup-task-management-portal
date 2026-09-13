@@ -1,9 +1,8 @@
 /**
- * Typed shape of the `public` schema.
+ * Typed shape of the `public` schema, matching supabase/migrations.
  *
- * Kept hand-maintained for now and structured exactly like the output of
- * `supabase gen types typescript`, so it can be regenerated in place once the
- * Phase 2 migrations are applied:
+ * Structured exactly like the output of `supabase gen types typescript`, so it
+ * can be regenerated in place once the migrations are applied:
  *
  *   npx supabase gen types typescript --project-id <ref> --schema public \
  *     > src/lib/supabase/database.types.ts
@@ -21,6 +20,17 @@ export type UserRole = "admin" | "manager" | "member";
 export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
+/** `task_activity.action` — stored as text with a check constraint. */
+export type TaskActivityAction =
+  | "created"
+  | "updated"
+  | "status_changed"
+  | "priority_changed"
+  | "due_date_changed"
+  | "assignee_added"
+  | "assignee_removed"
+  | "commented";
+
 export type Database = {
   public: {
     Tables: {
@@ -32,6 +42,7 @@ export type Database = {
           avatar_url: string | null;
           role: UserRole;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id: string;
@@ -40,14 +51,12 @@ export type Database = {
           avatar_url?: string | null;
           role?: UserRole;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          id?: string;
-          email?: string;
           full_name?: string | null;
           avatar_url?: string | null;
           role?: UserRole;
-          created_at?: string;
         };
         Relationships: [];
       };
@@ -56,8 +65,9 @@ export type Database = {
           id: string;
           name: string;
           description: string | null;
-          created_by: string;
+          created_by: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -65,13 +75,11 @@ export type Database = {
           description?: string | null;
           created_by: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          id?: string;
           name?: string;
           description?: string | null;
-          created_by?: string;
-          created_at?: string;
         };
         Relationships: [
           {
@@ -91,8 +99,10 @@ export type Database = {
           status: TaskStatus;
           priority: TaskPriority;
           due_date: string | null;
-          created_by: string;
+          position: number;
+          created_by: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -102,19 +112,18 @@ export type Database = {
           status?: TaskStatus;
           priority?: TaskPriority;
           due_date?: string | null;
+          position?: number;
           created_by: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          id?: string;
-          project_id?: string;
           title?: string;
           description?: string | null;
           status?: TaskStatus;
           priority?: TaskPriority;
           due_date?: string | null;
-          created_by?: string;
-          created_at?: string;
+          position?: number;
         };
         Relationships: [
           {
@@ -145,7 +154,6 @@ export type Database = {
         Update: {
           task_id?: string;
           user_id?: string;
-          assigned_at?: string;
         };
         Relationships: [
           {
@@ -166,9 +174,10 @@ export type Database = {
         Row: {
           id: string;
           task_id: string;
-          user_id: string;
+          user_id: string | null;
           content: string;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -176,13 +185,10 @@ export type Database = {
           user_id: string;
           content: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          id?: string;
-          task_id?: string;
-          user_id?: string;
           content?: string;
-          created_at?: string;
         };
         Relationships: [
           {
@@ -199,9 +205,43 @@ export type Database = {
           },
         ];
       };
+      /** Append-only audit trail. Written by database triggers only. */
+      task_activity: {
+        Row: {
+          id: string;
+          task_id: string;
+          actor_id: string | null;
+          action: TaskActivityAction;
+          field: string | null;
+          old_value: string | null;
+          new_value: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "task_activity_task_id_fkey";
+            columns: ["task_id"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_activity_actor_id_fkey";
+            columns: ["actor_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      current_user_role: { Args: Record<never, never>; Returns: UserRole };
+      is_admin: { Args: Record<never, never>; Returns: boolean };
+      is_manager_or_admin: { Args: Record<never, never>; Returns: boolean };
+      can_edit_task: { Args: { task: string }; Returns: boolean };
+    };
     Enums: {
       user_role: UserRole;
       task_status: TaskStatus;
@@ -218,3 +258,13 @@ export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 export type TaskAssignment =
   Database["public"]["Tables"]["task_assignments"]["Row"];
 export type Comment = Database["public"]["Tables"]["comments"]["Row"];
+export type TaskActivity = Database["public"]["Tables"]["task_activity"]["Row"];
+
+/** A task joined with the profiles assigned to it. */
+export type TaskWithAssignees = Task & { assignees: Profile[] };
+
+/** A comment joined with its author (null when the account was removed). */
+export type CommentWithAuthor = Comment & { author: Profile | null };
+
+/** An activity row joined with the profile that caused it. */
+export type TaskActivityWithActor = TaskActivity & { actor: Profile | null };
