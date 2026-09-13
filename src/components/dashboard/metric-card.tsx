@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,6 +13,7 @@ export function MetricCard({
   hint,
   icon,
   emphasis,
+  href,
 }: {
   label: string;
   value: number | string;
@@ -17,14 +21,17 @@ export function MetricCard({
   icon?: React.ReactNode;
   /** Draws the stronger border used for items that need attention. */
   emphasis?: boolean;
+  /** Makes the whole tile a link to the matching task list. */
+  href?: string;
 }) {
-  return (
-    <div
-      className={cn(
-        "rounded-lg border bg-card p-4 transition-colors",
-        emphasis ? "border-foreground/30" : "border-border",
-      )}
-    >
+  const className = cn(
+    "group block rounded-lg border bg-card p-4 transition-colors",
+    emphasis ? "border-foreground/30" : "border-border",
+    href && "hover:border-foreground/40 focus-visible:outline-none",
+  );
+
+  const body = (
+    <>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-muted-foreground">
           {label}
@@ -38,8 +45,26 @@ export function MetricCard({
         {value}
       </p>
 
-      {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
-    </div>
+      {hint && (
+        <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+          {hint}
+          {href && (
+            <ArrowRight
+              className="size-3 opacity-0 transition-opacity group-hover:opacity-100"
+              aria-hidden
+            />
+          )}
+        </p>
+      )}
+    </>
+  );
+
+  if (!href) return <div className={className}>{body}</div>;
+
+  return (
+    <Link href={href} className={className}>
+      {body}
+    </Link>
   );
 }
 

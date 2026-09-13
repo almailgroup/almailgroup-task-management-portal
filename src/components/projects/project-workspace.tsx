@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
@@ -82,6 +83,7 @@ export function ProjectWorkspace({
   );
   const [newTaskStatus, setNewTaskStatus] = React.useState<TaskStatus>("todo");
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   const canManageProject =
     profile.role === "admin" ||
@@ -169,7 +171,7 @@ export function ProjectWorkspace({
                   Edit project
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={onDeleteProject}>
+                <DropdownMenuItem onSelect={() => setConfirmDelete(true)}>
                   <Trash2 />
                   Delete project
                 </DropdownMenuItem>
@@ -299,6 +301,26 @@ export function ProjectWorkspace({
         open={projectDialogOpen}
         onOpenChange={setProjectDialogOpen}
         project={project}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete this project?"
+        description={
+          <>
+            <span className="font-medium text-foreground">{project.name}</span>{" "}
+            and all {liveTasks.length}{" "}
+            {liveTasks.length === 1 ? "task" : "tasks"} in it will be
+            permanently deleted, along with their comments, attachments and
+            history. This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete project"
+        onConfirm={async () => {
+          await onDeleteProject();
+          setConfirmDelete(false);
+        }}
       />
     </div>
   );

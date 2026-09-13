@@ -60,17 +60,17 @@ export function PriorityIndicator({
 
 /** Formats a yyyy-mm-dd date, marking anything overdue on an unfinished task. */
 export function DueDate({
-  dueDate,
+  dueAt,
   status,
   className,
 }: {
-  dueDate: string | null;
+  dueAt: string | null;
   status: TaskStatus;
   className?: string;
 }) {
-  if (!dueDate) return null;
+  if (!dueAt) return null;
 
-  const overdue = isOverdue(dueDate, status);
+  const overdue = isOverdue(dueAt, status);
 
   return (
     <span
@@ -84,7 +84,7 @@ export function DueDate({
       title={overdue ? "Overdue" : "Due date"}
     >
       <CalendarDays className="size-3" />
-      {formatDate(dueDate)}
+      {formatDateTime(dueAt)}
       {overdue && <span className="sr-only">(overdue)</span>}
     </span>
   );
@@ -127,32 +127,50 @@ export function AssigneeStack({
 }
 
 /**
- * A task is overdue when its due date is strictly before today and the work is
- * not finished. Compared as calendar dates so timezone offsets cannot make a
- * task due today look late.
+ * A task is overdue once its due instant has passed and the work is not done.
+ *
+ * Now that due dates carry a time of day this is a plain instant comparison,
+ * which is both simpler and more accurate than the calendar-date check it
+ * replaces.
  */
-export function isOverdue(dueDate: string | null, status: TaskStatus): boolean {
-  if (!dueDate || status === "done") return false;
-  return dueDate < todayIso();
+export function isOverdue(dueAt: string | null, status: TaskStatus): boolean {
+  if (!dueAt || status === "done") return false;
+  return new Date(dueAt).getTime() < Date.now();
 }
 
-/** Today as yyyy-mm-dd in the viewer's own timezone. */
-export function todayIso(): string {
+/** True when the due instant falls on the viewer's local calendar today. */
+export function isDueToday(dueAt: string | null): boolean {
+  if (!dueAt) return false;
+  const due = new Date(dueAt);
   const now = new Date();
-  const month = `${now.getMonth() + 1}`.padStart(2, "0");
-  const day = `${now.getDate()}`.padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
+  return (
+    due.getFullYear() === now.getFullYear() &&
+    due.getMonth() === now.getMonth() &&
+    due.getDate() === now.getDate()
+  );
 }
 
-export function formatDate(value: string): string {
-  // Parsed as UTC midday to keep the rendered day stable across timezones.
-  const date = new Date(`${value}T12:00:00Z`);
-  return date.toLocaleDateString(undefined, {
+/**
+ * Date and time in the viewer's own timezone. The year is shown only when it
+ * differs from the current one, to keep the board compact.
+ */
+export function formatDateTime(value: string): string {
+  const date = new Date(value);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+
+  return date.toLocaleString(undefined, {
     day: "numeric",
     month: "short",
-    year:
-      date.getUTCFullYear() === new Date().getUTCFullYear()
-        ? undefined
-        : "numeric",
+    year: sameYear ? undefined : "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
+}
+
+/** Value for an <input type="datetime-local">, in local time. */
+export function toDateTimeLocal(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (n: number) => `${n}`.padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

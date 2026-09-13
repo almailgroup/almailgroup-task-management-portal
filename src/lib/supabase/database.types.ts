@@ -52,6 +52,8 @@ export type Database = {
           full_name: string | null;
           avatar_url: string | null;
           role: UserRole;
+          /** Job position, assigned by an admin. */
+          job_title: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -61,6 +63,7 @@ export type Database = {
           full_name?: string | null;
           avatar_url?: string | null;
           role?: UserRole;
+          job_title?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -68,6 +71,7 @@ export type Database = {
           full_name?: string | null;
           avatar_url?: string | null;
           role?: UserRole;
+          job_title?: string | null;
         };
         Relationships: [];
       };
@@ -110,7 +114,8 @@ export type Database = {
           description: string | null;
           status: TaskStatus;
           priority: TaskPriority;
-          due_date: string | null;
+          /** Absolute instant, including time of day. */
+          due_at: string | null;
           position: number;
           created_by: string | null;
           created_at: string;
@@ -123,7 +128,7 @@ export type Database = {
           description?: string | null;
           status?: TaskStatus;
           priority?: TaskPriority;
-          due_date?: string | null;
+          due_at?: string | null;
           position?: number;
           created_by: string;
           created_at?: string;
@@ -134,7 +139,7 @@ export type Database = {
           description?: string | null;
           status?: TaskStatus;
           priority?: TaskPriority;
-          due_date?: string | null;
+          due_at?: string | null;
           position?: number;
         };
         Relationships: [

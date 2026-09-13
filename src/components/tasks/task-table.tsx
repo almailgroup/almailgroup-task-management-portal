@@ -73,7 +73,7 @@ export function TaskTable({
                   <PriorityIndicator priority={task.priority} showLabel />
                 </td>
                 <td className="px-3 py-2.5">
-                  <DueDate dueDate={task.due_date} status={task.status} />
+                  <DueDate dueAt={task.due_at} status={task.status} />
                 </td>
                 <td className="px-3 py-2.5">
                   <div className="flex justify-end">
@@ -99,7 +99,7 @@ export function TaskTable({
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusBadge status={task.status} />
                 <PriorityIndicator priority={task.priority} showLabel />
-                <DueDate dueDate={task.due_date} status={task.status} />
+                <DueDate dueAt={task.due_at} status={task.status} />
                 <span className="ml-auto">
                   <AssigneeStack assignees={task.assignees} max={3} />
                 </span>

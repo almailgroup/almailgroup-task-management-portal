@@ -9,6 +9,7 @@ import { initialsFrom } from "@/lib/initials";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RoleSelect } from "@/components/team/role-select";
+import { PositionSelect } from "@/components/team/position-select";
 import { roleMeta } from "@/lib/constants";
 import { getTeam, requireProfile } from "@/lib/data/queries";
 
@@ -58,16 +59,27 @@ export default async function TeamPage() {
                 <p className="truncate text-xs text-muted-foreground">
                   {member.email}
                 </p>
+                {!isAdmin && member.job_title && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {member.job_title}
+                  </p>
+                )}
               </div>
             </div>
 
             {isAdmin ? (
-              <RoleSelect
-                userId={member.id}
-                role={member.role}
-                /* Guard against an admin removing their own last admin rights. */
-                disabled={member.id === profile.id}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <PositionSelect
+                  userId={member.id}
+                  jobTitle={member.job_title}
+                />
+                <RoleSelect
+                  userId={member.id}
+                  role={member.role}
+                  /* Guard against an admin removing their own last admin rights. */
+                  disabled={member.id === profile.id}
+                />
+              </div>
             ) : (
               <Badge variant="outline">{roleMeta(member.role).label}</Badge>
             )}

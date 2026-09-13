@@ -1,4 +1,4 @@
-import { isOverdue, todayIso } from "@/components/tasks/task-meta";
+import { isDueToday, isOverdue } from "@/components/tasks/task-meta";
 import type { Profile, TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /** Aggregations behind the dashboard cards. Pure functions, easy to reason about. */
@@ -6,18 +6,19 @@ import type { Profile, TaskWithAssignees } from "@/lib/supabase/database.types";
 export type Metrics = {
   total: number;
   done: number;
+  /** Everything not yet done. */
   pending: number;
-  overdue: number;
-  dueToday: number;
+  todo: number;
   inProgress: number;
   inReview: number;
+  overdue: number;
+  dueToday: number;
   completionRate: number;
 };
 
 export function summarise(tasks: TaskWithAssignees[]): Metrics {
-  const today = todayIso();
-
   let done = 0;
+  let todo = 0;
   let overdue = 0;
   let dueToday = 0;
   let inProgress = 0;
@@ -25,10 +26,11 @@ export function summarise(tasks: TaskWithAssignees[]): Metrics {
 
   for (const task of tasks) {
     if (task.status === "done") done += 1;
+    if (task.status === "todo") todo += 1;
     if (task.status === "in_progress") inProgress += 1;
     if (task.status === "in_review") inReview += 1;
-    if (isOverdue(task.due_date, task.status)) overdue += 1;
-    if (task.status !== "done" && task.due_date === today) dueToday += 1;
+    if (isOverdue(task.due_at, task.status)) overdue += 1;
+    if (task.status !== "done" && isDueToday(task.due_at)) dueToday += 1;
   }
 
   const total = tasks.length;
@@ -37,10 +39,11 @@ export function summarise(tasks: TaskWithAssignees[]): Metrics {
     total,
     done,
     pending: total - done,
-    overdue,
-    dueToday,
+    todo,
     inProgress,
     inReview,
+    overdue,
+    dueToday,
     completionRate: total === 0 ? 0 : Math.round((done / total) * 100),
   };
 }
@@ -75,7 +78,7 @@ export function workloadByUser(
       if (task.status === "done") entry.done += 1;
       else entry.open += 1;
 
-      if (isOverdue(task.due_date, task.status)) entry.overdue += 1;
+      if (isOverdue(task.due_at, task.status)) entry.overdue += 1;
     }
   }
 

@@ -35,13 +35,19 @@ monochrome interface.
 - **@mentions** — autocomplete in the comment box.
 - **Attachments** — files (up to 25 MB, private storage, signed-URL download)
   and external links on any task.
+- **Due dates with time of day**, stored as absolute instants and rendered in
+  each viewer's own timezone.
+- **Profile pictures** uploaded by each user, and **job positions** assigned by
+  an admin from a preset list or free text.
 - **Review gate** — assignees move work to In Review; only a manager or admin
   marks it Done.
 - **General tasks** — assigned work belonging to no project, created by
   managers and admins.
 - **Notifications** — live in-app bell for assignment, comments, @mentions,
   review requests and completions.
-- **Dashboard** — completed vs pending, overdue, due today, overall progress,
+- **Dashboard** — six clickable tiles (To Do, Pending, In Review, Completed,
+  Due Today, Overdue), each opening the matching task list at `/tasks`,
+  overall progress,
   your assigned work, items needing attention, and per-user workload.
 
 ## Getting started
@@ -98,6 +104,7 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0008_notifications.sql`         | Notifications table and trigger fan-out       |
 | `…0009_member_view_only_details.sql` | Members are view-only on task details      |
 | `…0010_fix_delete_task_audit.sql` | Lets a task with assignees be deleted         |
+| `…0011_due_time_and_positions.sql`| due_at with time, job_title, avatars bucket   |
 
 ### 3. Register the first user
 
@@ -128,6 +135,8 @@ the whole workspace — that is what makes project switching, assignee pickers a
 | Post comments                                 |  yes  | yes          | yes                     |
 | Edit or delete comments (incl. their own)     |  yes  | yes          | **no**                  |
 | Change roles                                  |  yes  | no           | no                      |
+| Set job positions                             |  yes  | no           | no                      |
+| Upload their own profile picture              |  yes  | yes          | yes                     |
 
 **The member's lane.** Planning belongs to managers; members execute. A member
 receives a task, works on it, attaches the result, comments, and moves it to In
@@ -236,9 +245,10 @@ npx supabase gen types typescript --project-id <ref> --schema public \
 
 ## Database schema
 
-- `profiles` — id, email, full_name, avatar_url, role, created_at, updated_at
+- `profiles` — id, email, full_name, avatar_url, role, job_title, created_at,
+  updated_at
 - `projects` — id, name, description, created_by, created_at, updated_at
-- `tasks` — id, project_id, title, description, status, priority, due_date,
+- `tasks` — id, project_id, title, description, status, priority, due_at,
   position, created_by, created_at, updated_at
 - `task_assignments` — task_id, user_id, assigned_at
 - `comments` — id, task_id, user_id, content, created_at, updated_at

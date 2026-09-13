@@ -25,8 +25,10 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
+import { toDateTimeLocal } from "@/components/tasks/task-meta";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
 import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
 import { CommentThread } from "@/components/tasks/comment-thread";
@@ -73,6 +75,7 @@ export function TaskDialog({
 
   const [pending, setPending] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<{
     id: string;
   }> | null>(null);
@@ -220,15 +223,17 @@ export function TaskDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="dueDate">Due date</Label>
+                <Label htmlFor="dueAt">Due date &amp; time</Label>
                 <Input
-                  id="dueDate"
-                  name="dueDate"
-                  type="date"
-                  defaultValue={task?.due_date ?? ""}
-                  aria-invalid={Boolean(errors?.dueDate)}
+                  id="dueAt"
+                  name="dueAt"
+                  type="datetime-local"
+                  // Shown in the viewer timezone; the action converts it back
+                  // to an absolute instant on save.
+                  defaultValue={toDateTimeLocal(task?.due_at ?? null)}
+                  aria-invalid={Boolean(errors?.dueAt)}
                 />
-                <FieldError message={errors?.dueDate} />
+                <FieldError message={errors?.dueAt} />
               </div>
             </div>
 
@@ -314,6 +319,26 @@ export function TaskDialog({
           </>
         )}
       </DialogContent>
+
+      {task && (
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Delete this task?"
+          description={
+            <>
+              <span className="font-medium text-foreground">{task.title}</span>{" "}
+              will be permanently deleted, along with its comments, attachments
+              and history. This cannot be undone.
+            </>
+          }
+          confirmLabel="Delete task"
+          onConfirm={async () => {
+            await onDelete();
+            setConfirmDelete(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }

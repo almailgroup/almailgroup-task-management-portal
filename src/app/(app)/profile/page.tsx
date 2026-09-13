@@ -21,7 +21,12 @@ export default async function ProfilePage() {
             How you appear to the rest of the workspace.
           </p>
         </div>
-        <Badge variant="outline">{role.label}</Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {profile.job_title && (
+            <Badge variant="secondary">{profile.job_title}</Badge>
+          )}
+          <Badge variant="outline">{role.label}</Badge>
+        </div>
       </div>
 
       <Card>
@@ -34,8 +39,13 @@ export default async function ProfilePage() {
         <CardHeader>
           <CardTitle>Your access</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {role.description} Only an admin can change roles.
+        <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
+          <p>{role.description}</p>
+          <p>
+            <span className="font-medium text-foreground">Position:</span>{" "}
+            {profile.job_title ?? "Not set"}
+          </p>
+          <p>Roles and positions are assigned by an admin.</p>
         </CardContent>
       </Card>
     </div>

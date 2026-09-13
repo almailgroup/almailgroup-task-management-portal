@@ -29,7 +29,7 @@ function parseTaskForm(formData: FormData) {
     description: formData.get("description") ?? undefined,
     status: formData.get("status") ?? "todo",
     priority: formData.get("priority") ?? "medium",
-    dueDate: formData.get("dueDate") ?? undefined,
+    dueAt: formData.get("dueAt") ?? undefined,
     assigneeIds: formData.getAll("assigneeIds").map(String).filter(Boolean),
   });
 }
@@ -91,7 +91,7 @@ export async function createTask(
       description: parsed.data.description || null,
       status: parsed.data.status,
       priority: parsed.data.priority,
-      due_date: parsed.data.dueDate || null,
+      due_at: parsed.data.dueAt || null,
       position,
       created_by: user.id,
     })
@@ -144,7 +144,7 @@ export async function updateTask(
       description: parsed.data.description || null,
       status: parsed.data.status,
       priority: parsed.data.priority,
-      due_date: parsed.data.dueDate || null,
+      due_at: parsed.data.dueAt || null,
     })
     .eq("id", taskId)
     .select("id")

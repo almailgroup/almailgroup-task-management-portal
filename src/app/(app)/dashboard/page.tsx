@@ -4,7 +4,9 @@ import {
   CalendarClock,
   CircleAlert,
   CircleCheck,
+  CircleDashed,
   CircleDot,
+  Eye,
   FolderOpen,
 } from "lucide-react";
 
@@ -47,12 +49,12 @@ export default async function DashboardPage() {
         task.assignees.some((person) => person.id === profile.id),
     )
     // Soonest due first; undated work sorts last.
-    .sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"))
+    .sort((a, b) => (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999"))
     .slice(0, 6);
 
   const attention = tasks
-    .filter((task) => isOverdue(task.due_date, task.status))
-    .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""))
+    .filter((task) => isOverdue(task.due_at, task.status))
+    .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""))
     .slice(0, 6);
 
   const firstName = profile.full_name?.split(" ")[0];
@@ -73,37 +75,58 @@ export default async function DashboardPage() {
         <EmptyState canCreate={profile.role !== "member"} />
       ) : (
         <>
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Every tile opens the matching list; counts and list share one
+              set of predicates in lib/task-filters, so they cannot disagree. */}
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <MetricCard
-              label="Completed"
-              value={metrics.done}
-              hint={`${metrics.completionRate}% of all tasks`}
-              icon={<CircleCheck />}
+              label="To Do"
+              value={metrics.todo}
+              hint="Not started"
+              icon={<CircleDashed />}
+              href="/tasks?filter=todo"
             />
             <MetricCard
               label="Pending"
               value={metrics.pending}
-              hint={`${metrics.inProgress} in progress · ${metrics.inReview} in review`}
+              hint="Not yet done"
               icon={<CircleDot />}
+              href="/tasks?filter=pending"
+            />
+            <MetricCard
+              label="In Review"
+              value={metrics.inReview}
+              hint="Awaiting review"
+              icon={<Eye />}
+              href="/tasks?filter=in_review"
+            />
+            <MetricCard
+              label="Completed"
+              value={metrics.done}
+              hint={`${metrics.completionRate}% of all`}
+              icon={<CircleCheck />}
+              href="/tasks?filter=done"
+            />
+            <MetricCard
+              label="Due Today"
+              value={metrics.dueToday}
+              hint="Due before midnight"
+              icon={<CalendarClock />}
+              href="/tasks?filter=due_today"
             />
             <MetricCard
               label="Overdue"
               value={metrics.overdue}
-              hint={
-                metrics.overdue === 0
-                  ? "Nothing past its due date"
-                  : "Past the due date and unfinished"
-              }
+              hint={metrics.overdue === 0 ? "All clear" : "Past due"}
               icon={<CircleAlert />}
               emphasis={metrics.overdue > 0}
-            />
-            <MetricCard
-              label="Due today"
-              value={metrics.dueToday}
-              hint="Unfinished tasks due today"
-              icon={<CalendarClock />}
+              href="/tasks?filter=overdue"
             />
           </section>
+
+          <p className="-mt-1 text-xs text-muted-foreground">
+            {metrics.inProgress} in progress. Select any tile to see those
+            tasks.
+          </p>
 
           <Card>
             <CardHeader>
@@ -169,7 +192,7 @@ function TaskListCard({
                 <span className="truncate text-sm">{task.title}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <DueDate dueDate={task.due_date} status={task.status} />
+                <DueDate dueAt={task.due_at} status={task.status} />
                 <StatusBadge status={task.status} />
                 <AssigneeStack assignees={task.assignees} max={2} />
               </span>

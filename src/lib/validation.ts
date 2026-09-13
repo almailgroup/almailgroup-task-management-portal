@@ -54,6 +54,12 @@ export const projectSchema = z.object({
 
 export const userRoleSchema = z.enum(["admin", "manager", "member"]);
 
+/** A job position: any text up to 60 characters, or empty to clear it. */
+export const positionSchema = z
+  .string()
+  .trim()
+  .max(60, "Position must be 60 characters or fewer");
+
 export const taskStatusSchema = z.enum([
   "todo",
   "in_progress",
@@ -76,9 +82,29 @@ export const taskSchema = z.object({
     .optional(),
   status: taskStatusSchema,
   priority: taskPrioritySchema,
-  // Empty string is how an unset <input type="date"> arrives from a form.
-  dueDate: z
-    .union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date"), z.literal("")])
+  /**
+   * From <input type="datetime-local">, e.g. "2026-09-15T17:30". That value is
+   * wall-clock time in the browser's timezone with no offset, so it is parsed
+   * as local and transformed into an absolute instant for storage. An empty
+   * string is how an unset input arrives.
+   */
+  dueAt: z
+    .union([
+      z
+        .string()
+        .regex(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/,
+          "Enter a valid date and time",
+        )
+        .transform((value) => {
+          const parsed = new Date(value);
+          if (Number.isNaN(parsed.getTime())) {
+            throw new Error("Invalid date");
+          }
+          return parsed.toISOString();
+        }),
+      z.literal(""),
+    ])
     .optional(),
   assigneeIds: z.array(z.string().uuid()).default([]),
 });

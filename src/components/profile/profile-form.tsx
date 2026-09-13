@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { initialsFrom } from "@/lib/initials";
+import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +18,6 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<void> | null>(null);
-  const [avatarUrl, setAvatarUrl] = React.useState(profile.avatar_url ?? "");
   const [fullName, setFullName] = React.useState(profile.full_name ?? "");
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -49,20 +43,15 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
       <FormError message={result?.ok === false ? result.error : null} />
 
-      <div className="flex items-center gap-3">
-        <Avatar className="size-12">
-          {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
-          <AvatarFallback className="text-sm">
-            {initialsFrom(fullName, profile.email)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="text-sm">
-          <p className="font-medium">{profile.email}</p>
-          <p className="text-muted-foreground">
-            Your email is managed by your sign-in and cannot be changed here.
-          </p>
-        </div>
-      </div>
+      {/* Preserved so saving the name does not wipe a picture set above. */}
+      <input type="hidden" name="avatarUrl" value={profile.avatar_url ?? ""} />
+
+      <AvatarUpload profile={profile} />
+
+      <p className="text-sm text-muted-foreground">
+        {profile.email} — your email comes from your sign-in and cannot be
+        changed here.
+      </p>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="fullName">Full name</Label>
@@ -76,20 +65,6 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           aria-invalid={Boolean(errors?.fullName)}
         />
         <FieldError message={errors?.fullName} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="avatarUrl">Avatar URL</Label>
-        <Input
-          id="avatarUrl"
-          name="avatarUrl"
-          type="url"
-          value={avatarUrl}
-          onChange={(event) => setAvatarUrl(event.target.value)}
-          placeholder="https://..."
-          aria-invalid={Boolean(errors?.avatarUrl)}
-        />
-        <FieldError message={errors?.avatarUrl} />
       </div>
 
       <div>

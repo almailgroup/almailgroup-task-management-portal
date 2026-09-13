@@ -98,9 +98,23 @@ create index if not exists tasks_project_status_position_idx
 create index if not exists tasks_project_created_idx
   on public.tasks (project_id, created_at desc);
 -- Overdue lookups only ever consider unfinished work.
-create index if not exists tasks_open_due_date_idx
-  on public.tasks (due_date)
-  where status <> 'done' and due_date is not null;
+--
+-- Guarded on the column still being called due_date: migration 0011 renames it
+-- to due_at, and this file is also shipped inside the re-runnable setup.sql
+-- bundle, where it is replayed against an already-migrated database.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tasks'
+      and column_name = 'due_date'
+  ) then
+    execute 'create index if not exists tasks_open_due_date_idx
+      on public.tasks (due_date)
+      where status <> ''done'' and due_date is not null';
+  end if;
+end $$;
 
 -- --------------------------------------------------------------------------
 -- task_assignments — many-to-many between tasks and profiles.

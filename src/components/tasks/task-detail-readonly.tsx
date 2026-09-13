@@ -129,8 +129,8 @@ export function TaskDetailReadonly({
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium leading-none">Due date</span>
           <div className="flex h-9 items-center">
-            {task.due_date ? (
-              <DueDate dueDate={task.due_date} status={task.status} />
+            {task.due_at ? (
+              <DueDate dueAt={task.due_at} status={task.status} />
             ) : (
               <span className="text-sm text-muted-foreground">None</span>
             )}

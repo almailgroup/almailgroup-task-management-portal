@@ -46,7 +46,7 @@ export const TaskCard = React.forwardRef<
       <div className="mt-2 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <PriorityIndicator priority={task.priority} />
-          <DueDate dueDate={task.due_date} status={task.status} />
+          <DueDate dueAt={task.due_at} status={task.status} />
         </div>
         <AssigneeStack assignees={task.assignees} max={2} />
       </div>
