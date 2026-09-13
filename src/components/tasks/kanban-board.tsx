@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -216,17 +217,37 @@ export function KanbanBoard({
         })}
       </div>
 
-      {/* Follows the cursor so the card does not visually jump on pick-up. */}
-      <DragOverlay dropAnimation={null}>
-        {activeTask && (
-          <TaskCard
-            task={activeTask}
-            className="rotate-1 border-foreground/30 shadow-lg"
-          />
-        )}
-      </DragOverlay>
+      <DragPreview task={activeTask} />
     </DndContext>
   );
+}
+
+/**
+ * The card that follows the cursor while dragging.
+ *
+ * Portalled to <body> on purpose. The overlay is `position: fixed`, so any
+ * ancestor with a transform, filter or filling transform animation would
+ * become its containing block and offset it from the cursor by however far
+ * that ancestor sits from the viewport origin. Hanging it off <body> puts it
+ * out of reach of whatever the page above it does.
+ */
+function DragPreview({ task }: { task: TaskWithAssignees | null }) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
+  const overlay = (
+    <DragOverlay dropAnimation={null}>
+      {task && (
+        <TaskCard
+          task={task}
+          className="rotate-1 border-foreground/30 shadow-lg"
+        />
+      )}
+    </DragOverlay>
+  );
+
+  // No document during SSR, and nothing to drag before hydration anyway.
+  return mounted ? createPortal(overlay, document.body) : null;
 }
 
 function Column({

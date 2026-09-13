@@ -194,9 +194,15 @@
 }
 
 @layer utilities {
-  /* Entrance for page content, so a route change resolves rather than snaps. */
+  /* Entrance for page content, so a route change resolves rather than snaps.
+   *
+   * `backwards`, never `forwards`/`both`: a transform animation that keeps
+   * filling after it ends leaves the element a containing block for fixed
+   * descendants, which threw the Kanban drag overlay hundreds of pixels off
+   * the cursor. The final keyframe matches the element's own resting style,
+   * so there is nothing to hold on to anyway. */
   .animate-rise {
-    animation: rise 0.24s var(--ease-out) both;
+    animation: rise 0.24s var(--ease-out) backwards;
   }
 
   @keyframes rise {
