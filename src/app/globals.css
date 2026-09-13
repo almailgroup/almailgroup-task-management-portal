@@ -15,6 +15,11 @@
 :root {
   --radius: 0.5rem;
 
+  /* Sidebar width. Overwritten before first paint by the script in the
+   * authenticated layout when a stored width exists, and by React after
+   * hydration; this is the fallback both fall back to. */
+  --sidebar-width: 240px;
+
   /* Surfaces.
    * The page is a soft grey and cards are pure white, so a panel reads as a
    * raised surface rather than as an outline drawn on the same tone. That

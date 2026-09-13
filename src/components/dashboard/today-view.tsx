@@ -191,7 +191,7 @@ export function TodayView({
                 className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2.5 py-2 text-left transition-colors hover:border-foreground/25"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
+                  <span className="block truncate text-[0.9375rem] font-medium">
                     {task.title}
                   </span>
                   {task.follow_up_note && (
@@ -304,7 +304,7 @@ function Section({
           tasks.map((task) => (
             <div
               key={task.id}
-              className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2.5 py-2"
+              className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-3.5 py-3 shadow-[var(--shadow-xs)]"
             >
               <PriorityIndicator priority={task.priority} />
 
@@ -313,7 +313,7 @@ function Section({
                 onClick={() => onOpen(task)}
                 className="min-w-0 flex-1 text-left focus-visible:outline-none"
               >
-                <span className="block truncate text-sm font-medium">
+                <span className="block truncate text-[0.9375rem] font-medium">
                   {task.title}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">

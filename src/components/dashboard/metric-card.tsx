@@ -25,7 +25,7 @@ export function MetricCard({
   href?: string;
 }) {
   const className = cn(
-    "group block rounded-lg border bg-card p-4 transition-colors",
+    "group block rounded-lg border bg-card p-5 transition-colors",
     emphasis ? "border-foreground/30" : "border-border",
     href && "hover:border-foreground/40 focus-visible:outline-none",
   );
@@ -33,7 +33,7 @@ export function MetricCard({
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">
+        <span className="text-[0.8125rem] font-medium text-muted-foreground">
           {label}
         </span>
         {icon && (
@@ -41,12 +41,12 @@ export function MetricCard({
         )}
       </div>
 
-      <p className="mt-2 text-2xl font-semibold tabular-nums leading-none tracking-tight">
+      <p className="mt-2.5 text-[1.75rem] font-semibold tabular-nums leading-none tracking-tight">
         {value}
       </p>
 
       {hint && (
-        <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+        <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
           {hint}
           {href && (
             <ArrowRight

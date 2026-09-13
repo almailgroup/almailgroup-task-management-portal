@@ -13,6 +13,12 @@ import {
   CommandHint,
   CommandPalette,
 } from "@/components/layout/command-palette";
+import { SidebarResizer } from "@/components/layout/sidebar-resizer";
+import {
+  SIDEBAR_DEFAULT,
+  SIDEBAR_STORAGE_KEY,
+  clampSidebarWidth,
+} from "@/lib/sidebar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type {
   Notification,
@@ -43,6 +49,37 @@ export function AppShell({
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
+  // Server-rendered at the default; the inline script in the layout has
+  // already painted the stored width, so adopting it here only syncs React's
+  // copy rather than causing a visible jump.
+  const [sidebarWidth, setSidebarWidth] = React.useState(SIDEBAR_DEFAULT);
+
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+      if (stored) setSidebarWidth(clampSidebarWidth(Number(stored)));
+    } catch {
+      // Private browsing or blocked storage: the default is fine.
+    }
+  }, []);
+
+  // Drive both the rail and the content offset from one custom property, so
+  // they cannot drift apart.
+  React.useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      `${sidebarWidth}px`,
+    );
+  }, [sidebarWidth]);
+
+  const persistWidth = React.useCallback((value: number) => {
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(value));
+    } catch {
+      // Not being able to remember the width is not worth surfacing.
+    }
+  }, []);
+
   // Close the mobile drawer whenever the route changes.
   React.useEffect(() => {
     setDrawerOpen(false);
@@ -61,7 +98,8 @@ export function AppShell({
   return (
     <div className="min-h-svh bg-background">
       {/* Desktop rail */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-chrome-border bg-chrome lg:block">
+      <aside style={{ width: "var(--sidebar-width)" }}
+        className="fixed inset-y-0 left-0 z-30 hidden border-r border-chrome-border bg-chrome lg:block">
         <div className="flex h-14 items-center gap-2.5 border-b border-chrome-border px-4">
           <Link
             href="/today"
@@ -87,6 +125,12 @@ export function AppShell({
             activeProjectId={activeProjectId}
           />
         </div>
+
+        <SidebarResizer
+          width={sidebarWidth}
+          onChange={setSidebarWidth}
+          onCommit={persistWidth}
+        />
       </aside>
 
       {/* Mobile drawer */}
@@ -124,7 +168,7 @@ export function AppShell({
         </div>
       )}
 
-      <div className="lg:pl-60">
+      <div className="lg:pl-[var(--sidebar-width)]">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <Button

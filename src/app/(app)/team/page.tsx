@@ -42,7 +42,7 @@ export default async function TeamPage() {
         {team.map((member) => (
           <div
             key={member.id}
-            className="flex flex-wrap items-center justify-between gap-3 p-3"
+            className="flex flex-wrap items-center justify-between gap-3 p-4"
           >
             <div className="flex min-w-0 items-center gap-3">
               <Avatar>
@@ -54,7 +54,7 @@ export default async function TeamPage() {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">
+                <p className="truncate text-[0.9375rem] font-medium">
                   {member.full_name ?? member.email}
                   {member.id === profile.id && (
                     <span className="ml-1.5 text-xs font-normal text-muted-foreground">

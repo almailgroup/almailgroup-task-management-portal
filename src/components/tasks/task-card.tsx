@@ -28,7 +28,7 @@ export const TaskCard = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "group rounded-md border border-border bg-card p-2.5 shadow-[var(--shadow-xs)]",
+        "group rounded-lg border border-border bg-card p-3.5 shadow-[var(--shadow-xs)]",
         "transition-[border-color,box-shadow,opacity] duration-150",
         "hover:border-foreground/25 hover:shadow-[var(--shadow-sm)]",
         dragging && "opacity-40",
@@ -41,10 +41,10 @@ export const TaskCard = React.forwardRef<
         onClick={onOpen}
         className="w-full text-left focus-visible:outline-none"
       >
-        <p className="text-sm font-medium leading-snug">{task.title}</p>
+        <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
       </button>
 
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-3 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <PriorityIndicator priority={task.priority} />
           <DueDate dueAt={task.due_at} status={task.status} />

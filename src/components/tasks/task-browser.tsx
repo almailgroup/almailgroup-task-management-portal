@@ -130,7 +130,7 @@ export function TaskBrowser({
         <ul className="flex flex-col gap-2">
           {visible.map((task) => (
             <li key={task.id}>
-              <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:border-foreground/25">
+              <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-xs)] transition-colors hover:border-foreground/25">
                 <PriorityIndicator priority={task.priority} />
 
                 <button
@@ -141,7 +141,7 @@ export function TaskBrowser({
                   }}
                   className="min-w-0 flex-1 text-left focus-visible:outline-none"
                 >
-                  <span className="block truncate text-sm font-medium">
+                  <span className="block truncate text-[0.9375rem] font-medium">
                     {task.title}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">

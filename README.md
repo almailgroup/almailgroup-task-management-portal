@@ -246,6 +246,12 @@ the page it precedes.
 Press <kbd>⌘K</kbd> (or <kbd>Ctrl</kbd>+<kbd>K</kbd>) anywhere for the command
 palette — every page, saved filter and project, one search away.
 
+**The sidebar is resizable.** Drag its right edge, or focus the separator and
+use the arrow keys (<kbd>Shift</kbd> for larger steps, <kbd>Home</kbd> and
+<kbd>End</kbd> for the limits). Double-click or press <kbd>Enter</kbd> to
+reset. The width is remembered per browser between 208px and 440px, and is
+applied before first paint so it never snaps into place on load.
+
 ## Project structure
 
 ```

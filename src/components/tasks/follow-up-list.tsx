@@ -101,7 +101,7 @@ function Group({
           <li
             key={task.id}
             className={cn(
-              "flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3",
+              "flex flex-wrap items-center gap-2.5 rounded-lg border bg-card p-4 shadow-[var(--shadow-xs)]",
               overdue ? "border-foreground/30" : "border-border",
             )}
           >
@@ -110,7 +110,7 @@ function Group({
               onClick={() => onOpenTask(task)}
               className="min-w-0 flex-1 text-left focus-visible:outline-none"
             >
-              <span className="block truncate text-sm font-medium">
+              <span className="block truncate text-[0.9375rem] font-medium">
                 {task.title}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
