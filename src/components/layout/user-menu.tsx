@@ -8,8 +8,8 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  initialsFrom,
 } from "@/components/ui/avatar";
+import { initialsFrom } from "@/lib/initials";
 import {
   DropdownMenu,
   DropdownMenuContent,

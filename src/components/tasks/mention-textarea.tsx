@@ -6,8 +6,8 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  initialsFrom,
 } from "@/components/ui/avatar";
+import { initialsFrom } from "@/lib/initials";
 import { Textarea } from "@/components/ui/textarea";
 import { mentionName } from "@/lib/mentions";
 import { cn } from "@/lib/utils";

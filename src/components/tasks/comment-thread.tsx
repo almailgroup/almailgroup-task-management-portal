@@ -8,8 +8,8 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  initialsFrom,
 } from "@/components/ui/avatar";
+import { initialsFrom } from "@/lib/initials";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MentionTextarea } from "@/components/tasks/mention-textarea";

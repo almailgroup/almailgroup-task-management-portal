@@ -1,4 +1,4 @@
-import { initialsFrom } from "@/components/ui/avatar";
+import { initialsFrom } from "@/lib/initials";
 import { statusMeta } from "@/lib/constants";
 import type {
   TaskActivityAction,

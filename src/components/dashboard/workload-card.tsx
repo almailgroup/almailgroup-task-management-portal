@@ -2,8 +2,8 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  initialsFrom,
 } from "@/components/ui/avatar";
+import { initialsFrom } from "@/lib/initials";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/dashboard/metric-card";
 import type { Workload } from "@/lib/metrics";

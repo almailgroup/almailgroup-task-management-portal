@@ -4,8 +4,8 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  initialsFrom,
 } from "@/components/ui/avatar";
+import { initialsFrom } from "@/lib/initials";
 import { Badge } from "@/components/ui/badge";
 import { priorityMeta, statusMeta } from "@/lib/constants";
 import { cn } from "@/lib/utils";
