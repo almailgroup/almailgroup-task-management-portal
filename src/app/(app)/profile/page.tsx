@@ -3,14 +3,27 @@ import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { ReminderSettings } from "@/components/profile/reminder-settings";
 import { roleMeta } from "@/lib/constants";
-import { requireProfile } from "@/lib/data/queries";
+import {
+  getNotificationPreferences,
+  requireProfile,
+} from "@/lib/data/queries";
+import { configuredChannels } from "@/lib/reminders/providers";
 
 export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
-  const profile = await requireProfile();
+  const [profile, preferences] = await Promise.all([
+    requireProfile(),
+    getNotificationPreferences(),
+  ]);
   const role = roleMeta(profile.role);
+
+  // Read on the server: which channels actually have credentials. The UI shows
+  // the rest disabled with the reason, rather than silently doing nothing.
+  const available = configuredChannels();
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? null;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
@@ -34,6 +47,22 @@ export default async function ProfilePage() {
           <ProfileForm profile={profile} />
         </CardContent>
       </Card>
+
+      {preferences && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Task reminders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReminderSettings
+              preferences={preferences}
+              email={profile.email}
+              available={available}
+              botUsername={botUsername}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-4">
         <CardHeader>

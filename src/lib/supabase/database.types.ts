@@ -22,6 +22,10 @@ export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 export type AttachmentKind = "file" | "link";
 
+export type ReminderChannel = "email" | "telegram" | "whatsapp";
+export type ReminderKind = "assigned" | "due_soon" | "overdue" | "follow_up";
+export type ReminderStatus = "pending" | "sent" | "failed" | "cancelled";
+
 /** `notifications.type` — stored as text with a check constraint. */
 export type NotificationType =
   | "task_assigned"
@@ -289,6 +293,83 @@ export type Database = {
           },
         ];
       };
+      /** Per-user reminder channel settings. One row per profile. */
+      notification_preferences: {
+        Row: {
+          user_id: string;
+          email_enabled: boolean;
+          telegram_enabled: boolean;
+          whatsapp_enabled: boolean;
+          telegram_chat_id: string | null;
+          whatsapp_number: string | null;
+          telegram_link_code: string | null;
+          remind_assigned: boolean;
+          remind_due_soon: boolean;
+          remind_overdue: boolean;
+          remind_follow_up: boolean;
+          due_soon_lead_hours: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { user_id: string };
+        Update: {
+          email_enabled?: boolean;
+          telegram_enabled?: boolean;
+          whatsapp_enabled?: boolean;
+          telegram_chat_id?: string | null;
+          whatsapp_number?: string | null;
+          telegram_link_code?: string | null;
+          remind_assigned?: boolean;
+          remind_due_soon?: boolean;
+          remind_overdue?: boolean;
+          remind_follow_up?: boolean;
+          due_soon_lead_hours?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      /** Outbound reminders. Written by the scheduler, drained by the dispatcher. */
+      reminder_queue: {
+        Row: {
+          id: string;
+          user_id: string;
+          task_id: string | null;
+          channel: ReminderChannel;
+          kind: ReminderKind;
+          recipient: string;
+          subject: string | null;
+          body: string;
+          status: ReminderStatus;
+          attempts: number;
+          last_error: string | null;
+          dedupe_key: string;
+          scheduled_for: string;
+          sent_at: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: {
+          status?: ReminderStatus;
+          attempts?: number;
+          last_error?: string | null;
+          sent_at?: string | null;
+          scheduled_for?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reminder_queue_task_id_fkey";
+            columns: ["task_id"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       task_attachments: {
         Row: {
           id: string;
@@ -357,6 +438,7 @@ export type Database = {
       can_edit_task: { Args: { task: string }; Returns: boolean };
       can_view_project: { Args: { project: string }; Returns: boolean };
       can_view_task: { Args: { task: string }; Returns: boolean };
+      enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
     };
     Enums: {
       user_role: UserRole;
@@ -380,6 +462,10 @@ export type TaskAttachment =
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 export type ProjectMember =
   Database["public"]["Tables"]["project_members"]["Row"];
+export type NotificationPreferences =
+  Database["public"]["Tables"]["notification_preferences"]["Row"];
+export type ReminderQueueRow =
+  Database["public"]["Tables"]["reminder_queue"]["Row"];
 
 /** A notification joined with the person who caused it. */
 export type NotificationWithActor = Notification & { actor: Profile | null };

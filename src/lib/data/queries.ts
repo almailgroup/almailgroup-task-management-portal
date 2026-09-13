@@ -11,6 +11,7 @@ import type {
   Project,
   Task,
   TaskActivityWithActor,
+  NotificationPreferences,
   TaskAttachment,
   TaskWithAssignees,
 } from "@/lib/supabase/database.types";
@@ -292,5 +293,18 @@ export const getFollowUps = cache(
     return (data ?? []).map((row) =>
       withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
     );
+  },
+);
+
+/** The signed-in user's reminder settings. RLS scopes this to their own row. */
+export const getNotificationPreferences = cache(
+  async (): Promise<NotificationPreferences | null> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("notification_preferences")
+      .select("*")
+      .maybeSingle();
+
+    return data;
   },
 );

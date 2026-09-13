@@ -45,6 +45,8 @@ monochrome interface.
   managers and admins.
 - **Notifications** — live in-app bell for assignment, comments, @mentions,
   review requests and completions.
+- **Reminders by email, Telegram or WhatsApp** — each person chooses their own
+  channels and which events are worth interrupting them for.
 - **Today** — the daily review: overdue, due today, in progress, awaiting
   review, follow-ups to chase now, and a per-person view of where the day is
   concentrated. Every row reschedules inline.
@@ -115,6 +117,7 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0011_due_time_and_positions.sql`| due_at with time, job_title, avatars bucket   |
 | `…0012_project_membership.sql`    | Projects become private to their members      |
 | `…0013_follow_ups.sql`            | Follow-up dates and notes, audited            |
+| `…0014_reminders.sql`             | Reminder preferences and outbound queue       |
 
 ### 3. Register the first user
 
@@ -289,6 +292,10 @@ npx supabase gen types typescript --project-id <ref> --schema public \
   storage_path, url, mime_type, size_bytes, created_at
 - `notifications` — id, user_id, actor_id, type, title, body, task_id,
   project_id, read_at, created_at
+- `notification_preferences` — user_id, per-channel toggles and destinations,
+  per-event toggles, due_soon_lead_hours
+- `reminder_queue` — id, user_id, task_id, channel, kind, recipient, subject,
+  body, status, attempts, last_error, dedupe_key, scheduled_for, sent_at
 
 `tasks.project_id` is nullable: NULL marks a **general task**. Files live in
 the private `task-attachments` storage bucket, reached only through short-lived
@@ -310,6 +317,92 @@ feature:
 `created_by` and `comments.user_id` are nullable with `ON DELETE SET NULL`, so
 offboarding a user never cascades away their projects, tasks or comment threads.
 
+## Reminders
+
+Each person picks their own channels on **Profile → Task reminders**, and which
+events are worth a message: assigned to me, due soon (with their own lead time),
+overdue, or a follow-up coming due.
+
+**The app works without any of this.** Unconfigured channels appear disabled in
+the profile page with the reason, rather than silently doing nothing.
+
+### How it works
+
+Reminders are queued, not sent inline. `enqueue_task_reminders()` builds rows
+from the current state of the tasks table; a scheduled call to
+`/api/reminders/dispatch` drains the queue and calls the providers. That means a
+provider outage cannot lose a reminder, retries are bounded and visible in
+`reminder_queue.last_error`, and nothing is ever sent twice — every row carries
+a `dedupe_key`. Changing a due date changes that key, which is exactly why a
+rescheduled task legitimately reminds again, while re-running the scheduler ten
+times does not.
+
+Permanent failures (a blocked bot, a bad number) are not retried; transient ones
+back off and are retried up to four times.
+
+### Server environment
+
+All of these are **server secrets** — never prefix them `NEXT_PUBLIC_`, which
+would compile them into the browser bundle. See `.env.example` for the full list.
+
+| Variable | For |
+| --- | --- |
+| `SUPABASE_SERVICE_ROLE_KEY` | Required for any delivery. The dispatcher reads every user's queue, so it cannot run as any one of them. |
+| `CRON_SECRET` | Authenticates the dispatcher. `openssl rand -hex 32`. |
+| `RESEND_API_KEY`, `REMINDER_EMAIL_FROM` | Email |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | Telegram |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` | WhatsApp |
+
+### Scheduling
+
+`vercel.json` registers a daily cron at 07:00 UTC. **Vercel's Hobby plan only
+allows one run per day** — enough for a morning digest, but "due in 2 hours"
+will not be accurate. For finer granularity either upgrade to Pro, or drive it
+from Supabase instead, which has no such limit:
+
+```sql
+-- In the Supabase SQL editor, once.
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+select cron.schedule(
+  'dispatch-task-reminders',
+  '*/15 * * * *',
+  $$
+  select net.http_post(
+    url    := 'https://YOUR-APP.vercel.app/api/reminders/dispatch',
+    headers:= jsonb_build_object('x-cron-secret', 'YOUR_CRON_SECRET')
+  );
+  $$
+);
+```
+
+### Setting up each channel
+
+**Email (Resend).** Create an account, verify the domain you will send from,
+create an API key. The free tier covers a small team.
+
+**Telegram.** Message `@BotFather`, `/newbot`, keep the token. Then register the
+webhook once:
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -d "url=https://YOUR-APP.vercel.app/api/telegram/webhook" \
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+
+Each user then opens Profile → Task reminders → Connect Telegram, and sends the
+one-time code to the bot. The bot replies to confirm. The chat id can only come
+from Telegram itself, which is why this handshake exists.
+
+**WhatsApp (Twilio).** This one is not just an API key. For testing, join the
+Twilio WhatsApp sandbox from the console and use the sandbox number. For real
+use you need a WhatsApp Business account, a verified sender number, and — this
+is the part that surprises people — **message templates approved by Meta**,
+which takes days. Outside a 24-hour window since the user last messaged you,
+only approved templates are delivered; free-text messages are rejected. Set
+`TWILIO_WHATSAPP_TEMPLATE_SID` once you have one approved.
+
 ## Deploying to Vercel
 
 1. **Apply the migrations** to your Supabase project (see above) — do this
@@ -323,6 +416,7 @@ offboarding a user never cascades away their projects, tasks or comment threads.
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_SITE_URL` — your deployment URL, e.g.
      `https://almailgroup-tasks.vercel.app`
+   - Optionally the reminder secrets above — see [Reminders](#reminders)
 4. **Configure Supabase auth URLs** under **Authentication → URL
    Configuration**:
    - *Site URL*: your production URL

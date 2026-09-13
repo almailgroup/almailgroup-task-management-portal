@@ -11,7 +11,17 @@ import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./env";
  * The landing page is matched exactly — treating "/" as a prefix would make
  * the entire app public.
  */
-const PUBLIC_PREFIXES = ["/login", "/register", "/auth", "/forgot-password"];
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/register",
+  "/auth",
+  "/forgot-password",
+  // Machine-to-machine endpoints. These never carry a user session — the cron
+  // dispatcher and the Telegram webhook authenticate with their own shared
+  // secrets — so redirecting them to /login would silently stop reminders.
+  "/api/reminders",
+  "/api/telegram",
+];
 const PUBLIC_EXACT = ["/"];
 
 function isPublicRoute(pathname: string) {
