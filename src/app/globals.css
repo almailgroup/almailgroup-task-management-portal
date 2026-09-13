@@ -100,6 +100,17 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Elevation. Monochrome interfaces have no colour to lean on, so depth has
+   * to come from very restrained shadows — anything heavier reads as muddy
+   * grey rather than as a raised surface. */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.16), 0 4px 12px -4px rgb(0 0 0 / 0.06);
+
+  /* One timing for everything, so the interface moves as a single system. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
@@ -120,9 +131,23 @@
   h2 { @apply text-lg font-semibold tracking-tight; line-height: 1.3; }
   h3 { @apply text-sm font-medium tracking-tight; line-height: 1.4; }
 
-  /* Keyboard focus is always visible; pointer focus never draws a ring. */
+  /* Keyboard focus is always visible; pointer focus never draws a ring.
+   * A 2px ring at 1px offset reads clearly without the chunky halo a larger
+   * offset gives on small controls. */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-ring ring-offset-1 ring-offset-background;
+  }
+
+  ::selection {
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  /* Numbers in tables and metrics should not jitter as they change. */
+  .tabular-nums,
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -137,5 +162,36 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: var(--border);
     border-radius: 3px;
+  }
+}
+
+@layer utilities {
+  /* Entrance for page content, so a route change resolves rather than snaps. */
+  .animate-rise {
+    animation: rise 0.24s var(--ease-out) both;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Respect a user who has asked for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-rise {
+      animation: none;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

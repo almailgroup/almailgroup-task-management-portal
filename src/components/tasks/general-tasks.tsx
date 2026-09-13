@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Columns3, List, PhoneCall, Plus, Search } from "lucide-react";
+import {
+  ClipboardList,
+  Columns3,
+  List,
+  PhoneCall,
+  Plus,
+  Search,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +24,7 @@ import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskTable } from "@/components/tasks/task-table";
 import { FollowUpList } from "@/components/tasks/follow-up-list";
+import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import type {
@@ -95,24 +103,24 @@ export function GeneralTasks({
   }
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1>General tasks</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            {canManage
-              ? "Work that belongs to no project. Assign it to anyone on the team."
-              : "Work assigned to you outside of any project."}
-          </p>
-        </div>
-
-        {canManage && (
-          <Button size="sm" onClick={() => createTask("todo")}>
-            <Plus />
-            New general task
-          </Button>
-        )}
-      </header>
+    <PageShell>
+      <PageHeader
+        title="General tasks"
+        icon={<ClipboardList />}
+        description={
+          canManage
+            ? "Work that belongs to no project. Assign it to anyone on the team."
+            : "Work assigned to you outside of any project."
+        }
+        actions={
+          canManage ? (
+            <Button size="sm" onClick={() => createTask("todo")}>
+              <Plus />
+              New general task
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <Tabs
@@ -235,6 +243,6 @@ export function GeneralTasks({
         currentProfile={profile}
         defaultStatus={newStatus}
       />
-    </div>
+    </PageShell>
   );
 }

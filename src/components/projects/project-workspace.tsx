@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   Columns3,
+  Hash,
   List,
   MoreHorizontal,
   Pencil,
@@ -33,6 +34,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { ProjectMembers } from "@/components/projects/project-members";
+import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskTable } from "@/components/tasks/task-table";
@@ -147,53 +149,53 @@ export function ProjectWorkspace({
   }
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate">{project.name}</h1>
-          {project.description && (
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              {project.description}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <ProjectMembers
+    <PageShell>
+      <PageHeader
+        title={project.name}
+        icon={<Hash />}
+        description={project.description ?? undefined}
+        actions={
+          <>
+            <ProjectMembers
             projectId={project.id}
             members={members}
             team={team}
-            canManage={profile.role === "admin" || profile.role === "manager"}
-          />
-          {canCreate && (
-            <Button size="sm" onClick={() => createTask("todo")}>
-              <Plus />
-              New task
-            </Button>
-          )}
+              canManage={profile.role === "admin" || profile.role === "manager"}
+            />
+            {canCreate && (
+              <Button size="sm" onClick={() => createTask("todo")}>
+                <Plus />
+                New task
+              </Button>
+            )}
 
-          {canManageProject && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Project actions">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setProjectDialogOpen(true)}>
-                  <Pencil />
-                  Edit project
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setConfirmDelete(true)}>
-                  <Trash2 />
-                  Delete project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </header>
+            {canManageProject && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Project actions"
+                  >
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setProjectDialogOpen(true)}>
+                    <Pencil />
+                    Edit project
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => setConfirmDelete(true)}>
+                    <Trash2 />
+                    Delete project
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <Tabs value={view} onValueChange={(value) => setView(value as View)}>
@@ -337,6 +339,6 @@ export function ProjectWorkspace({
           setConfirmDelete(false);
         }}
       />
-    </div>
+    </PageShell>
   );
 }

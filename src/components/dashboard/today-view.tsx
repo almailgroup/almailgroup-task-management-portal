@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import {
@@ -118,17 +119,17 @@ export function TodayView({
   });
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
-      <header>
-        <h1 className="flex items-center gap-2">
-          <Sunrise className="size-5" />
-          Today
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {today} · {overdue.length} overdue, {dueToday.length} due today,{" "}
-          {inProgress.length} in progress
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        title="Today"
+        icon={<Sunrise />}
+        description={
+          <>
+            {today} · {overdue.length} overdue, {dueToday.length} due today,{" "}
+            {inProgress.length} in progress
+          </>
+        }
+      />
 
       <Section
         title="Overdue"
@@ -264,7 +265,7 @@ export function TodayView({
           currentProfile={profile}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
 

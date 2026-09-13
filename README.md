@@ -226,6 +226,18 @@ and black-alpha scrims.
 - **Priority** — a four-bar greyscale severity ramp.
 - **Overdue** — weight plus a dotted underline rather than red.
 - **Themes** — light/dark via `next-themes`; all tokens redefined under `.dark`.
+- **Elevation** — four very restrained black-alpha shadows. With no colour to
+  lean on, anything heavier reads as muddy grey rather than a raised surface.
+- **Motion** — one easing curve for the whole interface, and everything is
+  disabled under `prefers-reduced-motion`.
+
+Shared UI primitives keep pages consistent: `PageShell` and `PageHeader` give
+every page one container and one title rhythm, `EmptyState` replaced four
+hand-rolled variants, and each route has a `loading.tsx` skeleton shaped like
+the page it precedes.
+
+Press <kbd>⌘K</kbd> (or <kbd>Ctrl</kbd>+<kbd>K</kbd>) anywhere for the command
+palette — every page, saved filter and project, one search away.
 
 ## Project structure
 

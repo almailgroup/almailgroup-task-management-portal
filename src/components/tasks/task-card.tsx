@@ -28,8 +28,9 @@ export const TaskCard = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "group rounded-md border border-border bg-card p-2.5 transition-colors",
-        "hover:border-foreground/25",
+        "group rounded-md border border-border bg-card p-2.5 shadow-[var(--shadow-xs)]",
+        "transition-[border-color,box-shadow,opacity] duration-150",
+        "hover:border-foreground/25 hover:shadow-[var(--shadow-sm)]",
         dragging && "opacity-40",
         className,
       )}

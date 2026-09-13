@@ -1,0 +1,244 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import {
+  ClipboardList,
+  CornerDownLeft,
+  Hash,
+  LayoutDashboard,
+  Search,
+  Sunrise,
+  User,
+  Users,
+} from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import type { Project } from "@/lib/supabase/database.types";
+
+type Entry = {
+  id: string;
+  label: string;
+  hint?: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  group: string;
+};
+
+/**
+ * Command palette, opened with Cmd/Ctrl+K.
+ *
+ * Once someone is on a dozen projects, the sidebar stops being a navigation
+ * tool and becomes a list to scan. This makes every destination one search
+ * away without taking hands off the keyboard.
+ */
+export function CommandPalette({ projects }: { projects: Project[] }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const [active, setActive] = React.useState(0);
+  const listRef = React.useRef<HTMLUListElement>(null);
+
+  const entries = React.useMemo<Entry[]>(
+    () => [
+      { id: "today", label: "Today", href: "/today", icon: Sunrise, group: "Go to" },
+      { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Go to" },
+      { id: "general", label: "General tasks", href: "/general", icon: ClipboardList, group: "Go to" },
+      { id: "tasks", label: "All tasks", href: "/tasks?filter=all", icon: Search, group: "Go to" },
+      { id: "team", label: "Team", href: "/team", icon: Users, group: "Go to" },
+      { id: "profile", label: "Profile", href: "/profile", icon: User, group: "Go to" },
+      { id: "overdue", label: "Overdue tasks", href: "/tasks?filter=overdue", icon: Search, group: "Filters" },
+      { id: "due-today", label: "Due today", href: "/tasks?filter=due_today", icon: Search, group: "Filters" },
+      { id: "in-review", label: "In review", href: "/tasks?filter=in_review", icon: Search, group: "Filters" },
+      ...projects.map((project) => ({
+        id: `project-${project.id}`,
+        label: project.name,
+        hint: project.description ?? undefined,
+        href: `/projects/${project.id}`,
+        icon: Hash,
+        group: "Projects",
+      })),
+    ],
+    [projects],
+  );
+
+  const results = React.useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return entries;
+    return entries.filter((entry) =>
+      `${entry.label} ${entry.hint ?? ""}`.toLowerCase().includes(needle),
+    );
+  }, [entries, query]);
+
+  // Cmd/Ctrl+K toggles from anywhere, except while typing somewhere else.
+  React.useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setOpen((current) => !current);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  React.useEffect(() => {
+    if (open) {
+      setQuery("");
+      setActive(0);
+    }
+  }, [open]);
+
+  React.useEffect(() => setActive(0), [query]);
+
+  // Keep the highlighted row in view when arrowing past the fold.
+  React.useEffect(() => {
+    listRef.current
+      ?.querySelectorAll("[data-entry]")
+      ?.[active]?.scrollIntoView({ block: "nearest" });
+  }, [active]);
+
+  function go(entry: Entry) {
+    setOpen(false);
+    router.push(entry.href);
+  }
+
+  function onKeyDown(event: React.KeyboardEvent) {
+    if (results.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActive((index) => (index + 1) % results.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive((index) => (index - 1 + results.length) % results.length);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      go(results[active]);
+    }
+  }
+
+  let lastGroup = "";
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        className="max-w-lg gap-0 overflow-hidden p-0"
+        showCloseButton={false}
+      >
+        <DialogTitle className="sr-only">Search and navigate</DialogTitle>
+        <DialogDescription className="sr-only">
+          Type to filter pages and projects. Arrow keys to move, Enter to open.
+        </DialogDescription>
+
+        <div className="flex items-center gap-2 border-b border-border px-3">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Search pages and projects..."
+            className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            autoFocus
+            aria-label="Search"
+          />
+        </div>
+
+        {results.length === 0 ? (
+          <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+            Nothing matches “{query}”.
+          </p>
+        ) : (
+          <ul
+            ref={listRef}
+            className="scrollbar-thin max-h-80 overflow-y-auto p-1.5"
+            role="listbox"
+          >
+            {results.map((entry, index) => {
+              const Icon = entry.icon;
+              const showGroup = entry.group !== lastGroup;
+              lastGroup = entry.group;
+
+              return (
+                <React.Fragment key={entry.id}>
+                  {showGroup && (
+                    <li className="px-2 pb-1 pt-2 text-xs font-medium text-muted-foreground">
+                      {entry.group}
+                    </li>
+                  )}
+                  <li data-entry>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={index === active}
+                      onMouseEnter={() => setActive(index)}
+                      onClick={() => go(entry)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors",
+                        index === active
+                          ? "bg-accent text-accent-foreground"
+                          : "text-foreground",
+                      )}
+                    >
+                      <Icon className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {entry.label}
+                      </span>
+                      {index === active && (
+                        <CornerDownLeft className="size-3 shrink-0 text-muted-foreground" />
+                      )}
+                    </button>
+                  </li>
+                </React.Fragment>
+              );
+            })}
+          </ul>
+        )}
+
+        <div className="flex items-center justify-between border-t border-border px-3 py-2 text-xs text-muted-foreground">
+          <span>
+            <Kbd>↑</Kbd> <Kbd>↓</Kbd> to move · <Kbd>↵</Kbd> to open
+          </span>
+          <span>
+            <Kbd>esc</Kbd> to close
+          </span>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4">
+      {children}
+    </kbd>
+  );
+}
+
+/** The header affordance that tells people the palette exists. */
+export function CommandHint() {
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "k", metaKey: true }),
+        )
+      }
+      className="hidden items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:flex"
+    >
+      <Search className="size-3.5" />
+      Search
+      <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4">
+        ⌘K
+      </kbd>
+    </button>
+  );
+}

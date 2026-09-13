@@ -148,11 +148,15 @@ function NavLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+        "relative flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
         "[&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
+        // A 2px marker on the leading edge, rather than a heavier fill.
+        "before:absolute before:left-0 before:top-1/2 before:h-4 before:w-0.5",
+        "before:-translate-y-1/2 before:rounded-full before:bg-foreground",
+        "before:transition-opacity",
         active
-          ? "bg-accent font-medium text-accent-foreground [&_svg]:text-foreground"
-          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+          ? "bg-accent font-medium text-accent-foreground before:opacity-100 [&_svg]:text-foreground"
+          : "text-muted-foreground before:opacity-0 hover:bg-accent/60 hover:text-foreground",
       )}
     >
       {icon}

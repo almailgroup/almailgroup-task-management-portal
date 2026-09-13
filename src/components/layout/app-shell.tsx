@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import {
+  CommandHint,
+  CommandPalette,
+} from "@/components/layout/command-palette";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type {
   Notification,
@@ -59,12 +63,20 @@ export function AppShell({
       {/* Desktop rail */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-background lg:block">
         <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="flex size-6 items-center justify-center rounded bg-primary text-[10px] font-bold text-primary-foreground">
+          <Link
+            href="/today"
+            className="group flex items-center gap-2.5 rounded-md transition-opacity hover:opacity-80"
+          >
+            <span className="flex size-6 items-center justify-center rounded-md bg-primary text-[10px] font-bold text-primary-foreground">
               A
-            </div>
-            <span className="text-sm font-medium tracking-tight">
-              Almailgroup
+            </span>
+            <span className="flex flex-col leading-none">
+              <span className="text-sm font-semibold tracking-tight">
+                Almailgroup
+              </span>
+              <span className="mt-0.5 text-[10px] text-muted-foreground">
+                Task Portal
+              </span>
             </span>
           </Link>
         </div>
@@ -113,18 +125,21 @@ export function AppShell({
       )}
 
       <div className="lg:pl-60">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="lg:hidden"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open navigation"
-          >
-            <Menu />
-          </Button>
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/75 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="lg:hidden"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open navigation"
+            >
+              <Menu />
+            </Button>
+            <CommandHint />
+          </div>
 
-          <div className="flex flex-1 items-center justify-end gap-1">
+          <div className="flex items-center gap-1">
             <NotificationBell
               profile={profile}
               initialItems={notifications}
@@ -137,6 +152,8 @@ export function AppShell({
 
         <main className="min-h-[calc(100svh-3.5rem)]">{children}</main>
       </div>
+
+      <CommandPalette projects={projects} />
     </div>
   );
 }

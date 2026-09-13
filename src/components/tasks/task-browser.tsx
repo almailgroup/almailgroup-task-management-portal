@@ -3,10 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FolderOpen, Search } from "lucide-react";
+import { FolderOpen, ListFilter, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { PageHeader, PageShell } from "@/components/layout/page-shell";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
 import {
@@ -66,13 +68,12 @@ export function TaskBrowser({
   }, [tasks, query]);
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
-      <header>
-        <h1>Tasks</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Across every project and the general list.
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        title="Tasks"
+        icon={<ListFilter />}
+        description="Everything you can see, across every project and the general list."
+      />
 
       {/* Filter chips double as the legend for the dashboard cards. */}
       <nav className="flex flex-wrap gap-1.5" aria-label="Task filters">
@@ -116,14 +117,15 @@ export function TaskBrowser({
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border px-4 py-14 text-center">
-          <FolderOpen className="mx-auto size-5 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            {query.trim()
-              ? "No tasks match that search."
-              : "Nothing in this view."}
-          </p>
-        </div>
+        <EmptyState
+          icon={<FolderOpen />}
+          title={query.trim() ? "No matches" : "Nothing in this view"}
+          description={
+            query.trim()
+              ? `Nothing matches “${query.trim()}”. Try a different search, or pick another filter above.`
+              : "Pick another filter above to see tasks in a different state."
+          }
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {visible.map((task) => (
@@ -170,7 +172,7 @@ export function TaskBrowser({
           currentProfile={profile}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
 

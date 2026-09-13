@@ -8,8 +8,11 @@ import {
 import { initialsFrom } from "@/lib/initials";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { RoleSelect } from "@/components/team/role-select";
 import { PositionSelect } from "@/components/team/position-select";
+import { Users } from "lucide-react";
+
 import { roleMeta } from "@/lib/constants";
 import { getTeam, requireProfile } from "@/lib/data/queries";
 
@@ -20,17 +23,20 @@ export default async function TeamPage() {
   const isAdmin = profile.role === "admin";
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
-      <div className="mb-6">
-        <h1>Team</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {team.length} {team.length === 1 ? "member" : "members"} in this
-          workspace.
-          {isAdmin
-            ? " As an admin you can change roles."
-            : " Only admins can change roles."}
-        </p>
-      </div>
+    <PageShell width="wide">
+      <PageHeader
+        title="Team"
+        icon={<Users />}
+        description={
+          <>
+            {team.length} {team.length === 1 ? "member" : "members"} in this
+            workspace.
+            {isAdmin
+              ? " As an admin you can set roles and positions."
+              : " Only admins can change roles and positions."}
+          </>
+        }
+      />
 
       <Card className="divide-y divide-border">
         {team.map((member) => (
@@ -86,6 +92,6 @@ export default async function TeamPage() {
           </div>
         ))}
       </Card>
-    </div>
+    </PageShell>
   );
 }

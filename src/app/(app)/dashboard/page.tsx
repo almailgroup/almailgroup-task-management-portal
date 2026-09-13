@@ -12,6 +12,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader, PageShell } from "@/components/layout/page-shell";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard, ProgressBar } from "@/components/dashboard/metric-card";
 import { WorkloadCard } from "@/components/dashboard/workload-card";
 import {
@@ -60,19 +62,19 @@ export default async function DashboardPage() {
   const firstName = profile.full_name?.split(" ")[0];
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1>{firstName ? `Welcome back, ${firstName}` : "Dashboard"}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+    <PageShell>
+      <PageHeader
+        title={firstName ? `Welcome back, ${firstName}` : "Dashboard"}
+        description={
+          <>
             {projects.length} {projects.length === 1 ? "project" : "projects"} ·{" "}
-            {metrics.total} {metrics.total === 1 ? "task" : "tasks"}
-          </p>
-        </div>
-      </header>
+            {metrics.total} {metrics.total === 1 ? "task" : "tasks"} you can see
+          </>
+        }
+      />
 
       {projects.length === 0 ? (
-        <EmptyState canCreate={profile.role !== "member"} />
+        <NoProjects canCreate={profile.role !== "member"} />
       ) : (
         <>
           {/* Every tile opens the matching list; counts and list share one
@@ -159,7 +161,7 @@ export default async function DashboardPage() {
           <WorkloadCard workload={workload} />
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -209,27 +211,23 @@ function taskHref(task: { project_id: string | null }) {
   return task.project_id ? `/projects/${task.project_id}` : "/general";
 }
 
-function EmptyState({ canCreate }: { canCreate: boolean }) {
+function NoProjects({ canCreate }: { canCreate: boolean }) {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-        <FolderOpen className="size-6 text-muted-foreground" />
-        <div>
-          <h2 className="text-base font-semibold tracking-tight">
-            No projects yet
-          </h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            {canCreate
-              ? "Create a project to start tracking work. Use the plus button in the sidebar."
-              : "Once a manager creates a project, it will show up here."}
-          </p>
-        </div>
-        {canCreate && (
+    <EmptyState
+      icon={<FolderOpen />}
+      title="Nothing here yet"
+      description={
+        canCreate
+          ? "Create a project from the sidebar to start tracking work, or add a general task for anything that does not belong to one."
+          : "Once you are added to a project, or a task is assigned to you, it will appear here."
+      }
+      action={
+        canCreate ? (
           <Button variant="outline" size="sm" asChild>
-            <Link href="/team">View team</Link>
+            <Link href="/general">Go to general tasks</Link>
           </Button>
-        )}
-      </CardContent>
-    </Card>
+        ) : undefined
+      }
+    />
   );
 }
