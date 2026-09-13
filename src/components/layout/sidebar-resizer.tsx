@@ -3,10 +3,9 @@
 import * as React from "react";
 
 import {
-  SIDEBAR_DEFAULT,
-  SIDEBAR_MAX,
-  SIDEBAR_MIN,
   clampSidebarWidth,
+  sidebarBounds,
+  type SidebarMode,
 } from "@/lib/sidebar";
 
 /**
@@ -17,17 +16,23 @@ import {
  * an ARIA separator, which is the role screen readers expect for a splitter,
  * and driveable from the keyboard — arrow keys nudge, Home and End jump to the
  * limits, Enter resets.
+ *
+ * The limits follow `mode`: the rail can be dragged wider while it holds the
+ * MAHAM AI conversation than it can while it holds navigation.
  */
 export function SidebarResizer({
   width,
+  mode = "nav",
   onChange,
   onCommit,
 }: {
   width: number;
+  mode?: SidebarMode;
   onChange: (width: number) => void;
   onCommit: (width: number) => void;
 }) {
   const [dragging, setDragging] = React.useState(false);
+  const { min, max, preferred } = sidebarBounds(mode);
   const latest = React.useRef(width);
 
   React.useEffect(() => {
@@ -38,7 +43,7 @@ export function SidebarResizer({
     if (!dragging) return;
 
     function onMove(event: PointerEvent) {
-      const next = clampSidebarWidth(event.clientX);
+      const next = clampSidebarWidth(event.clientX, mode);
       latest.current = next;
       onChange(next);
     }
@@ -62,7 +67,7 @@ export function SidebarResizer({
       document.body.style.userSelect = previousSelect;
       document.body.style.cursor = previousCursor;
     };
-  }, [dragging, onChange, onCommit]);
+  }, [dragging, mode, onChange, onCommit]);
 
   function onKeyDown(event: React.KeyboardEvent) {
     const step = event.shiftKey ? 32 : 8;
@@ -70,13 +75,13 @@ export function SidebarResizer({
 
     if (event.key === "ArrowLeft") next = width - step;
     else if (event.key === "ArrowRight") next = width + step;
-    else if (event.key === "Home") next = SIDEBAR_MIN;
-    else if (event.key === "End") next = SIDEBAR_MAX;
-    else if (event.key === "Enter" || event.key === " ") next = SIDEBAR_DEFAULT;
+    else if (event.key === "Home") next = min;
+    else if (event.key === "End") next = max;
+    else if (event.key === "Enter" || event.key === " ") next = preferred;
 
     if (next === null) return;
     event.preventDefault();
-    const clamped = clampSidebarWidth(next);
+    const clamped = clampSidebarWidth(next, mode);
     onChange(clamped);
     onCommit(clamped);
   }
@@ -87,16 +92,16 @@ export function SidebarResizer({
       aria-orientation="vertical"
       aria-label="Resize sidebar"
       aria-valuenow={width}
-      aria-valuemin={SIDEBAR_MIN}
-      aria-valuemax={SIDEBAR_MAX}
+      aria-valuemin={min}
+      aria-valuemax={max}
       tabIndex={0}
       onPointerDown={(event) => {
         event.preventDefault();
         setDragging(true);
       }}
       onDoubleClick={() => {
-        onChange(SIDEBAR_DEFAULT);
-        onCommit(SIDEBAR_DEFAULT);
+        onChange(preferred);
+        onCommit(preferred);
       }}
       onKeyDown={onKeyDown}
       className="group absolute inset-y-0 -right-1.5 z-40 hidden w-3 cursor-col-resize touch-none lg:block"

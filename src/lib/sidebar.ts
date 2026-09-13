@@ -11,7 +11,29 @@ export const SIDEBAR_MAX = 440;
 export const SIDEBAR_DEFAULT = 240;
 export const SIDEBAR_STORAGE_KEY = "almailgroup:sidebar-width";
 
-export function clampSidebarWidth(value: number): number {
-  if (!Number.isFinite(value)) return SIDEBAR_DEFAULT;
-  return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(value)));
+/**
+ * The rail holds a conversation when MAHAM AI is open, which needs more room
+ * than a list of links. It gets its own bounds rather than widening the ones
+ * above, so closing the assistant returns the sidebar to sane navigation
+ * widths instead of leaving it stretched.
+ */
+export const SIDEBAR_CHAT_MIN = 320;
+export const SIDEBAR_CHAT_MAX = 640;
+export const SIDEBAR_CHAT_DEFAULT = 420;
+
+export type SidebarMode = "nav" | "chat";
+
+export function sidebarBounds(mode: SidebarMode = "nav") {
+  return mode === "chat"
+    ? { min: SIDEBAR_CHAT_MIN, max: SIDEBAR_CHAT_MAX, preferred: SIDEBAR_CHAT_DEFAULT }
+    : { min: SIDEBAR_MIN, max: SIDEBAR_MAX, preferred: SIDEBAR_DEFAULT };
+}
+
+export function clampSidebarWidth(
+  value: number,
+  mode: SidebarMode = "nav",
+): number {
+  const { min, max, preferred } = sidebarBounds(mode);
+  if (!Number.isFinite(value)) return preferred;
+  return Math.min(max, Math.max(min, Math.round(value)));
 }

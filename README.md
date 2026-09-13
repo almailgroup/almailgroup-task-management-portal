@@ -447,6 +447,13 @@ the sidebar. It answers questions about where work stands: what is overdue,
 what is due today, what to pick up next, what is waiting in review, and how
 the board is split by status.
 
+It opens **in the rail itself** rather than over the board — the sidebar
+widens to make room and hands its column to the conversation, so you can read
+a task while you ask about it. Closing returns the rail to navigation at its
+previous width. While the assistant holds it, the rail can be dragged wider
+than navigation allows (320–640px against 208–440px); that width is never
+saved as the navigation width.
+
 ### What it can see
 
 Nothing you could not already open yourself. `buildSnapshot` in

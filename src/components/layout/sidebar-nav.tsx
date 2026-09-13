@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ProjectSwitcher } from "@/components/layout/project-switcher";
 import { SidebarClock } from "@/components/layout/sidebar-clock";
-import { MahamChat } from "@/components/maham/maham-chat";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { cn } from "@/lib/utils";
 import type { Profile, Project } from "@/lib/supabase/database.types";
@@ -29,15 +28,17 @@ export function SidebarNav({
   projects,
   activeProjectId,
   onNavigate,
+  onOpenMaham,
 }: {
   profile: Profile;
   projects: Project[];
   activeProjectId?: string;
   onNavigate?: () => void;
+  /** Hands the rail over to MAHAM AI; owned by AppShell, which resizes it. */
+  onOpenMaham: () => void;
 }) {
   const pathname = usePathname();
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [mahamOpen, setMahamOpen] = React.useState(false);
 
   const canCreateProject = profile.role === "admin" || profile.role === "manager";
 
@@ -130,7 +131,7 @@ export function SidebarNav({
         <div className="flex flex-col gap-1 border-t border-border pt-1.5">
           <button
             type="button"
-            onClick={() => setMahamOpen(true)}
+            onClick={onOpenMaham}
             className={cn(
               "group/maham flex items-center gap-2.5 rounded-md border border-border bg-card px-2 py-2 text-left transition-colors",
               "hover:border-foreground/25 hover:bg-accent",
@@ -158,7 +159,6 @@ export function SidebarNav({
       </div>
 
       <ProjectDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-      <MahamChat open={mahamOpen} onOpenChange={setMahamOpen} />
     </>
   );
 }
