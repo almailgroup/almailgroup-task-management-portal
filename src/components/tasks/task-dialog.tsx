@@ -28,10 +28,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
-import {
-  TaskProvenance,
-  toDateTimeLocal,
-} from "@/components/tasks/task-meta";
+import { TaskProvenance } from "@/components/tasks/task-meta";
+import { isoFromLocalInput, toLocalInput } from "@/lib/dates";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
 import { FollowUpPanel } from "@/components/tasks/follow-up-panel";
 import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
@@ -98,6 +96,12 @@ export function TaskDialog({
     setResult(null);
 
     const formData = new FormData(event.currentTarget);
+
+    // The date input hands over wall-clock time with no offset. Resolve it to
+    // an absolute instant here, where the viewer's timezone is known — the
+    // server would read it as its own, which is UTC.
+    const localDue = String(formData.get("dueAt") ?? "");
+    formData.set("dueAt", localDue ? (isoFromLocalInput(localDue) ?? "") : "");
     const outcome = task
       ? await updateTask(task.id, projectId, null, formData)
       : await createTask(projectId, null, formData);
@@ -247,7 +251,7 @@ export function TaskDialog({
                   type="datetime-local"
                   // Shown in the viewer timezone; the action converts it back
                   // to an absolute instant on save.
-                  defaultValue={toDateTimeLocal(task?.due_at ?? null)}
+                  defaultValue={toLocalInput(task?.due_at ?? null)}
                   aria-invalid={Boolean(errors?.dueAt)}
                 />
                 <FieldError message={errors?.dueAt} />

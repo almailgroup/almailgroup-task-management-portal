@@ -132,6 +132,7 @@ export function SidebarNav({
           <button
             type="button"
             onClick={onOpenMaham}
+            data-maham-launcher
             className={cn(
               "group/maham flex items-center gap-2.5 rounded-md border border-border bg-card px-2 py-2 text-left transition-colors",
               "hover:border-foreground/25 hover:bg-accent",

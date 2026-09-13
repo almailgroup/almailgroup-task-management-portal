@@ -35,12 +35,17 @@ function parseTaskForm(formData: FormData) {
 }
 
 /**
- * Revalidate the view a task lives in. General tasks (no project) live on
- * /general; everything else on its project page.
+ * Revalidate every view a task shows up in.
+ *
+ * It lives on its project page (or /general when it has no project), but it is
+ * also counted on /dashboard, listed in the /tasks browser, and dated on
+ * /today — all of which went stale when only the first two were revalidated.
  */
 function revalidateTaskViews(projectId: string | null) {
   revalidatePath(projectId ? `/projects/${projectId}` : "/general");
   revalidatePath("/dashboard");
+  revalidatePath("/tasks");
+  revalidatePath("/today");
 }
 
 /** Next position at the end of a status column. */
@@ -316,7 +321,6 @@ export async function rescheduleTask(
   if (!data) return fail("You do not have permission to reschedule this task.");
 
   revalidateTaskViews(projectId);
-  revalidatePath("/today");
   return ok({ dueAt: data.due_at });
 }
 
@@ -357,6 +361,5 @@ export async function setFollowUp(
   if (!data) return fail("You do not have permission to set a follow-up.");
 
   revalidateTaskViews(projectId);
-  revalidatePath("/today");
   return ok(undefined);
 }

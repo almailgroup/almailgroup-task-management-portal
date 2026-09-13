@@ -2,11 +2,8 @@
 
 import * as React from "react";
 
-import {
-  clampSidebarWidth,
-  sidebarBounds,
-  type SidebarMode,
-} from "@/lib/sidebar";
+/** The limits the rail may be dragged between, as the shell currently sees them. */
+export type ResizerBounds = { min: number; max: number; preferred: number };
 
 /**
  * Drag handle for the sidebar.
@@ -17,22 +14,27 @@ import {
  * and driveable from the keyboard — arrow keys nudge, Home and End jump to the
  * limits, Enter resets.
  *
- * The limits follow `mode`: the rail can be dragged wider while it holds the
- * MAHAM AI conversation than it can while it holds navigation.
+ * The limits are passed in rather than looked up: the rail can be dragged
+ * wider while it holds the MAHAM AI conversation than while it holds
+ * navigation, and the shell caps that against the window width.
  */
 export function SidebarResizer({
   width,
-  mode = "nav",
+  bounds,
   onChange,
   onCommit,
 }: {
   width: number;
-  mode?: SidebarMode;
+  bounds: ResizerBounds;
   onChange: (width: number) => void;
   onCommit: (width: number) => void;
 }) {
   const [dragging, setDragging] = React.useState(false);
-  const { min, max, preferred } = sidebarBounds(mode);
+  const { min, max, preferred } = bounds;
+  const clamp = React.useCallback(
+    (value: number) => Math.min(max, Math.max(min, Math.round(value))),
+    [min, max],
+  );
   const latest = React.useRef(width);
 
   React.useEffect(() => {
@@ -43,7 +45,7 @@ export function SidebarResizer({
     if (!dragging) return;
 
     function onMove(event: PointerEvent) {
-      const next = clampSidebarWidth(event.clientX, mode);
+      const next = clamp(event.clientX);
       latest.current = next;
       onChange(next);
     }
@@ -67,7 +69,7 @@ export function SidebarResizer({
       document.body.style.userSelect = previousSelect;
       document.body.style.cursor = previousCursor;
     };
-  }, [dragging, mode, onChange, onCommit]);
+  }, [dragging, clamp, onChange, onCommit]);
 
   function onKeyDown(event: React.KeyboardEvent) {
     const step = event.shiftKey ? 32 : 8;
@@ -81,7 +83,7 @@ export function SidebarResizer({
 
     if (next === null) return;
     event.preventDefault();
-    const clamped = clampSidebarWidth(next, mode);
+    const clamped = clamp(next);
     onChange(clamped);
     onCommit(clamped);
   }

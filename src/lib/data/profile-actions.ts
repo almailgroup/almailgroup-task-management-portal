@@ -1,5 +1,7 @@
 "use server";
 
+import { randomInt } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -220,10 +222,15 @@ export async function createTelegramLinkCode(): Promise<
   if (!user) return fail("Your session expired. Please sign in again.");
 
   // Unambiguous alphabet: no O/0 or I/1 to mistype when copying by hand.
+  //
+  // randomInt, not Math.random: this code is the only thing standing between a
+  // stranger and someone else's reminders. Math.random is a seeded PRNG whose
+  // state can be recovered from a handful of outputs, and anyone can mint
+  // themselves outputs by asking for codes on their own account.
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const code = Array.from(
     { length: 8 },
-    () => alphabet[Math.floor(Math.random() * alphabet.length)],
+    () => alphabet[randomInt(alphabet.length)],
   ).join("");
 
   const { error } = await supabase

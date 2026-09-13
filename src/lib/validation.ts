@@ -83,26 +83,17 @@ export const taskSchema = z.object({
   status: taskStatusSchema,
   priority: taskPrioritySchema,
   /**
-   * From <input type="datetime-local">, e.g. "2026-09-15T17:30". That value is
-   * wall-clock time in the browser's timezone with no offset, so it is parsed
-   * as local and transformed into an absolute instant for storage. An empty
-   * string is how an unset input arrives.
+   * An absolute instant, e.g. "2026-09-15T13:30:00.000Z".
+   *
+   * Deliberately NOT the raw "2026-09-15T17:30" an <input type="datetime-local">
+   * produces: that is wall-clock time with no offset, and parsing it here would
+   * read it in the server's timezone rather than the viewer's. The browser
+   * converts it with isoFromLocalInput before submitting. An empty string is
+   * how a cleared date arrives.
    */
   dueAt: z
     .union([
-      z
-        .string()
-        .regex(
-          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/,
-          "Enter a valid date and time",
-        )
-        .transform((value) => {
-          const parsed = new Date(value);
-          if (Number.isNaN(parsed.getTime())) {
-            throw new Error("Invalid date");
-          }
-          return parsed.toISOString();
-        }),
+      z.string().datetime({ offset: true, message: "Enter a valid date and time" }),
       z.literal(""),
     ])
     .optional(),
@@ -155,13 +146,10 @@ export type FileAttachmentInput = z.infer<typeof fileAttachmentSchema>;
 
 /** A follow-up: when to chase a task, and optionally what to chase. */
 export const followUpSchema = z.object({
+  /** An absolute instant, converted in the browser. See taskSchema.dueAt. */
   followUpAt: z
     .string()
-    .regex(
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/,
-      "Pick a date and time",
-    )
-    .transform((value) => new Date(value).toISOString()),
+    .datetime({ offset: true, message: "Pick a date and time" }),
   note: z
     .string()
     .trim()

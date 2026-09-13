@@ -32,6 +32,24 @@ export function quickDateOptions() {
   ];
 }
 
+/**
+ * An <input type="datetime-local"> value turned into an absolute instant.
+ *
+ * This has to run in the browser. The input carries wall-clock time with no
+ * offset — "2026-09-15T17:30" — so only the viewer's machine knows which
+ * instant that is. Parsing it on the server reads it in the *server's*
+ * timezone, which on Vercel is UTC, and silently shifted every due date by the
+ * viewer's offset: 17:30 entered in Dubai came back as 21:30.
+ *
+ * Returns null for an empty or unparseable value.
+ */
+export function isoFromLocalInput(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
 /** Value for an <input type="datetime-local">, in local time. */
 export function toLocalInput(iso: string | null): string {
   if (!iso) return "";

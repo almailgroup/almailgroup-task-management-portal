@@ -15,15 +15,16 @@ import {
 } from "@/components/layout/command-palette";
 import { SidebarResizer } from "@/components/layout/sidebar-resizer";
 import { MahamPanel } from "@/components/maham/maham-panel";
+import { useMaham } from "@/components/maham/use-maham";
 import {
   SIDEBAR_CHAT_DEFAULT,
   SIDEBAR_DEFAULT,
   SIDEBAR_STORAGE_KEY,
   clampSidebarWidth,
+  sidebarBounds,
 } from "@/lib/sidebar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
-import type { MahamMessage } from "@/lib/maham/types";
 import type {
   Notification,
   Profile,
@@ -53,80 +54,100 @@ export function AppShell({
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
-  // Server-rendered at the default; the inline script in the layout has
-  // already painted the stored width, so adopting it here only syncs React's
-  // copy rather than causing a visible jump.
-  const [sidebarWidth, setSidebarWidth] = React.useState(SIDEBAR_DEFAULT);
+  // Two independent widths, picked by what the rail is currently showing.
+  // Modelling it as one width plus a saved copy meant a commit had to guess
+  // which one it belonged to, and the width the assistant was dragged to was
+  // thrown away on every close.
+  //
+  // Both are server-rendered at their defaults; the inline script in the
+  // layout has already painted the stored navigation width, so adopting it
+  // below syncs React's copy rather than causing a visible jump.
+  const [navWidth, setNavWidth] = React.useState(SIDEBAR_DEFAULT);
+  const [chatWidth, setChatWidth] = React.useState(SIDEBAR_CHAT_DEFAULT);
+  const [adopted, setAdopted] = React.useState(false);
 
   // MAHAM AI takes over the rail rather than opening over the board, so you
-  // can read a task while asking about it. The thread lives here so the rail
-  // and the mobile drawer share one conversation, and closing the panel does
-  // not throw it away.
+  // can read a task while asking about it. One flag drives both the rail and
+  // the drawer: a second flag for the drawer drifted out of sync with this one
+  // and left the hamburger reopening into the assistant.
   const [mahamOpen, setMahamOpen] = React.useState(false);
-  // The drawer is an overlay, not a resizable rail, so it tracks its own view.
-  const [drawerMaham, setDrawerMaham] = React.useState(false);
-  const [mahamMessages, setMahamMessages] = React.useState<MahamMessage[]>([]);
-  const navWidth = React.useRef(SIDEBAR_DEFAULT);
+  const maham = useMaham();
 
   // Width changes are animated only while opening or closing the assistant —
-  // a transition during a resize drag would lag a frame behind the pointer.
+  // a transition left on during a resize drag trails the pointer by a frame.
   const [animating, setAnimating] = React.useState(false);
 
-  const openMaham = React.useCallback(() => {
-    navWidth.current = sidebarWidth;
-    setSidebarWidth(
-      clampSidebarWidth(Math.max(sidebarWidth, SIDEBAR_CHAT_DEFAULT), "chat"),
-    );
-    setMahamOpen(true);
-    setDrawerOpen(false);
-    setAnimating(true);
-  }, [sidebarWidth]);
-
-  const closeMaham = React.useCallback(() => {
-    setSidebarWidth(clampSidebarWidth(navWidth.current));
-    setMahamOpen(false);
-    setAnimating(true);
+  const [viewportWidth, setViewportWidth] = React.useState(0);
+  React.useEffect(() => {
+    const measure = () => setViewportWidth(window.innerWidth);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, []);
 
-  React.useEffect(() => {
-    if (!animating) return;
-    const timer = setTimeout(() => setAnimating(false), 240);
-    return () => clearTimeout(timer);
-  }, [animating, sidebarWidth]);
+  /**
+   * What the resizer may do right now. The assistant gets a wider ceiling than
+   * navigation, but never more than a certain share of the window: at the `lg`
+   * breakpoint the flat 640px maximum left the board narrower than the mobile
+   * drawer.
+   */
+  const bounds = React.useMemo(() => {
+    const base = sidebarBounds(mahamOpen ? "chat" : "nav");
+    if (!mahamOpen || viewportWidth === 0) return base;
+    const max = Math.max(
+      base.min,
+      Math.min(base.max, Math.round(viewportWidth * 0.45)),
+    );
+    return { min: base.min, max, preferred: Math.min(base.preferred, max) };
+  }, [mahamOpen, viewportWidth]);
+
+  const sidebarWidth = mahamOpen
+    ? Math.min(chatWidth, bounds.max)
+    : navWidth;
 
   React.useEffect(() => {
     try {
       const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-      if (stored) {
-        const width = clampSidebarWidth(Number(stored));
-        navWidth.current = width;
-        setSidebarWidth(width);
-      }
+      if (stored) setNavWidth(clampSidebarWidth(Number(stored)));
     } catch {
       // Private browsing or blocked storage: the default is fine.
     }
+    setAdopted(true);
   }, []);
 
   // Drive both the rail and the content offset from one custom property, so
-  // they cannot drift apart.
+  // they cannot drift apart. Held back until the stored width has been
+  // adopted: writing the default here first would paint over the value the
+  // layout's inline script exists to set.
   React.useEffect(() => {
+    if (!adopted) return;
     document.documentElement.style.setProperty(
       "--sidebar-width",
       `${sidebarWidth}px`,
     );
-  }, [sidebarWidth]);
+  }, [adopted, sidebarWidth]);
+
+  const setSidebarWidth = React.useCallback(
+    (value: number) => {
+      if (mahamOpen) setChatWidth(clampSidebarWidth(value, "chat"));
+      else setNavWidth(clampSidebarWidth(value));
+    },
+    [mahamOpen],
+  );
 
   const persistWidth = React.useCallback(
     (value: number) => {
-      // While the assistant holds the rail the width is its own, not the
-      // navigation width to come back to — remember it separately.
+      // Only navigation widths are remembered. Clamped on the way in: a drag
+      // that starts in chat mode and ends after the mode flipped would
+      // otherwise store a width navigation can never use.
       if (mahamOpen) {
-        navWidth.current = clampSidebarWidth(navWidth.current);
+        setChatWidth(clampSidebarWidth(value, "chat"));
         return;
       }
-      navWidth.current = value;
+      const width = clampSidebarWidth(value);
+      setNavWidth(width);
       try {
-        window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(value));
+        window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(width));
       } catch {
         // Not being able to remember the width is not worth surfacing.
       }
@@ -134,10 +155,37 @@ export function AppShell({
     [mahamOpen],
   );
 
+  const openMaham = React.useCallback(() => {
+    setMahamOpen(true);
+    setAnimating(true);
+  }, []);
+
+  const closeMaham = React.useCallback(() => {
+    setMahamOpen(false);
+    setAnimating(true);
+    // Hand focus back to the launcher; it is about to be shown again, and the
+    // element that had focus is about to be display:none.
+    requestAnimationFrame(() => {
+      document
+        .querySelectorAll<HTMLButtonElement>("[data-maham-launcher]")
+        .forEach((button) => {
+          if (button.offsetParent !== null) button.focus();
+        });
+    });
+  }, []);
+
+  // Deliberately not keyed on the width: a resize drag changes it every few
+  // milliseconds, which would re-arm this timer for the whole drag and leave
+  // the transition applied — the exact thing it is meant to avoid.
+  React.useEffect(() => {
+    if (!animating) return;
+    const timer = setTimeout(() => setAnimating(false), 240);
+    return () => clearTimeout(timer);
+  }, [animating]);
+
   // Close the mobile drawer whenever the route changes.
   React.useEffect(() => {
     setDrawerOpen(false);
-    setDrawerMaham(false);
   }, [pathname]);
 
   // Escape closes the drawer, and hands the rail back from the assistant —
@@ -146,6 +194,10 @@ export function AppShell({
     if (!drawerOpen && !mahamOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      // A Radix layer that handled this keystroke marks it handled. Without
+      // this check, dismissing the command palette or any dialog also
+      // collapsed the assistant out of the rail behind it.
+      if (event.defaultPrevented) return;
       if (drawerOpen) setDrawerOpen(false);
       else closeMaham();
     };
@@ -193,17 +245,13 @@ export function AppShell({
             />
           </div>
           <div className={cn("h-full", !mahamOpen && "hidden")}>
-            <MahamPanel
-              messages={mahamMessages}
-              onMessages={setMahamMessages}
-              onClose={closeMaham}
-            />
+            <MahamPanel maham={maham} active={mahamOpen} onClose={closeMaham} />
           </div>
         </div>
 
         <SidebarResizer
           width={sidebarWidth}
-          mode={mahamOpen ? "chat" : "nav"}
+          bounds={bounds}
           onChange={setSidebarWidth}
           onCommit={persistWidth}
         />
@@ -222,7 +270,7 @@ export function AppShell({
             className={cn(
               "absolute inset-y-0 left-0 flex max-w-[92vw] flex-col border-r border-chrome-border bg-chrome",
               "transition-[width] duration-200 ease-out",
-              drawerMaham ? "w-[22rem]" : "w-72",
+              mahamOpen ? "w-[22rem]" : "w-72",
             )}
           >
             <div className="flex h-14 items-center justify-between border-b border-chrome-border px-4">
@@ -239,20 +287,20 @@ export function AppShell({
               </Button>
             </div>
             <div className="min-h-0 flex-1">
-              <div className={cn("h-full", drawerMaham && "hidden")}>
+              <div className={cn("h-full", mahamOpen && "hidden")}>
                 <SidebarNav
                   profile={profile}
                   projects={projects}
                   activeProjectId={activeProjectId}
                   onNavigate={() => setDrawerOpen(false)}
-                  onOpenMaham={() => setDrawerMaham(true)}
+                  onOpenMaham={openMaham}
                 />
               </div>
-              <div className={cn("h-full", !drawerMaham && "hidden")}>
+              <div className={cn("h-full", !mahamOpen && "hidden")}>
                 <MahamPanel
-                  messages={mahamMessages}
-                  onMessages={setMahamMessages}
-                  onClose={() => setDrawerMaham(false)}
+                  maham={maham}
+                  active={mahamOpen}
+                  onClose={closeMaham}
                 />
               </div>
             </div>

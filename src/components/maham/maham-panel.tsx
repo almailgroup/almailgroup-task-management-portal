@@ -5,8 +5,8 @@ import { CornerDownLeft, Loader2, RotateCcw, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { askMaham } from "@/lib/data/maham-actions";
 import { cn } from "@/lib/utils";
+import type { Maham } from "@/components/maham/use-maham";
 import type { MahamMessage } from "@/lib/maham/types";
 
 /** Openers that match what the assistant can actually answer today. */
@@ -17,11 +17,6 @@ const STARTERS = [
   "What is waiting in review?",
   "Give me a status summary",
 ];
-
-const newId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random()}`;
 
 /**
  * MAHAM AI — the assistant, living in the sidebar rail rather than in a modal
@@ -37,56 +32,38 @@ const newId = () =>
  * and never talks to a model directly.
  */
 export function MahamPanel({
-  messages,
-  onMessages,
+  maham,
+  active,
   onClose,
 }: {
-  messages: MahamMessage[];
-  onMessages: React.Dispatch<React.SetStateAction<MahamMessage[]>>;
+  maham: Maham;
+  /** True when this copy is the one on screen. */
+  active: boolean;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = React.useState("");
-  const [pending, setPending] = React.useState(false);
+  const { messages, draft, setDraft, pending, send, clear } = maham;
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
+  /** Only the copy actually rendered — the other is display:none. */
+  const onScreen = () => inputRef.current?.offsetParent !== null;
+
   // Keep the newest turn in view as the thread grows.
   React.useEffect(() => {
     const node = scrollRef.current;
-    if (node) node.scrollTop = node.scrollHeight;
-  }, [messages, pending]);
+    if (node && node.offsetParent !== null) node.scrollTop = node.scrollHeight;
+  }, [messages, pending, active]);
 
-  async function send(text: string) {
-    const question = text.trim();
-    if (!question || pending) return;
-
-    const asked: MahamMessage = {
-      id: newId(),
-      role: "user",
-      text: question,
-      at: new Date().toISOString(),
-    };
-
-    const history = [...messages, asked];
-    onMessages(history);
-    setDraft("");
-    setPending(true);
-
-    const outcome = await askMaham(history);
-
-    onMessages((current) => [
-      ...current,
-      {
-        id: newId(),
-        role: "assistant",
-        text: outcome.ok ? outcome.data.text : outcome.error,
-        at: new Date().toISOString(),
-      },
-    ]);
-    setPending(false);
-    inputRef.current?.focus();
-  }
+  // Opening used to drop focus on <body>: the launcher that was focused gets
+  // display:none the moment the rail swaps, and nothing picked focus up.
+  React.useEffect(() => {
+    if (!active) return;
+    const frame = requestAnimationFrame(() => {
+      if (onScreen()) inputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [active]);
 
   return (
     <div className="flex h-full flex-col">
@@ -113,7 +90,7 @@ export function MahamPanel({
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={() => onMessages([])}
+              onClick={clear}
               disabled={pending}
               aria-label="Clear conversation"
               title="Clear conversation"
@@ -153,7 +130,7 @@ export function MahamPanel({
         className="border-t border-chrome-border p-2.5"
         onSubmit={(event) => {
           event.preventDefault();
-          void send(draft);
+          send(draft);
         }}
       >
         <div className="flex items-end gap-1.5">
@@ -165,7 +142,7 @@ export function MahamPanel({
               // Enter sends; Shift+Enter is a newline, as in the comment box.
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                void send(draft);
+                send(draft);
               }
             }}
             placeholder="Ask about your tasks…"

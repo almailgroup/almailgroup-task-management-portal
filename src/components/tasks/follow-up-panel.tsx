@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { setFollowUp } from "@/lib/data/task-actions";
-import { atHourToday, nextMonday, relativeDay, toLocalInput } from "@/lib/dates";
+import {
+  atHourToday,
+  isoFromLocalInput,
+  nextMonday,
+  relativeDay,
+  toLocalInput,
+} from "@/lib/dates";
 import { formatDateTime } from "@/components/tasks/task-meta";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
@@ -42,9 +48,17 @@ export function FollowUpPanel({
       toast.error("Pick a date and time to follow up.");
       return;
     }
+    // Wall-clock in, absolute instant out — the server cannot do this
+    // conversion, it does not know the viewer's timezone.
+    const followUpAt = isoFromLocalInput(when);
+    if (!followUpAt) {
+      toast.error("Pick a valid date and time to follow up.");
+      return;
+    }
+
     setPending(true);
     const outcome = await setFollowUp(task.id, task.project_id, {
-      followUpAt: when,
+      followUpAt,
       note,
     });
     setPending(false);
