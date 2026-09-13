@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProjectWorkspace } from "@/components/projects/project-workspace";
 import {
   getProject,
+  getProjectMembers,
   getProjectTasks,
   getTeam,
   requireProfile,
@@ -31,9 +32,10 @@ export default async function ProjectPage({ params }: PageProps) {
   // so a 404 does not confirm the existence of something you cannot see.
   if (!project) notFound();
 
-  const [tasks, team] = await Promise.all([
+  const [tasks, team, members] = await Promise.all([
     getProjectTasks(projectId),
     getTeam(),
+    getProjectMembers(projectId),
   ]);
 
   return (
@@ -41,6 +43,7 @@ export default async function ProjectPage({ params }: PageProps) {
       project={project}
       tasks={tasks}
       team={team}
+      members={members}
       profile={profile}
     />
   );

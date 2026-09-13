@@ -32,6 +32,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectDialog } from "@/components/projects/project-dialog";
+import { ProjectMembers } from "@/components/projects/project-members";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskTable } from "@/components/tasks/task-table";
@@ -59,11 +60,13 @@ export function ProjectWorkspace({
   project,
   tasks,
   team,
+  members,
   profile,
 }: {
   project: Project;
   tasks: TaskWithAssignees[];
   team: Profile[];
+  members: Profile[];
   profile: Profile;
 }) {
   const router = useRouter();
@@ -153,6 +156,12 @@ export function ProjectWorkspace({
         </div>
 
         <div className="flex items-center gap-2">
+          <ProjectMembers
+            projectId={project.id}
+            members={members}
+            team={team}
+            canManage={profile.role === "admin" || profile.role === "manager"}
+          />
           <Button size="sm" onClick={() => createTask("todo")}>
             <Plus />
             New task

@@ -112,3 +112,55 @@ export async function deleteProject(
   revalidatePath("/", "layout");
   return ok({ id: data.id });
 }
+
+/**
+ * Project membership.
+ *
+ * Membership is what makes a project visible, so these are restricted to
+ * managers and admins by RLS. Assigning someone a task in a project also adds
+ * them automatically, which is handled by a database trigger rather than here.
+ */
+
+export async function addProjectMember(
+  projectId: string,
+  userId: string,
+): Promise<ActionResult<void>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fail("Your session expired. Please sign in again.");
+
+  const { error } = await supabase
+    .from("project_members")
+    .insert({ project_id: projectId, user_id: userId, added_by: user.id });
+
+  // Already a member: nothing to do, and not worth an error.
+  if (error && error.code !== "23505") {
+    return fail(describeDatabaseError(error));
+  }
+
+  revalidatePath("/", "layout");
+  return ok(undefined);
+}
+
+export async function removeProjectMember(
+  projectId: string,
+  userId: string,
+): Promise<ActionResult<void>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("project_members")
+    .delete()
+    .eq("project_id", projectId)
+    .eq("user_id", userId)
+    .select("user_id")
+    .maybeSingle();
+
+  if (error) return fail(describeDatabaseError(error));
+  if (!data) return fail("You do not have permission to change membership.");
+
+  revalidatePath("/", "layout");
+  return ok(undefined);
+}

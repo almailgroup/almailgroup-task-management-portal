@@ -244,3 +244,26 @@ export const canCompleteTasks = cache(async (): Promise<boolean> => {
   const profile = await requireProfile();
   return profile.role === "admin" || profile.role === "manager";
 });
+
+/**
+ * Members of a project.
+ *
+ * RLS already hides projects the caller cannot see, so an empty result here
+ * means either no members or no access — both of which render the same.
+ */
+export const getProjectMembers = cache(
+  async (projectId: string): Promise<Profile[]> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("project_members")
+      .select("user:profiles(*)")
+      .eq("project_id", projectId);
+
+    return ((data ?? []) as unknown as { user: Profile | null }[])
+      .map((row) => row.user)
+      .filter((profile): profile is Profile => profile !== null)
+      .sort((a, b) =>
+        (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email),
+      );
+  },
+);

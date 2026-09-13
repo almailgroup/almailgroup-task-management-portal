@@ -105,6 +105,7 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0009_member_view_only_details.sql` | Members are view-only on task details      |
 | `…0010_fix_delete_task_audit.sql` | Lets a task with assignees be deleted         |
 | `…0011_due_time_and_positions.sql`| due_at with time, job_title, avatars bucket   |
+| `…0012_project_membership.sql`    | Projects become private to their members      |
 
 ### 3. Register the first user
 
@@ -114,9 +115,25 @@ a Team Member; an admin can change roles on `/team`.
 
 ## Authorisation model
 
-This is a single-tenant internal portal, so every signed-in employee can **read**
-the whole workspace — that is what makes project switching, assignee pickers and
-@mentions work. **Writes** are what the roles gate:
+**Projects are private to their members.** If you are not on a project you do
+not see it, its tasks, its comments, its files or its history — it is simply
+absent from your sidebar. Admins see every project so the workspace stays
+administrable.
+
+Membership is granted two ways, so assigning work can never produce a task its
+assignee cannot open:
+
+1. explicitly, by an admin or manager, from the **members** button on a project
+2. automatically, when someone is assigned a task in that project
+
+General tasks (belonging to no project) follow the same principle: assignees
+and the creator see them, and so do managers and admins.
+
+The **profile directory** stays readable workspace-wide — the assignee picker,
+@mentions and the team page all need it, and a name and role are not the
+sensitive part of a project.
+
+On top of visibility, **writes** are gated by role:
 
 | Action                                        | Admin | Manager      | Team Member             |
 | --------------------------------------------- | :---: | :----------: | :---------------------: |
@@ -134,6 +151,8 @@ the whole workspace — that is what makes project switching, assignee pickers a
 | Attach files and links                        |  yes  | yes          | on tasks they work on   |
 | Post comments                                 |  yes  | yes          | yes                     |
 | Edit or delete comments (incl. their own)     |  yes  | yes          | **no**                  |
+| See a project                                 |  all  | if a member  | if a member             |
+| Add or remove project members                 |  yes  | yes          | no                      |
 | Change roles                                  |  yes  | no           | no                      |
 | Set job positions                             |  yes  | no           | no                      |
 | Upload their own profile picture              |  yes  | yes          | yes                     |
@@ -248,6 +267,7 @@ npx supabase gen types typescript --project-id <ref> --schema public \
 - `profiles` — id, email, full_name, avatar_url, role, job_title, created_at,
   updated_at
 - `projects` — id, name, description, created_by, created_at, updated_at
+- `project_members` — project_id, user_id, added_by, added_at
 - `tasks` — id, project_id, title, description, status, priority, due_at,
   position, created_by, created_at, updated_at
 - `task_assignments` — task_id, user_id, assigned_at

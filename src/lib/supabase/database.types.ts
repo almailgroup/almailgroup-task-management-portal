@@ -251,6 +251,35 @@ export type Database = {
           },
         ];
       };
+      /** Who can see a project. Membership is the unit of project visibility. */
+      project_members: {
+        Row: {
+          project_id: string;
+          user_id: string;
+          added_by: string | null;
+          added_at: string;
+        };
+        Insert: {
+          project_id: string;
+          user_id: string;
+          added_by?: string | null;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey";
+            columns: ["project_id"];
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_members_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       task_attachments: {
         Row: {
           id: string;
@@ -317,6 +346,8 @@ export type Database = {
       is_admin: { Args: Record<never, never>; Returns: boolean };
       is_manager_or_admin: { Args: Record<never, never>; Returns: boolean };
       can_edit_task: { Args: { task: string }; Returns: boolean };
+      can_view_project: { Args: { project: string }; Returns: boolean };
+      can_view_task: { Args: { task: string }; Returns: boolean };
     };
     Enums: {
       user_role: UserRole;
@@ -338,6 +369,8 @@ export type TaskActivity = Database["public"]["Tables"]["task_activity"]["Row"];
 export type TaskAttachment =
   Database["public"]["Tables"]["task_attachments"]["Row"];
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
+export type ProjectMember =
+  Database["public"]["Tables"]["project_members"]["Row"];
 
 /** A notification joined with the person who caused it. */
 export type NotificationWithActor = Notification & { actor: Profile | null };
