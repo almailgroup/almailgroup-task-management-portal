@@ -64,13 +64,19 @@ Row Level Security instead, so the browser only ever holds a powerless key.
 
 ### 2. Apply the migrations
 
-Either paste each file in `supabase/migrations/` into the Supabase SQL editor in
-filename order, or use the CLI:
+**Quickest — one paste.** Open the Supabase **SQL Editor**, paste the whole of
+[`supabase/setup.sql`](supabase/setup.sql) and run it. That file is all five
+migrations concatenated in order; it is safe to re-run.
+
+**Or use the CLI**, which applies the migrations individually:
 
 ```bash
 npx supabase link --project-ref <your-project-ref>
 npx supabase db push
 ```
+
+`setup.sql` is generated — the migrations are the source of truth. After adding
+or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 
 | Migration                         | Contents                                     |
 | --------------------------------- | -------------------------------------------- |
