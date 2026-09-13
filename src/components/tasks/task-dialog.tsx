@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
+import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
 import { CommentThread } from "@/components/tasks/comment-thread";
 import { TaskActivityFeed } from "@/components/tasks/task-activity-feed";
 import { createTask, deleteTask, updateTask } from "@/lib/data/task-actions";
@@ -66,6 +67,9 @@ export function TaskDialog({
   const editing = Boolean(task);
   const canComplete =
     currentProfile.role === "admin" || currentProfile.role === "manager";
+  // Title, description, priority, due date and assignees belong to whoever
+  // plans the work. Members see them, they do not set them.
+  const canEditDetails = canComplete;
 
   const [pending, setPending] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
@@ -127,145 +131,156 @@ export function TaskDialog({
         <DialogHeader>
           <DialogTitle>{editing ? "Task" : "New task"}</DialogTitle>
           <DialogDescription>
-            {editing
-              ? "Update the details, or discuss it in the thread below."
-              : "Add a task to this project."}
+            {!editing
+              ? "Add a task to this project."
+              : canEditDetails
+                ? "Update the details, or discuss it in the thread below."
+                : "Update your progress, or discuss it in the thread below."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-          <FormError message={result?.ok === false ? result.error : null} />
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              name="title"
-              defaultValue={task?.title ?? ""}
-              placeholder="What needs to be done?"
-              maxLength={200}
-              required
-              autoFocus={!editing}
-              aria-invalid={Boolean(errors?.title)}
-            />
-            <FieldError message={errors?.title} />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              defaultValue={task?.description ?? ""}
-              placeholder="Add detail, acceptance criteria, links..."
-              rows={4}
-              maxLength={20000}
-              aria-invalid={Boolean(errors?.description)}
-            />
-            <FieldError message={errors?.description} />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                name="status"
-                defaultValue={task?.status ?? defaultStatus}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_STATUSES.map((status) => (
-                    <SelectItem
-                      key={status.value}
-                      value={status.value}
-                      // Only managers and admins close a task. Disabling the
-                      // option states the rule instead of letting the save fail.
-                      disabled={status.value === "done" && !canComplete}
-                    >
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!canComplete && (
-                <p className="text-xs text-muted-foreground">
-                  Move to In Review when finished; a manager marks it done.
-                </p>
-              )}
-            </div>
+        {canEditDetails || !task ? (
+          <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+            <FormError message={result?.ok === false ? result.error : null} />
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="priority">Priority</Label>
-              <Select name="priority" defaultValue={task?.priority ?? "medium"}>
-                <SelectTrigger id="priority">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_PRIORITIES.map((priority) => (
-                    <SelectItem key={priority.value} value={priority.value}>
-                      {priority.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dueDate">Due date</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
-                id="dueDate"
-                name="dueDate"
-                type="date"
-                defaultValue={task?.due_date ?? ""}
-                aria-invalid={Boolean(errors?.dueDate)}
+                id="title"
+                name="title"
+                defaultValue={task?.title ?? ""}
+                placeholder="What needs to be done?"
+                maxLength={200}
+                required
+                autoFocus={!editing}
+                aria-invalid={Boolean(errors?.title)}
               />
-              <FieldError message={errors?.dueDate} />
+              <FieldError message={errors?.title} />
             </div>
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Assignees</Label>
-            <AssigneePicker
-              team={team}
-              value={assigneeIds}
-              onChange={setAssigneeIds}
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            {editing ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onDelete}
-                disabled={deleting || pending}
-              >
-                {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                Delete
-              </Button>
-            ) : (
-              <span />
-            )}
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={pending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending && <Loader2 className="animate-spin" />}
-                {editing ? "Save changes" : "Create task"}
-              </Button>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                defaultValue={task?.description ?? ""}
+                placeholder="Add detail, acceptance criteria, links..."
+                rows={4}
+                maxLength={20000}
+                aria-invalid={Boolean(errors?.description)}
+              />
+              <FieldError message={errors?.description} />
             </div>
-          </div>
-        </form>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  name="status"
+                  defaultValue={task?.status ?? defaultStatus}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TASK_STATUSES.map((status) => (
+                      <SelectItem
+                        key={status.value}
+                        value={status.value}
+                        // Only managers and admins close a task. Disabling the
+                        // option states the rule instead of letting the save fail.
+                        disabled={status.value === "done" && !canComplete}
+                      >
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!canComplete && (
+                  <p className="text-xs text-muted-foreground">
+                    Move to In Review when finished; a manager marks it done.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="priority">Priority</Label>
+                <Select name="priority" defaultValue={task?.priority ?? "medium"}>
+                  <SelectTrigger id="priority">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TASK_PRIORITIES.map((priority) => (
+                      <SelectItem key={priority.value} value={priority.value}>
+                        {priority.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="dueDate">Due date</Label>
+                <Input
+                  id="dueDate"
+                  name="dueDate"
+                  type="date"
+                  defaultValue={task?.due_date ?? ""}
+                  aria-invalid={Boolean(errors?.dueDate)}
+                />
+                <FieldError message={errors?.dueDate} />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label>Assignees</Label>
+              <AssigneePicker
+                team={team}
+                value={assigneeIds}
+                onChange={setAssigneeIds}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              {editing ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onDelete}
+                  disabled={deleting || pending}
+                >
+                  {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                  Delete
+                </Button>
+              ) : (
+                <span />
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={pending}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={pending}>
+                  {pending && <Loader2 className="animate-spin" />}
+                  {editing ? "Save changes" : "Create task"}
+                </Button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <TaskDetailReadonly
+            task={task}
+            projectId={projectId}
+            canComplete={canComplete}
+            onSaved={() => onOpenChange(false)}
+          />
+        )}
 
         {task && (
           <>

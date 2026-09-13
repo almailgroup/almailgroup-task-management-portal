@@ -39,6 +39,11 @@ export function CommentThread({
 }) {
   const supabase = React.useMemo(() => createClient(), []);
 
+  // Comments are append-only for members: deleting one — their own included —
+  // is a manager action, so the control is not offered.
+  const canModerate =
+    currentProfile.role === "admin" || currentProfile.role === "manager";
+
   const [comments, setComments] = React.useState<CommentWithAuthor[] | null>(
     null,
   );
@@ -173,7 +178,6 @@ export function CommentThread({
         ) : (
           comments.map((comment) => {
             const author = comment.author;
-            const mine = comment.user_id === currentProfile.id;
 
             return (
               <div key={comment.id} className="flex items-start gap-2">
@@ -198,7 +202,7 @@ export function CommentThread({
                   </div>
                 </div>
 
-                {(mine || currentProfile.role === "admin") && (
+                {canModerate && (
                   <Button
                     variant="ghost"
                     size="icon-sm"

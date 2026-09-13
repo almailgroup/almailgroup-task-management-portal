@@ -40,7 +40,9 @@ export function describeDatabaseError(error: {
 }): string {
   switch (error.code) {
     case "42501":
-      return "You do not have permission to do that.";
+      // The review gate and the task-field guard raise this with a message
+      // written for the user, so prefer it over the generic line.
+      return error.message || "You do not have permission to do that.";
     case "23505":
     case "23505_unique":
       return "That already exists.";

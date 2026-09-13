@@ -254,3 +254,35 @@ export async function deleteTask(
   revalidateTaskViews(projectId);
   return ok({ id: taskId });
 }
+
+/**
+ * Change only a task's status.
+ *
+ * Members are view-only on task details, so they never submit the full task
+ * form — a disabled input is not included in FormData, and sending the form
+ * anyway would blank the fields they cannot see. This narrow action lets an
+ * assignee report progress without touching anything else.
+ */
+export async function changeTaskStatus(
+  taskId: string,
+  projectId: string | null,
+  status: string,
+): Promise<ActionResult<{ status: TaskStatus }>> {
+  const parsed = taskStatusSchema.safeParse(status);
+  if (!parsed.success) return fail("Unknown status.");
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .update({ status: parsed.data })
+    .eq("id", taskId)
+    .select("status")
+    .maybeSingle();
+
+  if (error) return fail(describeDatabaseError(error));
+  if (!data) return fail("You do not have permission to update this task.");
+
+  revalidateTaskViews(projectId);
+  return ok({ status: data.status });
+}

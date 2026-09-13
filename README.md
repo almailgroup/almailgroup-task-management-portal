@@ -96,6 +96,7 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0006_general_tasks_and_review_gate.sql` | Nullable project_id, review gate      |
 | `…0007_attachments.sql`           | Attachments table, storage bucket and policies |
 | `…0008_notifications.sql`         | Notifications table and trigger fan-out       |
+| `…0009_member_view_only_details.sql` | Members are view-only on task details      |
 
 ### 3. Register the first user
 
@@ -109,19 +110,28 @@ This is a single-tenant internal portal, so every signed-in employee can **read*
 the whole workspace — that is what makes project switching, assignee pickers and
 @mentions work. **Writes** are what the roles gate:
 
-| Action                          | Admin | Manager        | Team Member            |
-| ------------------------------- | :---: | :------------: | :--------------------: |
-| Create / edit projects          |  yes  | yes            | no                     |
-| Delete a project                |  yes  | own projects   | no                     |
-| Create tasks in a project       |  yes  | yes            | yes                    |
-| Create **general** tasks        |  yes  | yes            | no                     |
-| Edit / delete any task          |  yes  | yes            | own or assigned only   |
-| Move a task to **Done**         |  yes  | yes            | **no — In Review only**|
-| Reopen a completed task         |  yes  | yes            | no                     |
-| Attach files and links          |  yes  | yes            | on tasks they can edit |
-| Comment                         |  yes  | yes            | yes                    |
-| Delete others' comments         |  yes  | no             | no                     |
-| Change roles                    |  yes  | no             | no                     |
+| Action                                        | Admin | Manager      | Team Member             |
+| --------------------------------------------- | :---: | :----------: | :---------------------: |
+| Create / edit projects                        |  yes  | yes          | no                      |
+| Delete a project                              |  yes  | own projects | no                      |
+| Create tasks in a project                     |  yes  | yes          | yes                     |
+| Create **general** tasks                      |  yes  | yes          | no                      |
+| Edit title, description, priority, due date   |  yes  | yes          | **no — view only**      |
+| Add or remove assignees                       |  yes  | yes          | **no**                  |
+| Change a task's status                        |  yes  | yes          | assigned or created only |
+| Move a task to **Done**                       |  yes  | yes          | **no — In Review only** |
+| Reopen a completed task                       |  yes  | yes          | no                      |
+| Reorder cards on the board                    |  yes  | yes          | yes                     |
+| Delete a task                                 |  yes  | yes          | no                      |
+| Attach files and links                        |  yes  | yes          | on tasks they work on   |
+| Post comments                                 |  yes  | yes          | yes                     |
+| Edit or delete comments (incl. their own)     |  yes  | yes          | **no**                  |
+| Change roles                                  |  yes  | no           | no                      |
+
+**The member's lane.** Planning belongs to managers; members execute. A member
+receives a task, works on it, attaches the result, comments, and moves it to In
+Review. They cannot rewrite what they were asked to do, reassign it, remove
+themselves from it, or delete the discussion around it.
 
 Notes on how this is enforced:
 
@@ -135,6 +145,10 @@ Notes on how this is enforced:
   which is what makes the audit log genuinely append-only.
 - Users can edit their own name and avatar but not their role: a trigger blocks
   self-promotion, and another prevents removing the last admin.
+- **Task details are guarded by a trigger**, like the review gate, and for the
+  same reason: the rule is about *which columns changed*, which a `WITH CHECK`
+  expression cannot see. Status and board position are deliberately left
+  writable — reporting progress is exactly what an assignee is for.
 - The **review gate** is a trigger, not a policy. The rule is about a
   *transition* — a `WITH CHECK` expression cannot see the previous row, so it
   could not tell "a member is closing this task" from "a member edited the
