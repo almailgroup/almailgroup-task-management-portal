@@ -88,9 +88,14 @@ Row Level Security instead, so the browser only ever holds a powerless key.
 
 ### 2. Apply the migrations
 
+> **Use a Supabase project created for this app.** Running the script against a
+> database that already belongs to another application will stop with an
+> explanation — the schema lives in `public` and would collide. Check the
+> project selector at the top of the SQL editor before running.
+
 **Quickest — one paste.** Open the Supabase **SQL Editor**, paste the whole of
-[`supabase/setup.sql`](supabase/setup.sql) and run it. That file is all five
-migrations concatenated in order; it is safe to re-run.
+[`supabase/setup.sql`](supabase/setup.sql) and run it. That file is every
+migration concatenated in order; it is safe to re-run.
 
 **Or use the CLI**, which applies the migrations individually:
 

@@ -11,17 +11,51 @@ create extension if not exists "pgcrypto";
 -- Enums
 -- --------------------------------------------------------------------------
 
-do $$ begin
-  create type public.user_role as enum ('admin', 'manager', 'member');
-exception when duplicate_object then null; end $$;
+-- Created only if absent, so the script stays re-runnable. If a type of the
+-- same name already exists with different values, this database belongs to a
+-- different application — stop with an explanation rather than failing later
+-- with a confusing "invalid input value for enum" on the first table.
+create or replace function public.assert_enum(
+  type_name text,
+  required text[]
+)
+returns void
+language plpgsql
+as $fn$
+declare
+  existing text[];
+begin
+  if not exists (
+    select 1 from pg_type
+    where typname = type_name and typnamespace = 'public'::regnamespace
+  ) then
+    execute format(
+      'create type public.%I as enum (%s)',
+      type_name,
+      (select string_agg(quote_literal(v), ', ') from unnest(required) v)
+    );
+    return;
+  end if;
 
-do $$ begin
-  create type public.task_status as enum ('todo', 'in_progress', 'in_review', 'done');
-exception when duplicate_object then null; end $$;
+  select array_agg(e.enumlabel::text order by e.enumsortorder)
+    into existing
+  from pg_enum e
+  join pg_type t on t.oid = e.enumtypid
+  where t.typname = type_name and t.typnamespace = 'public'::regnamespace;
 
-do $$ begin
-  create type public.task_priority as enum ('low', 'medium', 'high', 'urgent');
-exception when duplicate_object then null; end $$;
+  if not (required <@ existing) then
+    raise exception
+      'public.% already exists here with different values (%), so this database belongs to another application.',
+      type_name, array_to_string(existing, ', ')
+      using hint =
+        'Run this script against a Supabase project created for the task portal, not one already in use. Check the project selector at the top of the SQL editor.';
+  end if;
+end;
+$fn$;
+
+select public.assert_enum('user_role', array['admin', 'manager', 'member']);
+select public.assert_enum('task_status', array['todo', 'in_progress', 'in_review', 'done']);
+select public.assert_enum('task_priority', array['low', 'medium', 'high', 'urgent']);
 
 -- --------------------------------------------------------------------------
 -- profiles — one row per auth user, created automatically on signup.
