@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, CircleCheck, CircleDashed } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -6,19 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 
 /**
- * Foundation page for Phase 1.
- *
- * It doubles as a live check that the design tokens, fonts and component
- * primitives render correctly, and reports whether Supabase credentials are
- * present yet. It is replaced by the real marketing/redirect entry point once
- * the authenticated shell lands.
+ * Public entry point. Signed-in visitors go straight to their dashboard;
+ * everyone else gets a short overview plus the setup checklist, which doubles
+ * as a live check that the design tokens and fonts are wired up.
  */
-export default function Home() {
+export default async function Home() {
   const configured = isSupabaseConfigured();
+
+  if (configured) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) redirect("/dashboard");
+  }
 
   return (
     <div className="min-h-svh bg-background">
@@ -56,6 +64,17 @@ export default function Home() {
             Projects, tasks and real-time collaboration for Almailgroup teams —
             built on Next.js, Supabase and a deliberately monochrome interface.
           </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button asChild>
+              <Link href="/login">
+                Sign in
+                <ArrowRight />
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/register">Create an account</Link>
+            </Button>
+          </div>
         </div>
 
         <Separator className="my-10" />
@@ -103,26 +122,21 @@ export default function Home() {
           </Card>
         </section>
 
-        <section className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Setup</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-sm">
-              <SetupRow done label="Next.js, TypeScript and Tailwind CSS" />
-              <SetupRow done label="Geist typography and monochrome tokens" />
-              <SetupRow done label="UI primitives and theme switching" />
-              <SetupRow
-                done={configured}
-                label={
-                  configured
-                    ? "Supabase credentials detected"
-                    : "Add Supabase credentials to .env.local"
-                }
-              />
-            </CardContent>
-          </Card>
-        </section>
+        {!configured && (
+          <section className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Setup</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm">
+                <SetupRow done label="Next.js, TypeScript and Tailwind CSS" />
+                <SetupRow done label="Geist typography and monochrome tokens" />
+                <SetupRow done label="UI primitives and theme switching" />
+                <SetupRow label="Add Supabase credentials to .env.local" />
+              </CardContent>
+            </Card>
+          </section>
+        )}
       </main>
     </div>
   );

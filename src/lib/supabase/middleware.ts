@@ -4,11 +4,19 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./env";
 
-/** Routes reachable without a session. Everything else requires sign-in. */
-const PUBLIC_ROUTES = ["/login", "/register", "/auth", "/forgot-password"];
+/**
+ * Routes reachable without a session. Everything else requires sign-in.
+ *
+ * Prefix matching is used for these, so "/auth" also covers "/auth/callback".
+ * The landing page is matched exactly — treating "/" as a prefix would make
+ * the entire app public.
+ */
+const PUBLIC_PREFIXES = ["/login", "/register", "/auth", "/forgot-password"];
+const PUBLIC_EXACT = ["/"];
 
 function isPublicRoute(pathname: string) {
-  return PUBLIC_ROUTES.some(
+  if (PUBLIC_EXACT.includes(pathname)) return true;
+  return PUBLIC_PREFIXES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 }
