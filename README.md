@@ -360,7 +360,8 @@ would compile them into the browser bundle. See `.env.example` for the full list
 
 ### Scheduling
 
-`vercel.json` registers a daily cron at 07:00 UTC. **Vercel's Hobby plan only
+`vercel.json` registers a daily cron at 07:00 UTC — 08:00 in Zurich in winter,
+09:00 in summer, so the digest lands around the start of the working day. **Vercel's Hobby plan only
 allows one run per day** — enough for a morning digest, but "due in 2 hours"
 will not be accurate. For finer granularity either upgrade to Pro, or drive it
 from Supabase instead, which has no such limit:
@@ -433,7 +434,15 @@ only approved templates are delivered; free-text messages are rejected. Set
 Set `NEXT_PUBLIC_SITE_URL` to the deployment's own URL. It is what confirmation
 emails link back to, so a stale value sends new users to the wrong host.
 
-### Changing the region
+### Regions
 
-`vercel.json` sets `regions: ["fra1"]`. Put the app in the region closest to
-your Supabase project to keep query latency low.
+`vercel.json` pins functions to `zrh1` (Zurich), matching the Supabase project's
+`eu-central-2` (Zurich). Keeping both in the same city means a page render does
+not cross a continent to reach the database and back.
+
+If you move the Supabase project, change this to match — Vercel's code for a
+city is its airport code, so Frankfurt is `fra1`, London `lhr1`, Dublin `dub1`.
+
+On the Hobby plan functions run in a single region, which is all this needs.
+Confirm it took under **Settings → Functions → Function Region** after the next
+deploy.
