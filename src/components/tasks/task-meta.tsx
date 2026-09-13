@@ -1,4 +1,4 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Clock3 } from "lucide-react";
 
 import {
   Avatar,
@@ -123,6 +123,53 @@ export function AssigneeStack({
         </span>
       )}
     </span>
+  );
+}
+
+/**
+ * Who opened this task and when.
+ *
+ * `creator` is resolved from the team roster rather than joined onto the task:
+ * every signed-in user can read every profile, so the lookup always succeeds
+ * for an account that still exists. A null creator means the account was
+ * removed — created_by is ON DELETE SET NULL — and the timestamp still stands.
+ */
+export function TaskProvenance({
+  createdAt,
+  creator,
+}: {
+  createdAt: string;
+  creator: Profile | null;
+}) {
+  const name = creator?.full_name ?? creator?.email ?? null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+      <span className="inline-flex min-w-0 items-center gap-1.5">
+        <Avatar className="size-5">
+          {creator?.avatar_url && <AvatarImage src={creator.avatar_url} alt="" />}
+          <AvatarFallback className="text-[9px]">
+            {initialsFrom(creator?.full_name, creator?.email)}
+          </AvatarFallback>
+        </Avatar>
+        <span className="truncate">
+          Created by{" "}
+          {name ? (
+            <span className="font-medium text-foreground">{name}</span>
+          ) : (
+            <span className="italic">a removed account</span>
+          )}
+          {creator?.job_title && <> · {creator.job_title}</>}
+        </span>
+      </span>
+
+      <span className="inline-flex items-center gap-1.5">
+        <Clock3 className="size-3.5 shrink-0" />
+        <time dateTime={createdAt} title={new Date(createdAt).toLocaleString()}>
+          {formatDateTime(createdAt)}
+        </time>
+      </span>
+    </div>
   );
 }
 

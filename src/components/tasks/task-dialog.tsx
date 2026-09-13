@@ -28,7 +28,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
-import { toDateTimeLocal } from "@/components/tasks/task-meta";
+import {
+  TaskProvenance,
+  toDateTimeLocal,
+} from "@/components/tasks/task-meta";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
 import { FollowUpPanel } from "@/components/tasks/follow-up-panel";
 import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
@@ -142,6 +145,15 @@ export function TaskDialog({
                 : "Update your progress, or discuss it in the thread below."}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Above the branch, so a member sees the same provenance a manager
+            does — the read-only view is a different editor, not less detail. */}
+        {task && (
+          <TaskProvenance
+            createdAt={task.created_at}
+            creator={team.find((person) => person.id === task.created_by) ?? null}
+          />
+        )}
 
         {canEditDetails || !task ? (
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
