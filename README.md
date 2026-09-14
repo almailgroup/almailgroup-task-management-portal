@@ -146,6 +146,14 @@ the moment a password is set. Afterwards — and for anyone who simply wants a
 new one — **Profile → Password → Change password** asks for the current
 password and then the new one, without going anywhere near an email.
 
+**Locked out?** An admin can issue a new password from Team → ⋯ → Reset
+password, which works the same way: a one-time password to hand over, and the
+account flagged so the next sign-in asks them to choose their own. An admin can
+do this for anyone but themselves — their own password needs the current one,
+on the profile page — and never learns the password anybody ends up using. It
+is the one route that does not depend on email at all, which matters when the
+alternative is a reset link and a mail quota.
+
 Self-registration at `/register` still works, but it depends on a confirmation
 email, and that is where a new Supabase project has a sharp edge — see below.
 

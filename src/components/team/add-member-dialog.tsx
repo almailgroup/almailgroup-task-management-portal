@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Loader2, UserPlus } from "lucide-react";
-import { toast } from "sonner";
+import { Loader2, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FieldError, FormError } from "@/components/auth/field-error";
+import { OneTimePassword } from "@/components/team/one-time-password";
 import { USER_ROLES } from "@/lib/constants";
 import { addTeamMember } from "@/lib/data/team-actions";
 import type { ActionResult } from "@/lib/action-result";
@@ -43,12 +43,10 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<Created> | null>(null);
-  const [copied, setCopied] = React.useState(false);
 
   function reset() {
     setResult(null);
     setPending(false);
-    setCopied(false);
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -61,17 +59,6 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
     setPending(false);
 
     if (outcome.ok) router.refresh();
-  }
-
-  async function copyPassword(password: string) {
-    try {
-      await navigator.clipboard.writeText(password);
-      setCopied(true);
-      toast.success("Password copied");
-    } catch {
-      // Clipboard access can be refused; the password is on screen anyway.
-      toast.error("Could not copy — select the password and copy it by hand.");
-    }
   }
 
   const created = result?.ok ? result.data : null;
@@ -120,36 +107,10 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
                 </DialogDescription>
               </DialogHeader>
 
-              <dl className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-3.5">
-                <div className="flex flex-col gap-0.5">
-                  <dt className="text-xs text-muted-foreground">Email</dt>
-                  <dd className="break-all font-mono text-sm">{created.email}</dd>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <dt className="text-xs text-muted-foreground">
-                    One-time password
-                  </dt>
-                  <dd className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 break-all font-mono text-sm">
-                      {created.password}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-sm"
-                      onClick={() => copyPassword(created.password)}
-                      aria-label="Copy password"
-                    >
-                      {copied ? <Check /> : <Copy />}
-                    </Button>
-                  </dd>
-                </div>
-              </dl>
-
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                This is the only time the password is shown. If it is lost, they
-                can reset it from the sign-in page — or you can add them again.
-              </p>
+              <OneTimePassword
+                email={created.email}
+                password={created.password}
+              />
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={reset}>

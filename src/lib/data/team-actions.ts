@@ -59,6 +59,45 @@ function temporaryPassword(): string {
   return `${draw(alphabet, 16)}${draw(symbols, 1)}`;
 }
 
+/**
+ * The two things every action here needs: proof the caller is an admin, and a
+ * service-role client.
+ *
+ * The service-role client ignores Row Level Security completely, so this is
+ * one of the few places in the codebase that has to check a role in code —
+ * there is no policy left to do it. The check runs first, and against the
+ * caller's own session.
+ */
+async function requireAdmin(): Promise<
+  | { supabase: Awaited<ReturnType<typeof createClient>>; admin: ReturnType<typeof createAdminClient>; userId: string }
+  | { error: string }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Your session expired. Please sign in again." };
+
+  const { data: caller } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (caller?.role !== "admin") {
+    return { error: "Only an admin can do this." };
+  }
+
+  try {
+    return { supabase, admin: createAdminClient(), userId: user.id };
+  } catch {
+    return {
+      error:
+        "This needs SUPABASE_SERVICE_ROLE_KEY in the server environment. Until it is set, accounts can only be managed from the Supabase dashboard.",
+    };
+  }
+}
+
 export async function addTeamMember(
   _prev: unknown,
   formData: FormData,
@@ -73,33 +112,9 @@ export async function addTeamMember(
     return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
   }
 
-  // The service-role client below ignores Row Level Security completely, so
-  // this is one of the few places that has to check a role in code. It runs
-  // first, and against the caller's own session.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
-
-  const { data: caller } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (caller?.role !== "admin") {
-    return fail("Only an admin can add people to the workspace.");
-  }
-
-  let admin: ReturnType<typeof createAdminClient>;
-  try {
-    admin = createAdminClient();
-  } catch {
-    return fail(
-      "Adding people directly needs SUPABASE_SERVICE_ROLE_KEY in the server environment. Until it is set, new accounts have to come through the sign-up page.",
-    );
-  }
+  const permitted = await requireAdmin();
+  if ("error" in permitted) return fail(permitted.error);
+  const { supabase, admin } = permitted;
 
   const password = temporaryPassword();
 
@@ -143,4 +158,55 @@ export async function addTeamMember(
   revalidatePath("/", "layout");
 
   return ok({ email: parsed.data.email, password });
+}
+
+/**
+ * Issue somebody a new password.
+ *
+ * For the person who has locked themselves out, or was never able to sign in
+ * with what they were given. The alternative is the emailed reset link, which
+ * depends on the mail quota that made all of this necessary in the first
+ * place, and on them still having access to the inbox.
+ *
+ * The new password is temporary by construction: the account is flagged, so
+ * the next sign-in lands on "Choose your password" the same way a new account
+ * does. An admin never learns the password anybody is actually using.
+ */
+export async function resetMemberPassword(
+  userId: string,
+): Promise<ActionResult<{ email: string; password: string }>> {
+  if (!z.string().uuid().safeParse(userId).success) {
+    return fail("Unknown member.");
+  }
+
+  const permitted = await requireAdmin();
+  if ("error" in permitted) return fail(permitted.error);
+  const { admin, userId: callerId } = permitted;
+
+  // Changing your own password is a different act with a different rule: it
+  // asks for the current one, and that lives on the profile page.
+  if (userId === callerId) {
+    return fail("To change your own password, use Profile → Password.");
+  }
+
+  const { data: target, error: lookupError } =
+    await admin.auth.admin.getUserById(userId);
+
+  if (lookupError || !target.user?.email) {
+    return fail("That account could not be found.");
+  }
+
+  const password = temporaryPassword();
+
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    password,
+    // Spread rather than replace: the metadata carries their name, and
+    // overwriting the object would lose it.
+    user_metadata: { ...target.user.user_metadata, must_change_password: true },
+  });
+
+  if (error) return fail(describeAuthError(error));
+
+  revalidatePath("/team");
+  return ok({ email: target.user.email, password });
 }

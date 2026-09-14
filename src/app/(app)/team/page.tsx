@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { AddMemberDialog } from "@/components/team/add-member-dialog";
+import { MemberActions } from "@/components/team/member-actions";
 import { RoleSelect } from "@/components/team/role-select";
 import { PositionSelect } from "@/components/team/position-select";
 import { Users } from "lucide-react";
@@ -23,6 +24,9 @@ export const metadata: Metadata = { title: "Team" };
 export default async function TeamPage() {
   const [profile, team] = await Promise.all([requireProfile(), getTeam()]);
   const isAdmin = profile.role === "admin";
+  // Both admin actions here need the service-role key; say so rather than
+  // letting them fail on use.
+  const serviceRole = hasServiceRole();
 
   return (
     <PageShell width="wide">
@@ -38,9 +42,7 @@ export default async function TeamPage() {
               : " Only admins can change roles and positions."}
           </>
         }
-        actions={
-          isAdmin ? <AddMemberDialog configured={hasServiceRole()} /> : undefined
-        }
+        actions={isAdmin ? <AddMemberDialog configured={serviceRole} /> : undefined}
       />
 
       <Card className="divide-y divide-border">
@@ -90,6 +92,15 @@ export default async function TeamPage() {
                   /* Guard against an admin removing their own last admin rights. */
                   disabled={member.id === profile.id}
                 />
+                {/* Your own password is changed from your profile, where it
+                    asks for the current one first. */}
+                {member.id !== profile.id && (
+                  <MemberActions
+                    userId={member.id}
+                    name={member.full_name ?? member.email}
+                    configured={serviceRole}
+                  />
+                )}
               </div>
             ) : (
               <Badge variant="outline">{roleMeta(member.role).label}</Badge>
