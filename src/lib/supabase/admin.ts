@@ -36,3 +36,16 @@ export function createAdminClient() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
+
+/**
+ * Whether the service-role key is present.
+ *
+ * Adding a teammate needs it, and finding that out only after filling in the
+ * form and pressing the button is a poor way to learn. The Team page asks
+ * first and says so instead.
+ */
+export function hasServiceRole(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+}

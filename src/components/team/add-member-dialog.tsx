@@ -38,7 +38,7 @@ type Created = { email: string; password: string };
  * made here is confirmed from the start and comes with a one-time password to
  * hand over.
  */
-export function AddMemberDialog() {
+export function AddMemberDialog({ configured }: { configured: boolean }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
@@ -79,16 +79,27 @@ export function AddMemberDialog() {
 
   return (
     <>
-      <Button
-        size="sm"
-        onClick={() => {
-          reset();
-          setOpen(true);
-        }}
-      >
-        <UserPlus />
-        Add teammate
-      </Button>
+      {/* A disabled button with nothing to explain it is a dead end, and a
+          tooltip is no use on a phone, so the reason is on the page. */}
+      <div className="flex flex-col items-end gap-1">
+        <Button
+          size="sm"
+          onClick={() => {
+            reset();
+            setOpen(true);
+          }}
+          disabled={!configured}
+        >
+          <UserPlus />
+          Add teammate
+        </Button>
+        {!configured && (
+          <p className="max-w-[15rem] text-right text-xs leading-relaxed text-muted-foreground">
+            Needs <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> in
+            the server environment.
+          </p>
+        )}
+      </div>
 
       <Dialog
         open={open}

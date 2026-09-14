@@ -16,6 +16,7 @@ import { Users } from "lucide-react";
 
 import { roleMeta } from "@/lib/constants";
 import { getTeam, requireProfile } from "@/lib/data/queries";
+import { hasServiceRole } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Team" };
 
@@ -37,7 +38,9 @@ export default async function TeamPage() {
               : " Only admins can change roles and positions."}
           </>
         }
-        actions={isAdmin ? <AddMemberDialog /> : undefined}
+        actions={
+          isAdmin ? <AddMemberDialog configured={hasServiceRole()} /> : undefined
+        }
       />
 
       <Card className="divide-y divide-border">
