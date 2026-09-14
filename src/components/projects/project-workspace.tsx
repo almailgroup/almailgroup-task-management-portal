@@ -316,6 +316,7 @@ export function ProjectWorkspace({
           projectId={project.id}
           canComplete={canComplete}
           canDelete={canComplete}
+          canReschedule={canComplete}
         />
       )}
 

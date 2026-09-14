@@ -9,14 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TaskTable } from "@/components/tasks/task-table";
 import { TaskDialog } from "@/components/tasks/task-dialog";
-import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
-import {
-  AssigneeStack,
-  DueDate,
-  PriorityIndicator,
-  StatusBadge,
-} from "@/components/tasks/task-meta";
 import { TASK_FILTERS, type TaskFilter } from "@/lib/task-filters";
 import { cn } from "@/lib/utils";
 import type {
@@ -117,55 +111,30 @@ export function TaskBrowser({
         />
       </div>
 
-      {visible.length === 0 ? (
-        <EmptyState
-          icon={<FolderOpen />}
-          title={query.trim() ? "No matches" : "Nothing in this view"}
-          description={
-            query.trim()
-              ? `Nothing matches “${query.trim()}”. Try a different search, or pick another filter above.`
-              : "Pick another filter above to see tasks in a different state."
-          }
-        />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {visible.map((task) => (
-            <li key={task.id}>
-              <div className="lift flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-sm)] hover:border-foreground/30">
-                {/* Four trailing controls against one title: on a phone they
-                    left it 29px wide. The title owns the first row and they
-                    wrap beneath it until there is room for one line. */}
-                <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:flex-1">
-                  <PriorityIndicator priority={task.priority} />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTask(task);
-                      setDialogOpen(true);
-                    }}
-                    className="min-w-0 flex-1 text-left focus-visible:outline-none"
-                  >
-                    <span className="block truncate text-[0.9375rem] font-medium">
-                      {task.title}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {projectName(task.project_id)}
-                    </span>
-                  </button>
-                </div>
-
-                <div className="flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 sm:w-auto">
-                  <DueDate dueAt={task.due_at} status={task.status} />
-                  <StatusBadge status={task.status} />
-                  <AssigneeStack assignees={task.assignees} max={3} />
-                  {canManage && <RescheduleMenu task={task} compact />}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* One row implementation for every task list in the app. The browser
+          used to hand-roll its own, which is why selection never reached it. */}
+      <TaskTable
+        tasks={visible}
+        onOpenTask={(task) => {
+          setActiveTask(task);
+          setDialogOpen(true);
+        }}
+        canComplete={canManage}
+        canDelete={canManage}
+        projectName={projectName}
+        canReschedule={canManage}
+        emptyState={
+          <EmptyState
+            icon={<FolderOpen />}
+            title={query.trim() ? "No matches" : "Nothing in this view"}
+            description={
+              query.trim()
+                ? `Nothing matches “${query.trim()}”. Try a different search, or pick another filter above.`
+                : "Pick another filter above to see tasks in a different state."
+            }
+          />
+        }
+      />
 
       {activeTask && (
         <TaskDialog

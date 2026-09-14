@@ -528,6 +528,57 @@ from the browser, and the Worker exists precisely so the key never travels.
 The shapes above are `src/lib/maham/types.ts`, which is deliberately free of
 React and Supabase imports so the Worker can share the file verbatim.
 
+## Tests
+
+```bash
+npm test          # unit — vitest, ~2s
+npm run test:e2e  # end-to-end — Playwright against a production build
+```
+
+CI runs both on every push and pull request, along with types, lint, the
+build, and a check that `supabase/setup.sql` still matches the migrations.
+
+### What is covered, and why those things
+
+The unit tests are deliberately weighted towards bugs this codebase has
+actually had, not towards a coverage number:
+
+- **`dates` / `validation`** — the due-date timezone bug. The server now
+  refuses the raw `2026-09-15T17:30` an `<input type="datetime-local">`
+  produces, so the mistake cannot come back quietly.
+- **`client-boundary`** — the `/team` crash. Every export of a `"use client"`
+  module becomes a client reference when a Server Component imports it, and
+  calling one on the server throws. TypeScript and ESLint both pass on that
+  code, so it gets its own static check. It was verified by reintroducing the
+  original bug and watching it go red.
+- **`reminders`** — which failures are worth retrying, and that an
+  unconfigured channel or a thrown request never wedges the dispatcher.
+- **`attachments`** — that a filename cannot climb out of its task's folder
+  and that a `javascript:` URL cannot be stored as a link.
+- **`metrics` / `task-filters` / `sidebar`** — the arithmetic behind the
+  dashboard, the filters and the resizable rail.
+
+The end-to-end tests cover the pages reachable without a session, plus two
+rules that apply everywhere and keep getting broken by accident: no page may
+scroll sideways, and no control on a touch device may be smaller than a thumb.
+Point `BASE_URL` at a staging deployment to run them against real data.
+
+### What is not covered
+
+Two paths have never been exercised end to end, here or anywhere:
+
+- **File and avatar uploads.** The bytes go straight from the browser to
+  Supabase Storage, which needs a live bucket. The path-building and
+  validation around them are tested; the upload itself is not.
+- **Reminder delivery.** There are no provider credentials in CI and there
+  should not be. Everything around the network call is tested with a stubbed
+  `fetch`; no real email, Telegram message or WhatsApp has ever been sent by
+  a test.
+
+Both are worth one deliberate manual pass after deploying: attach a real file
+to a task and download it again, set a profile picture, and set a due date a
+few minutes out with each reminder channel switched on.
+
 ## Deploying to Vercel
 
 1. **Apply the migrations** to your Supabase project (see above) — do this

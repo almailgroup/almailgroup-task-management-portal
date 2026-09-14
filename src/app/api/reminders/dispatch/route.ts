@@ -68,13 +68,13 @@ async function run(request: NextRequest) {
   // single scheduled run both finds new work and sends it.
   const { error: enqueueError } = await supabase.rpc("enqueue_task_reminders");
 
-  const { data, error } = await supabase
-    .from("reminder_queue")
-    .select("id, user_id, task_id, channel, kind, recipient, subject, body, attempts")
-    .eq("status", "pending")
-    .lte("scheduled_for", new Date().toISOString())
-    .order("scheduled_for", { ascending: true })
-    .limit(BATCH_SIZE);
+  // Claim the batch before touching a provider. Reading pending rows and
+  // marking them sent afterwards meant a run killed by the function timeout
+  // left rows pending that had already gone out, and the next run sent them
+  // a second time. claim_reminders moves them to 'sending' in one statement.
+  const { data, error } = await supabase.rpc("claim_reminders", {
+    batch_size: BATCH_SIZE,
+  });
 
   if (error) {
     return NextResponse.json(
@@ -101,6 +101,7 @@ async function run(request: NextRequest) {
           attempts,
           sent_at: new Date().toISOString(),
           last_error: null,
+          claimed_at: null,
         })
         .eq("id", reminder.id);
       continue;
@@ -117,6 +118,8 @@ async function run(request: NextRequest) {
         status: exhausted ? "failed" : "pending",
         attempts,
         last_error: result.error,
+        // Releasing the claim is what lets a retry be picked up again.
+        claimed_at: null,
         // Back off so a struggling provider is not hammered on every run.
         scheduled_for: exhausted
           ? undefined

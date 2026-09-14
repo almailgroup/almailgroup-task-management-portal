@@ -4,6 +4,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Metrics, Workload } from "@/lib/metrics";
 import type {
   CommentWithAuthor,
   NoteWithItems,
@@ -333,3 +334,97 @@ export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
     items: [...(note.items ?? [])].sort((a, b) => a.position - b.position),
   }));
 });
+
+/**
+ * The dashboard's six figures, counted in Postgres.
+ *
+ * This used to fetch every task the viewer could see and reduce it in
+ * JavaScript — the rows were serialised and shipped only to become six
+ * numbers. The function is SECURITY INVOKER, so the counts are filtered by
+ * the caller's own RLS exactly as the old query was.
+ */
+export const getTaskCounts = cache(async (): Promise<Metrics> => {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("task_counts");
+  const row = data?.[0];
+
+  const total = Number(row?.total ?? 0);
+  const done = Number(row?.done ?? 0);
+
+  return {
+    total,
+    done,
+    pending: total - done,
+    todo: Number(row?.todo ?? 0),
+    inProgress: Number(row?.in_progress ?? 0),
+    inReview: Number(row?.in_review ?? 0),
+    overdue: Number(row?.overdue ?? 0),
+    dueToday: Number(row?.due_today ?? 0),
+    completionRate: total === 0 ? 0 : Math.round((done / total) * 100),
+  };
+});
+
+/** Per-person open/done/overdue, busiest first. Counted in Postgres too. */
+export const getWorkload = cache(async (): Promise<Workload[]> => {
+  const supabase = await createClient();
+  const [{ data }, team] = await Promise.all([
+    supabase.rpc("workload_counts"),
+    getTeam(),
+  ]);
+
+  const byUser = new Map((data ?? []).map((row) => [row.user_id, row]));
+
+  return team
+    .map((profile) => {
+      const row = byUser.get(profile.id);
+      return {
+        profile,
+        open: Number(row?.open ?? 0),
+        done: Number(row?.done ?? 0),
+        overdue: Number(row?.overdue ?? 0),
+      };
+    })
+    .filter((entry) => entry.open > 0 || entry.done > 0)
+    .sort((a, b) => b.overdue - a.overdue || b.open - a.open);
+});
+
+/** A short, bounded list rather than "every task, then slice(0, n)". */
+export const getMyOpenTasks = cache(
+  async (limit = 6): Promise<TaskWithAssignees[]> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data } = await supabase
+      .from("tasks")
+      .select("*, assignments:task_assignments!inner(user:profiles(*))")
+      .eq("assignments.user_id", user.id)
+      .neq("status", "done")
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(limit);
+
+    return (data ?? []).map((row) =>
+      withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
+    );
+  },
+);
+
+/** The overdue work, soonest-overdue first, bounded. */
+export const getOverdueTasks = cache(
+  async (limit = 6): Promise<TaskWithAssignees[]> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("tasks")
+      .select("*, assignments:task_assignments(user:profiles(*))")
+      .neq("status", "done")
+      .lt("due_at", new Date().toISOString())
+      .order("due_at", { ascending: true })
+      .limit(limit);
+
+    return (data ?? []).map((row) =>
+      withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
+    );
+  },
+);

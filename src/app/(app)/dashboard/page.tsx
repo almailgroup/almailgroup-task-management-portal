@@ -21,43 +21,32 @@ import {
   DueDate,
   PriorityIndicator,
   StatusBadge,
-  isOverdue,
 } from "@/components/tasks/task-meta";
-import { summarise, workloadByUser } from "@/lib/metrics";
 import {
-  getAllTasks,
+  getMyOpenTasks,
+  getOverdueTasks,
   getProjects,
-  getTeam,
+  getTaskCounts,
+  getWorkload,
   requireProfile,
 } from "@/lib/data/queries";
+import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const [profile, tasks, projects, team] = await Promise.all([
-    requireProfile(),
-    getAllTasks(),
-    getProjects(),
-    getTeam(),
-  ]);
-
-  const metrics = summarise(tasks);
-  const workload = workloadByUser(tasks, team);
-
-  const myTasks = tasks
-    .filter(
-      (task) =>
-        task.status !== "done" &&
-        task.assignees.some((person) => person.id === profile.id),
-    )
-    // Soonest due first; undated work sorts last.
-    .sort((a, b) => (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999"))
-    .slice(0, 6);
-
-  const attention = tasks
-    .filter((task) => isOverdue(task.due_at, task.status))
-    .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""))
-    .slice(0, 6);
+  // Five bounded reads instead of "fetch every task, then reduce it here".
+  // The counts and the workload are aggregated in Postgres; the two lists ask
+  // for the six rows they show rather than everything and a slice.
+  const [profile, metrics, workload, myTasks, attention, projects] =
+    await Promise.all([
+      requireProfile(),
+      getTaskCounts(),
+      getWorkload(),
+      getMyOpenTasks(6),
+      getOverdueTasks(6),
+      getProjects(),
+    ]);
 
   const firstName = profile.full_name?.split(" ")[0];
 
@@ -171,7 +160,7 @@ function TaskListCard({
   empty,
 }: {
   title: string;
-  tasks: Awaited<ReturnType<typeof getAllTasks>>;
+  tasks: TaskWithAssignees[];
   empty: string;
 }) {
   return (

@@ -24,7 +24,13 @@ export type AttachmentKind = "file" | "link";
 
 export type ReminderChannel = "email" | "telegram" | "whatsapp";
 export type ReminderKind = "assigned" | "due_soon" | "overdue" | "follow_up";
-export type ReminderStatus = "pending" | "sent" | "failed" | "cancelled";
+export type ReminderStatus =
+  | "pending"
+  /** Claimed by a dispatcher run and being delivered right now. */
+  | "sending"
+  | "sent"
+  | "failed"
+  | "cancelled";
 
 /** `notifications.type` — stored as text with a check constraint. */
 export type NotificationType =
@@ -337,6 +343,7 @@ export type Database = {
       /** Outbound reminders. Written by the scheduler, drained by the dispatcher. */
       reminder_queue: {
         Row: {
+          claimed_at: string | null;
           id: string;
           user_id: string;
           task_id: string | null;
@@ -360,6 +367,7 @@ export type Database = {
           last_error?: string | null;
           sent_at?: string | null;
           scheduled_for?: string;
+          claimed_at?: string | null;
         };
         Relationships: [
           {
@@ -496,6 +504,34 @@ export type Database = {
       can_view_project: { Args: { project: string }; Returns: boolean };
       can_view_task: { Args: { task: string }; Returns: boolean };
       enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
+      /** Moves a batch of due reminders to 'sending' and returns them. */
+      claim_reminders: {
+        Args: { batch_size?: number };
+        Returns: Database["public"]["Tables"]["reminder_queue"]["Row"][];
+      };
+      /** Per-assignee open/done/overdue, counted in the database. */
+      workload_counts: {
+        Args: Record<never, never>;
+        Returns: {
+          user_id: string;
+          open: number;
+          done: number;
+          overdue: number;
+        }[];
+      };
+      /** Dashboard figures, counted in the database under the caller's RLS. */
+      task_counts: {
+        Args: Record<never, never>;
+        Returns: {
+          total: number;
+          done: number;
+          todo: number;
+          in_progress: number;
+          in_review: number;
+          overdue: number;
+          due_today: number;
+        }[];
+      };
     };
     Enums: {
       user_role: UserRole;

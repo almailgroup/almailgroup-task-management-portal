@@ -28,9 +28,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Matches the page grounds, so the browser chrome on a phone blends into
+  // the app instead of framing it in a colour the design never uses.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f3f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#2c2d32" },
   ],
 };
 

@@ -6,6 +6,7 @@ import { ListFilter } from "lucide-react";
 import { toast } from "sonner";
 
 import { BulkActionBar } from "@/components/tasks/bulk-action-bar";
+import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteTask, moveTask } from "@/lib/data/task-actions";
@@ -32,6 +33,9 @@ export function TaskTable({
   projectId = null,
   canComplete = false,
   canDelete = false,
+  projectName,
+  canReschedule = false,
+  emptyState,
 }: {
   tasks: TaskWithAssignees[];
   onOpenTask: (task: TaskWithAssignees) => void;
@@ -40,6 +44,16 @@ export function TaskTable({
   canComplete?: boolean;
   /** Whether the viewer may delete tasks. Members may not. */
   canDelete?: boolean;
+  /**
+   * Supplied by the cross-project views, which need to say which project a
+   * task belongs to. Inside a single project it would be the same word on
+   * every row, so it is left out there.
+   */
+  projectName?: (projectId: string | null) => string;
+  /** Shows the quick date control on each row. Managers only. */
+  canReschedule?: boolean;
+  /** Overrides the default "no matches" panel. */
+  emptyState?: React.ReactNode;
 }) {
   const router = useRouter();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
@@ -112,11 +126,13 @@ export function TaskTable({
   }
   if (tasks.length === 0) {
     return (
-      <EmptyState
-        icon={<ListFilter />}
-        title="No tasks match these filters"
-        description="Try a different status or priority, or clear the filters to see everything."
-      />
+      emptyState ?? (
+        <EmptyState
+          icon={<ListFilter />}
+          title="No tasks match these filters"
+          description="Try a different status or priority, or clear the filters to see everything."
+        />
+      )
     );
   }
 
@@ -138,11 +154,13 @@ export function TaskTable({
                   />
                 </Th>
               )}
-              <Th className="w-[45%]">Task</Th>
+              <Th className={projectName ? "w-[34%]" : "w-[45%]"}>Task</Th>
+              {projectName && <Th>Project</Th>}
               <Th>Status</Th>
               <Th>Priority</Th>
               <Th>Due</Th>
               <Th className="text-right">Assignees</Th>
+              {canReschedule && <Th className="w-10 text-right sr-only">Move date</Th>}
             </tr>
           </thead>
           <tbody>
@@ -176,6 +194,11 @@ export function TaskTable({
                     {task.title}
                   </button>
                 </td>
+                {projectName && (
+                  <td className="px-4 py-3.5 text-muted-foreground">
+                    {projectName(task.project_id)}
+                  </td>
+                )}
                 <td className="px-4 py-3.5">
                   <StatusBadge status={task.status} />
                 </td>
@@ -190,6 +213,13 @@ export function TaskTable({
                     <AssigneeStack assignees={task.assignees} />
                   </div>
                 </td>
+                {canReschedule && (
+                  <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end">
+                      <RescheduleMenu task={task} compact />
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -218,6 +248,11 @@ export function TaskTable({
               )}
             >
               <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
+              {projectName && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {projectName(task.project_id)}
+                </p>
+              )}
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusBadge status={task.status} />
                 <PriorityIndicator priority={task.priority} showLabel />
@@ -227,6 +262,11 @@ export function TaskTable({
                 </span>
               </div>
             </button>
+            {canReschedule && (
+              <span className="mt-3 shrink-0">
+                <RescheduleMenu task={task} compact />
+              </span>
+            )}
           </li>
         ))}
       </ul>
