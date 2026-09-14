@@ -26,18 +26,32 @@ export function MetricCard({
 }) {
   const className = cn(
     "group block rounded-2xl border bg-card p-5 shadow-[var(--shadow-sm)]",
-    emphasis ? "border-foreground/30" : "border-border",
+    emphasis
+      ? "border-warning-border bg-warning-surface"
+      : "border-border",
     href && "lift hover:border-foreground/40 focus-visible:outline-none",
   );
 
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[0.8125rem] font-medium text-muted-foreground">
+        <span
+          className={cn(
+            "text-[0.8125rem] font-medium",
+            emphasis ? "text-warning" : "text-muted-foreground",
+          )}
+        >
           {label}
         </span>
         {icon && (
-          <span className="text-muted-foreground [&_svg]:size-3.5">{icon}</span>
+          <span
+            className={cn(
+              "[&_svg]:size-3.5",
+              emphasis ? "text-warning" : "text-muted-foreground",
+            )}
+          >
+            {icon}
+          </span>
         )}
       </div>
 

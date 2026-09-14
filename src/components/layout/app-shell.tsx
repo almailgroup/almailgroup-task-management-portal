@@ -207,6 +207,21 @@ export function AppShell({
 
   return (
     <div className="min-h-svh bg-background">
+      {/*
+       * Without this, reaching the page content by keyboard meant tabbing
+       * through the project switcher, five nav links, every project, the
+       * assistant and the clock — on every page. Visually hidden until it
+       * takes focus, which is the only time it is useful.
+       */}
+      <a
+        href="#content"
+        className={cn(
+          "sr-only z-50 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[var(--shadow-lg)]",
+          "focus:not-sr-only focus:fixed focus:left-4 focus:top-4",
+        )}
+      >
+        Skip to content
+      </a>
       {/* Desktop rail */}
       <aside
         style={{ width: "var(--sidebar-width)" }}
@@ -339,7 +354,9 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="min-h-[calc(100svh-3.5rem)]">{children}</main>
+        <main id="content" tabIndex={-1} className="min-h-[calc(100svh-3.5rem)] focus:outline-none">
+          {children}
+        </main>
       </div>
 
       <CommandPalette projects={projects} />

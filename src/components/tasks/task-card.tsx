@@ -8,7 +8,7 @@ import {
   DueDate,
   PriorityIndicator,
 } from "@/components/tasks/task-meta";
-import { formatElapsed } from "@/lib/dates";
+import { compactAge, formatElapsed } from "@/lib/dates";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
@@ -47,40 +47,45 @@ export const TaskCard = React.forwardRef<
         <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
       </button>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <PriorityIndicator priority={task.priority} />
-          <DueDate dueAt={task.due_at} status={task.status} />
-        </div>
-        <AssigneeStack assignees={task.assignees} max={2} />
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <PriorityIndicator priority={task.priority} />
+        <DueDate dueAt={task.due_at} status={task.status} />
+        <ElapsedSinceCreated createdAt={task.created_at} />
+        <span className="ml-auto">
+          <AssigneeStack assignees={task.assignees} max={2} />
+        </span>
       </div>
-
-      <ElapsedSinceCreated createdAt={task.created_at} />
     </div>
   );
 });
 
 /**
- * How long the task has been open, ticking every second.
+ * How long the task has been open.
  *
- * Renders a fixed-width placeholder before hydration rather than nothing, so
- * the card does not change height the moment the timer starts.
+ * Shown compactly — "3d" — and folded onto the meta row rather than given a
+ * divider and a line of its own: it is context, not a headline. The exact
+ * hh:mm:ss and the creation timestamp are in the tooltip.
+ *
+ * Renders a placeholder before hydration rather than nothing, so the card
+ * does not change width the moment the clock starts.
  */
 function ElapsedSinceCreated({ createdAt }: { createdAt: string }) {
   const now = useNow();
 
   return (
-    <p
-      className="mt-2.5 flex items-center gap-1.5 border-t border-border/60 pt-2 text-xs text-muted-foreground"
+    <span
+      className="inline-flex shrink-0 items-center gap-1 text-xs tabular-nums text-muted-foreground"
       // Formatted with the viewer's locale, so it waits for hydration too.
-      title={now === null ? undefined : `Created ${new Date(createdAt).toLocaleString()}`}
+      title={
+        now === null
+          ? undefined
+          : `Open ${formatElapsed(createdAt, now)} · created ${new Date(createdAt).toLocaleString()}`
+      }
     >
-      <Timer className="size-3.5 shrink-0" />
-      <span className="tabular-nums">
-        {now === null ? "--:--:--" : formatElapsed(createdAt, now)}
-      </span>
+      <Timer className="size-3 shrink-0" />
+      {now === null ? "—" : compactAge(createdAt, now)}
       <span className="sr-only">since this task was created</span>
-    </p>
+    </span>
   );
 }
 

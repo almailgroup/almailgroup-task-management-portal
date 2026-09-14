@@ -75,6 +75,26 @@ export function relativeDay(iso: string): string {
 }
 
 /**
+ * How long ago, in one or two characters: "4m", "3h", "2d", "5w".
+ *
+ * The board shows this instead of a live hh:mm:ss counter. Twenty cards each
+ * ticking a nine-character number every second was a lot of noise — and a
+ * task open three days reading "72:07:04" is precise without being useful.
+ * The exact figure is still a hover away.
+ */
+export function compactAge(fromIso: string, nowMs: number): string {
+  const seconds = Math.max(0, Math.floor((nowMs - new Date(fromIso).getTime()) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return `${Math.floor(days / 7)}w`;
+}
+
+/**
  * Elapsed time as hours:minutes:seconds, counting from an instant to now.
  *
  * Hours are not wrapped into days on purpose — a task open for three days

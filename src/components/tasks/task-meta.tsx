@@ -33,6 +33,7 @@ export function PriorityIndicator({
   showLabel?: boolean;
 }) {
   const meta = priorityMeta(priority);
+  const urgent = priority === "urgent";
 
   return (
     <span className="inline-flex items-center gap-1.5" title={`${meta.label} priority`}>
@@ -46,12 +47,22 @@ export function PriorityIndicator({
               bar === 2 && "h-2",
               bar === 3 && "h-2.5",
               bar === 4 && "h-3",
-              bar <= meta.weight ? "bg-foreground" : "bg-border",
+              bar <= meta.weight
+                ? urgent
+                  ? "bg-warning-marker"
+                  : "bg-foreground"
+                : "bg-border",
             )}
           />
         ))}
       </span>
-      <span className={showLabel ? "text-xs text-muted-foreground" : "sr-only"}>
+      <span
+        className={
+          showLabel
+            ? cn("text-xs", urgent ? "font-medium text-warning" : "text-muted-foreground")
+            : "sr-only"
+        }
+      >
         {meta.label}
       </span>
     </span>
@@ -77,7 +88,9 @@ export function DueDate({
       className={cn(
         "inline-flex items-center gap-1 text-xs",
         overdue
-          ? "font-medium text-foreground underline decoration-dotted underline-offset-2"
+          // The one place colour is allowed. A dotted underline was easy to
+          // scan straight past on a board full of dates.
+          ? "rounded-full border border-warning-border bg-warning-surface px-2 py-0.5 font-semibold text-warning"
           : "text-muted-foreground",
         className,
       )}

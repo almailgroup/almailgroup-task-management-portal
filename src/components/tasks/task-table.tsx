@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { ListFilter } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   AssigneeStack,
   DueDate,
@@ -25,11 +27,11 @@ export function TaskTable({
 }) {
   if (tasks.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border px-4 py-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          No tasks match these filters.
-        </p>
-      </div>
+      <EmptyState
+        icon={<ListFilter />}
+        title="No tasks match these filters"
+        description="Try a different status or priority, or clear the filters to see everything."
+      />
     );
   }
 

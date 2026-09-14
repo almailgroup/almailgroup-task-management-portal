@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { NoteEditor } from "@/components/notes/note-editor";
 import {
@@ -141,11 +142,26 @@ export function MyList({ initialNotes }: { initialNotes: NoteWithItems[] }) {
 
         <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
           {visible.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm leading-relaxed text-muted-foreground">
-              {notes.length === 0
-                ? "Nothing here yet. Start a note for what you need to get through today."
-                : `Nothing matches “${query.trim()}”.`}
-            </p>
+            <div className="p-3">
+              <EmptyState
+                compact
+                icon={notes.length === 0 ? <ListChecks /> : <Search />}
+                title={notes.length === 0 ? "No notes yet" : "No matches"}
+                description={
+                  notes.length === 0
+                    ? "Start one for what you need to get through today."
+                    : `Nothing matches “${query.trim()}”.`
+                }
+                action={
+                  notes.length === 0 ? (
+                    <Button size="sm" onClick={onCreate} disabled={creating}>
+                      <Plus />
+                      New note
+                    </Button>
+                  ) : undefined
+                }
+              />
+            </div>
           ) : (
             <ul className="divide-y divide-border">
               {visible.map((note) => (

@@ -32,6 +32,7 @@ import {
 } from "@/components/tasks/task-meta";
 import { initialsFrom } from "@/lib/initials";
 import { relativeDay } from "@/lib/dates";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type {
   Profile,
@@ -289,17 +290,30 @@ function Section({
   canReschedule: boolean;
 }) {
   return (
-    <Card className={cn(emphasis && tasks.length > 0 && "border-foreground/30")}>
+    <Card
+      className={cn(
+        emphasis &&
+          tasks.length > 0 &&
+          "border-warning-border bg-warning-surface",
+      )}
+    >
       <CardHeader>
-        <CardTitle className="flex items-center gap-1.5">
+        <CardTitle
+          className={cn(
+            "flex items-center gap-1.5",
+            emphasis && tasks.length > 0 && "text-warning",
+          )}
+        >
           <span className="[&_svg]:size-3.5">{icon}</span>
           {title}
-          <span className="text-muted-foreground">{tasks.length}</span>
+          <span className={cn(!(emphasis && tasks.length > 0) && "text-muted-foreground")}>
+            {tasks.length}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {tasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{empty}</p>
+          <EmptyState compact title={empty} className="border-0 bg-transparent py-6" />
         ) : (
           tasks.map((task) => (
             <div

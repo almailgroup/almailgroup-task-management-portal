@@ -66,6 +66,18 @@
    * unmistakable against every surface in the system. */
   --ring: #111217;
 
+  /* The one colour in the system.
+   *
+   * Everything else is greyscale by design, which is exactly what gives this
+   * amber its force: it appears only on work that is late or urgent, so it
+   * always means the same thing. 5.02:1 as text on a card, 4.58:1 on its own
+   * tint — both above AA. The marker tone is used for non-text things like
+   * the priority ramp, which need 3:1 rather than 4.5. */
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+
   /* Chrome — sidebar and header sit behind the content they frame. */
   --chrome: #eaeaee;
   --chrome-border: #d9dae1;
@@ -101,6 +113,12 @@
   --input: #84858b;
   --ring: #f2f3f6;
 
+  /* 6.68:1 on a card, 7.09:1 on the tint. */
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #42352a;
+  --warning-border: #6b5326;
+
   --chrome: #232429;
   --chrome-border: #3d3e46;
 }
@@ -127,6 +145,10 @@
   --color-ring: var(--ring);
   --color-chrome: var(--chrome);
   --color-chrome-border: var(--chrome-border);
+  --color-warning: var(--warning);
+  --color-warning-marker: var(--warning-marker);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-border: var(--warning-border);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;

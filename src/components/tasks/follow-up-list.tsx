@@ -11,6 +11,7 @@ import {
   formatDateTime,
 } from "@/components/tasks/task-meta";
 import { relativeDay } from "@/lib/dates";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
@@ -39,17 +40,15 @@ export function FollowUpList({
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border px-4 py-12 text-center">
-        <PhoneCall className="mx-auto size-5 text-muted-foreground" />
-        <p className="mt-2 text-sm text-muted-foreground">
-          Nothing to follow up.
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {canManage
+      <EmptyState
+        icon={<PhoneCall />}
+        title="Nothing to follow up"
+        description={
+          canManage
             ? "Open a task and set a follow-up date to have it appear here."
-            : "Your manager has not scheduled any follow-ups on your tasks."}
-        </p>
-      </div>
+            : "Your manager has not scheduled any follow-ups on your tasks."
+        }
+      />
     );
   }
 
