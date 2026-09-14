@@ -109,6 +109,12 @@ export function ProjectMembers({
             </DialogDescription>
           </DialogHeader>
 
+          {members.length === 0 && (
+            <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+              Nobody is on this project yet.
+            </p>
+          )}
+
           <ul className="flex flex-col gap-1">
             {members.map((person) => (
               <li

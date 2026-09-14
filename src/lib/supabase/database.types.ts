@@ -297,6 +297,14 @@ export type Database = {
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
+          // The second route to profiles. Declaring it is what tells a reader
+          // — and `supabase gen types` — that an embed here must name its key.
+          {
+            foreignKeyName: "project_members_added_by_fkey";
+            columns: ["added_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
       /** Per-user reminder channel settings. One row per profile. */
@@ -376,6 +384,12 @@ export type Database = {
             referencedRelation: "tasks";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "reminder_queue_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
       task_attachments: {
@@ -410,6 +424,12 @@ export type Database = {
             referencedRelation: "tasks";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "task_attachments_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
       /** Private to each recipient. Rows are written only by database triggers. */
@@ -433,6 +453,25 @@ export type Database = {
             foreignKeyName: "notifications_task_id_fkey";
             columns: ["task_id"];
             referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_project_id_fkey";
+            columns: ["project_id"];
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          // Recipient and actor are both profiles, hence the hint in the query.
+          {
+            foreignKeyName: "notifications_actor_id_fkey";
+            columns: ["actor_id"];
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -459,7 +498,14 @@ export type Database = {
           body?: string;
           pinned?: boolean;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "personal_notes_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       personal_note_items: {
         Row: {
@@ -490,6 +536,12 @@ export type Database = {
             foreignKeyName: "personal_note_items_note_id_fkey";
             columns: ["note_id"];
             referencedRelation: "personal_notes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "personal_note_items_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];

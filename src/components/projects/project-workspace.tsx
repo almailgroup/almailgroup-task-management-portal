@@ -166,9 +166,9 @@ export function ProjectWorkspace({
         actions={
           <>
             <ProjectMembers
-            projectId={project.id}
-            members={members}
-            team={team}
+              projectId={project.id}
+              members={members}
+              team={team}
               canManage={profile.role === "admin" || profile.role === "manager"}
             />
             {canCreate && (

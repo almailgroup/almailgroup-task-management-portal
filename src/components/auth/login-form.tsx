@@ -70,7 +70,9 @@ export function LoginForm() {
           <Label htmlFor="password">Password</Label>
           <Link
             href="/forgot-password"
-            className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            // Negative margins keep the row the same height while the link
+            // itself is a full-size tap target on a phone.
+            className="-my-2.5 -mr-1 inline-flex min-h-9 items-center px-1 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             Forgot password?
           </Link>

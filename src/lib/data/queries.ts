@@ -26,6 +26,18 @@ import type {
  * within a single request (e.g. layout and page both needing the profile).
  */
 
+/**
+ * Say so when a read fails.
+ *
+ * Most queries here discard their error and fall back to an empty list, which
+ * renders identically to "there is nothing here". That is the right thing for
+ * the page — a missing sidebar section beats a crash — but it must not also be
+ * silent in the logs, or a broken query looks like an empty database.
+ */
+function reportQueryError(where: string, error: { message: string; code?: string }) {
+  console.error(`[query:${where}] ${error.code ?? "error"}: ${error.message}`);
+}
+
 /** The signed-in user's profile, or redirect to login. */
 export const requireProfile = cache(async (): Promise<Profile> => {
   const supabase = await createClient();
@@ -222,11 +234,15 @@ export const getTaskAttachments = cache(
 export const getNotifications = cache(
   async (limit = 30): Promise<NotificationWithActor[]> => {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notifications")
-      .select("*, actor:profiles(*)")
+      // Ambiguous without the hint: notifications reference profiles through
+      // both user_id and actor_id.
+      .select("*, actor:profiles!notifications_actor_id_fkey(*)")
       .order("created_at", { ascending: false })
       .limit(limit);
+
+    if (error) reportQueryError("getNotifications", error);
 
     return (data ?? []) as unknown as NotificationWithActor[];
   },
@@ -251,25 +267,72 @@ export const canCompleteTasks = cache(async (): Promise<boolean> => {
 /**
  * Members of a project.
  *
+ * `project_members` points at `profiles` twice — once for the member, once for
+ * whoever added them — so the embed has to name which foreign key it travels.
+ * Left ambiguous, PostgREST rejects the whole request (PGRST201) rather than
+ * guessing, and the list comes back empty: the member is really on the project
+ * and can see it, but nobody appears here and so nobody can be removed either.
+ *
  * RLS already hides projects the caller cannot see, so an empty result here
  * means either no members or no access — both of which render the same.
  */
 export const getProjectMembers = cache(
   async (projectId: string): Promise<Profile[]> => {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("project_members")
-      .select("user:profiles(*)")
+      .select("user:profiles!project_members_user_id_fkey(*)")
       .eq("project_id", projectId);
 
-    return ((data ?? []) as unknown as { user: Profile | null }[])
-      .map((row) => row.user)
-      .filter((profile): profile is Profile => profile !== null)
-      .sort((a, b) =>
-        (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email),
-      );
+    if (error) {
+      reportQueryError("getProjectMembers", error);
+      // An embed that will not resolve must not cost people their members
+      // list, so fall back to the two plain reads it was a shorthand for.
+      return byName(await membersTheLongWay(projectId));
+    }
+
+    return byName(
+      ((data ?? []) as unknown as { user: Profile | null }[])
+        .map((row) => row.user)
+        .filter((profile): profile is Profile => profile !== null),
+    );
   },
 );
+
+const byName = (people: Profile[]) =>
+  [...people].sort((a, b) =>
+    (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email),
+  );
+
+/** Membership and profiles read separately — no relationship to resolve. */
+async function membersTheLongWay(projectId: string): Promise<Profile[]> {
+  const supabase = await createClient();
+
+  const { data: rows, error } = await supabase
+    .from("project_members")
+    .select("user_id")
+    .eq("project_id", projectId);
+
+  if (error) {
+    reportQueryError("getProjectMembers:ids", error);
+    return [];
+  }
+
+  const ids = (rows ?? []).map((row) => row.user_id);
+  if (ids.length === 0) return [];
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("*")
+    .in("id", ids);
+
+  if (profilesError) {
+    reportQueryError("getProjectMembers:profiles", profilesError);
+    return [];
+  }
+
+  return profiles ?? [];
+}
 
 /**
  * Tasks carrying a follow-up date, soonest first.

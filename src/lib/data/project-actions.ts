@@ -159,7 +159,21 @@ export async function removeProjectMember(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to change membership.");
+
+  // Nothing came back, which means one of two very different things: RLS
+  // refused the delete, or the row had already gone. Look before blaming the
+  // caller — reporting "no permission" for work that is already done is how a
+  // harmless double-click turns into an error the user cannot act on.
+  if (!data) {
+    const { data: still } = await supabase
+      .from("project_members")
+      .select("user_id")
+      .eq("project_id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (still) return fail("You do not have permission to change membership.");
+  }
 
   revalidatePath("/", "layout");
   return ok(undefined);
