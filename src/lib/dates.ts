@@ -111,3 +111,43 @@ export function formatElapsed(fromIso: string, nowMs: number): string {
   const minutes = Math.floor((seconds % 3600) / 60);
   return `${hours}:${pad(minutes)}:${pad(seconds % 60)}`;
 }
+
+/**
+ * Whole calendar days from one date to another. Negative for the past.
+ *
+ * Counted from the local calendar date, not from elapsed milliseconds: two
+ * dates 23 hours apart can still be "tomorrow", and a clock that goes back an
+ * hour must not turn a 7-day gap into 6.99 and round it down. Projecting the
+ * local Y/M/D onto UTC removes the offset from the arithmetic entirely, so
+ * this is exact across every daylight-saving boundary.
+ */
+export function daysBetween(from: Date, to: Date): number {
+  const asUtcDay = (d: Date) =>
+    Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((asUtcDay(to) - asUtcDay(from)) / 86_400_000);
+}
+
+/**
+ * A day gap in words: "Today", "In 12 days", "9 days ago".
+ *
+ * Singular and plural are both spelled out rather than assembled, because
+ * "1 days ago" is the kind of thing nobody notices until a customer does.
+ */
+export function describeDayGap(days: number): string {
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days === -1) return "Yesterday";
+  return days > 0 ? `In ${days} days` : `${Math.abs(days)} days ago`;
+}
+
+/** "1 week, 5 days" — the same gap broken up, for anything over a fortnight. */
+export function describeDayGapDetail(days: number): string | null {
+  const total = Math.abs(days);
+  if (total < 14) return null;
+
+  const weeks = Math.floor(total / 7);
+  const rest = total % 7;
+  const weekPart = `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+  if (rest === 0) return weekPart;
+  return `${weekPart}, ${rest} ${rest === 1 ? "day" : "days"}`;
+}

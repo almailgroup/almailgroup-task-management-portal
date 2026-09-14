@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { attachmentPath, formatBytes, linkHost } from "@/lib/attachments";
 import { fileAttachmentSchema, linkAttachmentSchema } from "@/lib/validation";

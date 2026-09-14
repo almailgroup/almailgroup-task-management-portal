@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   compactAge,
+  daysBetween,
+  describeDayGap,
+  describeDayGapDetail,
   formatElapsed,
   isoFromLocalInput,
   relativeDay,
@@ -72,5 +75,76 @@ describe("relativeDay", () => {
     expect(relativeDay(day(0))).toBe("today");
     expect(relativeDay(day(1))).toBe("tomorrow");
     expect(relativeDay(day(-1))).toBe("yesterday");
+  });
+});
+
+describe("daysBetween", () => {
+  const d = (iso: string) => new Date(iso);
+
+  it("counts calendar days, not elapsed hours", () => {
+    // 23 hours apart, but a different calendar day: that is one day.
+    expect(daysBetween(d("2026-09-15T23:30:00"), d("2026-09-16T22:30:00"))).toBe(1);
+    expect(daysBetween(d("2026-09-15T00:01:00"), d("2026-09-15T23:59:00"))).toBe(0);
+  });
+
+  it("is negative for the past and symmetric", () => {
+    const a = d("2026-09-15T12:00:00");
+    const b = d("2026-09-27T12:00:00");
+    expect(daysBetween(a, b)).toBe(12);
+    expect(daysBetween(b, a)).toBe(-12);
+  });
+
+  it("crosses month and year boundaries", () => {
+    expect(daysBetween(d("2026-12-28T12:00:00"), d("2027-01-04T12:00:00"))).toBe(7);
+    expect(daysBetween(d("2026-02-27T12:00:00"), d("2026-03-01T12:00:00"))).toBe(2);
+  });
+
+  it("counts the leap day in 2028", () => {
+    expect(daysBetween(d("2028-02-27T12:00:00"), d("2028-03-01T12:00:00"))).toBe(3);
+  });
+
+  /**
+   * The reason this is projected onto UTC rather than subtracted directly: on
+   * a spring-forward day the local day is 23 hours long, so a millisecond
+   * difference divided by 86,400,000 gives 6.958 for a week — which floors to
+   * 6 and reports the wrong number of days.
+   */
+  it("is exact across a daylight-saving change", () => {
+    const previous = process.env.TZ;
+    process.env.TZ = "Europe/London";
+    try {
+      // British Summer Time began on 29 March 2026.
+      expect(daysBetween(new Date(2026, 2, 26, 12), new Date(2026, 3, 2, 12))).toBe(7);
+      expect(daysBetween(new Date(2026, 2, 28, 12), new Date(2026, 2, 29, 12))).toBe(1);
+    } finally {
+      process.env.TZ = previous;
+    }
+  });
+});
+
+describe("describeDayGap", () => {
+  it("names the three days nobody wants counted", () => {
+    expect(describeDayGap(0)).toBe("Today");
+    expect(describeDayGap(1)).toBe("Tomorrow");
+    expect(describeDayGap(-1)).toBe("Yesterday");
+  });
+
+  it("counts forwards and backwards", () => {
+    expect(describeDayGap(12)).toBe("In 12 days");
+    expect(describeDayGap(-9)).toBe("9 days ago");
+  });
+});
+
+describe("describeDayGapDetail", () => {
+  it("stays quiet under a fortnight, where the day count is already clear", () => {
+    expect(describeDayGapDetail(13)).toBeNull();
+    expect(describeDayGapDetail(0)).toBeNull();
+  });
+
+  it("breaks a longer gap into weeks and days, singular where it should be", () => {
+    expect(describeDayGapDetail(14)).toBe("2 weeks");
+    expect(describeDayGapDetail(15)).toBe("2 weeks, 1 day");
+    expect(describeDayGapDetail(30)).toBe("4 weeks, 2 days");
+    expect(describeDayGapDetail(-21)).toBe("3 weeks");
   });
 });
