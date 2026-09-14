@@ -15,6 +15,9 @@ function Toaster(props: ToasterProps) {
       theme={(resolvedTheme as ToasterProps["theme"]) ?? "system"}
       className="toaster group"
       position="bottom-right"
+      // Clear of the navigation bar on a phone, which occupies the same
+      // corner a toast would otherwise land in.
+      mobileOffset={{ bottom: "4.75rem", left: "1rem", right: "1rem" }}
       toastOptions={{
         classNames: {
           toast:

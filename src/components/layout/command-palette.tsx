@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
+  CheckSquare,
   ClipboardList,
   CornerDownLeft,
   Hash,
@@ -21,6 +22,9 @@ import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 import { createNote } from "@/lib/data/note-actions";
+import { searchTasks, type TaskSearchHit } from "@/lib/data/task-actions";
+import { statusMeta } from "@/lib/constants";
+import { isSearchable } from "@/lib/search";
 
 import {
   Dialog,
@@ -58,6 +62,41 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const { resolvedTheme, setTheme } = useTheme();
+
+  /**
+   * Tasks matching what has been typed.
+   *
+   * The palette knew every page in the app and none of its contents, so
+   * finding a task meant remembering which project it was in. Results come
+   * from the server because no one page holds every task, and they are
+   * debounced so a fast typist sends one query rather than eight.
+   */
+  const [hits, setHits] = React.useState<TaskSearchHit[]>([]);
+  const [searching, setSearching] = React.useState(false);
+
+  React.useEffect(() => {
+    const needle = query.trim();
+    if (!isSearchable(needle)) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    let current = true;
+    const timer = setTimeout(async () => {
+      const found = await searchTasks(needle);
+      // The answer to an older keystroke must never overwrite a newer one.
+      if (!current) return;
+      setHits(found);
+      setSearching(false);
+    }, 200);
+
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   const newNote = React.useCallback(async () => {
     const outcome = await createNote();
@@ -108,10 +147,36 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
   const results = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return entries;
-    return entries.filter((entry) =>
+
+    const matches = entries.filter((entry) =>
       `${entry.label} ${entry.hint ?? ""}`.toLowerCase().includes(needle),
     );
-  }, [entries, query]);
+
+    // Tasks lead: typing words rather than a page name means looking for
+    // something in the workspace, not for a link to it.
+    const taskEntries: Entry[] = hits.map((hit) => ({
+      id: `task-${hit.id}`,
+      label: hit.title,
+      hint: [hit.projectName ?? "General", statusMeta(hit.status).label].join(" · "),
+      href: `/tasks?filter=all&task=${hit.id}`,
+      icon: CheckSquare,
+      group: "Tasks",
+    }));
+
+    // Eight is a list; more than that is a search, and the browser page can
+    // show every match with the filters beside it.
+    if (hits.length >= 8) {
+      taskEntries.push({
+        id: "search-all",
+        label: `All tasks matching “${query.trim()}”`,
+        href: `/tasks?filter=all&q=${encodeURIComponent(query.trim())}`,
+        icon: Search,
+        group: "Tasks",
+      });
+    }
+
+    return [...taskEntries, ...matches];
+  }, [entries, hits, query]);
 
   // Cmd/Ctrl+K toggles from anywhere, except while typing somewhere else.
   React.useEffect(() => {
@@ -213,7 +278,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search or run a command..."
+            placeholder="Search tasks, pages and commands..."
             className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             autoFocus
             aria-label="Search"
@@ -222,7 +287,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
 
         {results.length === 0 ? (
           <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-            Nothing matches “{query}”.
+            {searching ? "Searching…" : `Nothing matches “${query}”.`}
           </p>
         ) : (
           <ul
@@ -257,8 +322,13 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
                       )}
                     >
                       <Icon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate">
-                        {entry.label}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{entry.label}</span>
+                        {entry.group === "Tasks" && entry.hint && (
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {entry.hint}
+                          </span>
+                        )}
                       </span>
                       {index === active && (
                         <CornerDownLeft className="size-3 shrink-0 text-muted-foreground" />
@@ -302,11 +372,12 @@ export function CommandHint() {
           new KeyboardEvent("keydown", { key: "k", metaKey: true }),
         )
       }
-      className="hidden items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:flex"
+      aria-label="Search"
+      className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:min-h-10 pointer-coarse:px-3"
     >
-      <Search className="size-3.5" />
-      Search
-      <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4">
+      <Search className="size-4 sm:size-3.5" />
+      <span className="hidden sm:inline">Search</span>
+      <kbd className="hidden rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4 sm:inline">
         ⌘K
       </kbd>
     </button>

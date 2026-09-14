@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { TimeZoneCookie } from "@/components/layout/timezone-cookie";
 import {
   SIDEBAR_DEFAULT,
   SIDEBAR_MAX,
@@ -40,6 +41,8 @@ export default async function AppLayout({
           __html: `(function(){try{var w=localStorage.getItem('${SIDEBAR_STORAGE_KEY}');if(w){var n=Math.min(${SIDEBAR_MAX},Math.max(${SIDEBAR_MIN},parseInt(w,10)||${SIDEBAR_DEFAULT}));document.documentElement.style.setProperty('--sidebar-width',n+'px');}}catch(e){}})();`,
         }}
       />
+      <TimeZoneCookie />
+
       <AppShell
         profile={profile}
         projects={projects}

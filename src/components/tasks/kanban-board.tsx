@@ -28,6 +28,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { DragInstructions, TaskCard } from "@/components/tasks/task-card";
+import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { StatusMoveMenu } from "@/components/tasks/status-move-menu";
 import { moveTask } from "@/lib/data/task-actions";
 import { TASK_STATUSES } from "@/lib/constants";
@@ -244,6 +245,7 @@ export function KanbanBoard({
               count={columnTasks.length}
               canCreate={canCreate}
               onCreate={() => onCreateTask(status.value)}
+              projectId={projectId}
             >
               <SortableContext
                 items={columnTasks.map((task) => task.id)}
@@ -265,7 +267,7 @@ export function KanbanBoard({
                 ))}
               </SortableContext>
 
-              {columnTasks.length === 0 && (
+              {columnTasks.length === 0 && !canCreate && (
                 <p className="rounded-md border border-dashed border-border px-2 py-6 text-center text-xs text-muted-foreground">
                   Nothing here
                 </p>
@@ -314,13 +316,16 @@ function Column({
   count,
   canCreate,
   onCreate,
+  projectId,
   children,
 }: {
   status: TaskStatus;
   label: string;
   count: number;
   canCreate: boolean;
+  /** Opens the full dialog, for a task that needs more than a title. */
   onCreate: () => void;
+  projectId: string | null;
   children: React.ReactNode;
 }) {
   // Column-level droppable, so an empty column still accepts a card.
@@ -354,6 +359,12 @@ function Column({
       </header>
 
       <div className="flex flex-col gap-2">{children}</div>
+
+      {/* Quick capture at the foot of the column; the + in the header still
+          opens the full dialog for a task that needs more than a title. */}
+      {canCreate && (
+        <QuickAddTask projectId={projectId} status={status} className="mt-auto" />
+      )}
     </section>
   );
 }

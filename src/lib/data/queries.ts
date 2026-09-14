@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -108,6 +109,24 @@ export const getTeam = cache(async (): Promise<Profile[]> => {
 /** Shape returned by the assignee embed below. */
 type AssignmentEmbed = { user: Profile | null }[] | null;
 
+/**
+ * The one shape every task list asks for: the task, and its assignees resolved
+ * in the same round trip. Written out seven times, it was seven chances for a
+ * list to quietly come back without its avatars.
+ */
+const TASK_WITH_ASSIGNEES = "*, assignments:task_assignments(user:profiles(*))";
+
+/** The same, but `!inner` drops tasks nobody is assigned to. */
+const TASK_ASSIGNED_TO_SOMEONE =
+  "*, assignments:task_assignments!inner(user:profiles(*))";
+
+/** Rows straight from a `TASK_WITH_ASSIGNEES` select, flattened. */
+function toTasks(data: unknown): TaskWithAssignees[] {
+  return ((data ?? []) as (Task & { assignments: AssignmentEmbed })[]).map(
+    withAssignees,
+  );
+}
+
 function withAssignees<T extends Task & { assignments: AssignmentEmbed }>(
   row: T,
 ): TaskWithAssignees {
@@ -131,14 +150,12 @@ export const getProjectTasks = cache(
     const supabase = await createClient();
     const { data } = await supabase
       .from("tasks")
-      .select("*, assignments:task_assignments(user:profiles(*))")
+      .select(TASK_WITH_ASSIGNEES)
       .eq("project_id", projectId)
       .order("position", { ascending: true })
       .order("created_at", { ascending: false });
 
-    return (data ?? []).map((row) =>
-      withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
-    );
+    return toTasks(data);
   },
 );
 
@@ -147,7 +164,7 @@ export const getTask = cache(
     const supabase = await createClient();
     const { data } = await supabase
       .from("tasks")
-      .select("*, assignments:task_assignments(user:profiles(*))")
+      .select(TASK_WITH_ASSIGNEES)
       .eq("id", taskId)
       .maybeSingle();
 
@@ -190,12 +207,10 @@ export const getAllTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tasks")
-    .select("*, assignments:task_assignments(user:profiles(*))")
+    .select(TASK_WITH_ASSIGNEES)
     .order("created_at", { ascending: false });
 
-  return (data ?? []).map((row) =>
-    withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
-  );
+  return toTasks(data);
 });
 
 /** Tasks belonging to no project — the General Tasks list. */
@@ -203,14 +218,12 @@ export const getGeneralTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tasks")
-    .select("*, assignments:task_assignments(user:profiles(*))")
+    .select(TASK_WITH_ASSIGNEES)
     .is("project_id", null)
     .order("position", { ascending: true })
     .order("created_at", { ascending: false });
 
-  return (data ?? []).map((row) =>
-    withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
-  );
+  return toTasks(data);
 });
 
 export const getTaskAttachments = cache(
@@ -347,7 +360,7 @@ export const getFollowUps = cache(
     const supabase = await createClient();
     let query = supabase
       .from("tasks")
-      .select("*, assignments:task_assignments(user:profiles(*))")
+      .select(TASK_WITH_ASSIGNEES)
       .not("follow_up_at", "is", null)
       .neq("status", "done")
       .order("follow_up_at", { ascending: true });
@@ -355,9 +368,7 @@ export const getFollowUps = cache(
     if (opts.generalOnly) query = query.is("project_id", null);
 
     const { data } = await query;
-    return (data ?? []).map((row) =>
-      withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
-    );
+    return toTasks(data);
   },
 );
 
@@ -408,7 +419,14 @@ export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
  */
 export const getTaskCounts = cache(async (): Promise<Metrics> => {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("task_counts");
+
+  // "Due today" is the viewer's day, not the database's. The browser stores
+  // its IANA zone in a cookie; an unknown or missing name falls back to UTC
+  // inside the function rather than failing the whole dashboard.
+  const timeZone = (await cookies()).get("tz")?.value || "UTC";
+
+  const { data, error } = await supabase.rpc("task_counts", { tz: timeZone });
+  if (error) reportQueryError("getTaskCounts", error);
   const row = data?.[0];
 
   const total = Number(row?.total ?? 0);
@@ -462,15 +480,13 @@ export const getMyOpenTasks = cache(
 
     const { data } = await supabase
       .from("tasks")
-      .select("*, assignments:task_assignments!inner(user:profiles(*))")
+      .select(TASK_ASSIGNED_TO_SOMEONE)
       .eq("assignments.user_id", user.id)
       .neq("status", "done")
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(limit);
 
-    return (data ?? []).map((row) =>
-      withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
-    );
+    return toTasks(data);
   },
 );
 
@@ -480,14 +496,12 @@ export const getOverdueTasks = cache(
     const supabase = await createClient();
     const { data } = await supabase
       .from("tasks")
-      .select("*, assignments:task_assignments(user:profiles(*))")
+      .select(TASK_WITH_ASSIGNEES)
       .neq("status", "done")
       .lt("due_at", new Date().toISOString())
       .order("due_at", { ascending: true })
       .limit(limit);
 
-    return (data ?? []).map((row) =>
-      withAssignees(row as unknown as Task & { assignments: AssignmentEmbed }),
-    );
+    return toTasks(data);
   },
 );

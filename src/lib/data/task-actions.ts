@@ -10,6 +10,7 @@ import {
   ok,
   type ActionResult,
 } from "@/lib/action-result";
+import { isSearchable, likeFilterValue } from "@/lib/search";
 import { followUpSchema, taskSchema, taskStatusSchema } from "@/lib/validation";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 
@@ -362,4 +363,55 @@ export async function setFollowUp(
 
   revalidateTaskViews(projectId);
   return ok(undefined);
+}
+
+/**
+ * Free-text search across every task the caller can see.
+ *
+ * The palette knows the pages of the app; it did not know its contents, so
+ * looking for a task meant remembering which project it lived in. RLS decides
+ * what is searchable, so a member searches their own work and an admin
+ * searches the workspace, with no role check needed here.
+ */
+export type TaskSearchHit = {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  projectId: string | null;
+  projectName: string | null;
+};
+
+export async function searchTasks(term: string): Promise<TaskSearchHit[]> {
+  const needle = term.trim();
+  if (!isSearchable(needle)) return [];
+
+  const supabase = await createClient();
+  // Quoted: an `or` filter is comma-separated, and a search term may not be.
+  const pattern = likeFilterValue(needle);
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("id, title, status, project_id, project:projects(name)")
+    .or(`title.ilike.${pattern},description.ilike.${pattern}`)
+    .order("updated_at", { ascending: false })
+    .limit(8);
+
+  if (error) return [];
+
+  return (data ?? []).map((row) => {
+    const task = row as unknown as {
+      id: string;
+      title: string;
+      status: TaskStatus;
+      project_id: string | null;
+      project: { name: string } | null;
+    };
+    return {
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      projectId: task.project_id,
+      projectName: task.project?.name ?? null,
+    };
+  });
 }

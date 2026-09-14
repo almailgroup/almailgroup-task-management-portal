@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -331,15 +332,6 @@ export function AppShell({
       >
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="lg:hidden"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open navigation"
-            >
-              <Menu />
-            </Button>
             <CommandHint />
           </div>
 
@@ -354,10 +346,18 @@ export function AppShell({
           </div>
         </header>
 
-        <main id="content" tabIndex={-1} className="min-h-[calc(100svh-3.5rem)] focus:outline-none">
+        {/* Bottom padding clears the navigation bar on a phone, so the last
+            card in a list is not sitting underneath it. */}
+        <main
+          id="content"
+          tabIndex={-1}
+          className="min-h-[calc(100svh-3.5rem)] pb-[calc(3.5rem+env(safe-area-inset-bottom))] focus:outline-none lg:pb-0"
+        >
           {children}
         </main>
       </div>
+
+      <BottomNav onOpenMore={() => setDrawerOpen(true)} />
 
       <CommandPalette projects={projects} />
     </div>

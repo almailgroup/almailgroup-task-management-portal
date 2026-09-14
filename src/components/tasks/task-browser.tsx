@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FolderOpen, ListFilter, Search } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -41,12 +40,43 @@ export function TaskBrowser({
   profile: Profile;
 }) {
   const router = useRouter();
-  const [query, setQuery] = React.useState("");
+  const params = useSearchParams();
+  const [query, setQuery] = React.useState(params.get("q") ?? "");
   const canManage = profile.role === "admin" || profile.role === "manager";
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(
     null,
   );
   const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  /**
+   * `?task=<id>` opens that task straight away.
+   *
+   * This is what makes a task addressable: search results, and any link
+   * someone pastes to a colleague, land on the task itself rather than on the
+   * project it happens to live in.
+   */
+  // Keeps the box in step when a search arrives from the palette while this
+  // page is already open — the component is reused, not remounted.
+  const urlQuery = params.get("q") ?? "";
+  React.useEffect(() => {
+    if (urlQuery) setQuery(urlQuery);
+  }, [urlQuery]);
+
+  const requested = params.get("task");
+  const opened = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    // Once per id: closing the dialog drops the parameter and refreshes the
+    // list, and those two arrive in their own time. Without this the refresh
+    // could land while the parameter was still set and reopen what had just
+    // been dismissed.
+    if (!requested || opened.current === requested) return;
+    const match = tasks.find((task) => task.id === requested);
+    if (!match) return;
+    opened.current = requested;
+    setActiveTask(match);
+    setDialogOpen(true);
+  }, [requested, tasks]);
 
   const projectName = React.useMemo(() => {
     const map = new Map(projects.map((p) => [p.id, p.name]));
@@ -141,7 +171,15 @@ export function TaskBrowser({
           open={dialogOpen}
           onOpenChange={(open) => {
             setDialogOpen(open);
-            if (!open) router.refresh();
+            if (open) return;
+            // Drop ?task= on close, or reloading the page reopens the dialog
+            // someone has just dismissed.
+            if (requested) {
+              const next = new URLSearchParams(params.toString());
+              next.delete("task");
+              router.replace(`/tasks?${next.toString()}`, { scroll: false });
+            }
+            router.refresh();
           }}
           task={activeTask}
           projectId={activeTask.project_id}
@@ -153,4 +191,3 @@ export function TaskBrowser({
   );
 }
 
-export { Badge };

@@ -51,7 +51,9 @@ export function BulkActionBar({
     <>
       <div
         role="status"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        // Rides above the phone navigation bar rather than on top of it; on a
+        // desktop, where there is no such bar, it sits at the bottom as before.
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(3.5rem+max(1rem,env(safe-area-inset-bottom)))] lg:pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <div className="animate-rise pointer-events-auto flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-popover p-2 shadow-[var(--shadow-lg)]">
           <span className="px-2 text-sm font-medium tabular-nums">

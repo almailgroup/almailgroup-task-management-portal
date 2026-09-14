@@ -37,6 +37,7 @@ import { ProjectMembers } from "@/components/projects/project-members";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
+import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { TaskTable } from "@/components/tasks/task-table";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
 import { deleteProject } from "@/lib/data/project-actions";
@@ -310,14 +311,17 @@ export function ProjectWorkspace({
           onCreateTask={createTask}
         />
       ) : (
-        <TaskTable
-          tasks={filtered}
-          onOpenTask={openTask}
-          projectId={project.id}
-          canComplete={canComplete}
-          canDelete={canComplete}
-          canReschedule={canComplete}
-        />
+        <div className="flex flex-col gap-2">
+          {canCreate && <QuickAddTask projectId={project.id} />}
+          <TaskTable
+            tasks={filtered}
+            onOpenTask={openTask}
+            projectId={project.id}
+            canComplete={canComplete}
+            canDelete={canComplete}
+            canReschedule={canComplete}
+          />
+        </div>
       )}
 
       <TaskDialog

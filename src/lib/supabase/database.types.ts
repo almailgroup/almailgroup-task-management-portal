@@ -571,9 +571,12 @@ export type Database = {
           overdue: number;
         }[];
       };
-      /** Dashboard figures, counted in the database under the caller's RLS. */
+      /**
+       * Dashboard figures, counted in the database under the caller's RLS.
+       * `tz` is an IANA timezone so "due today" means the viewer's day.
+       */
       task_counts: {
-        Args: Record<never, never>;
+        Args: { tz?: string };
         Returns: {
           total: number;
           done: number;

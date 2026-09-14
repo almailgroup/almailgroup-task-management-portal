@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
+import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskTable } from "@/components/tasks/task-table";
 import { FollowUpList } from "@/components/tasks/follow-up-list";
@@ -241,7 +242,10 @@ export function GeneralTasks({
           onCreateTask={createTask}
         />
       ) : (
-        <TaskTable tasks={filtered} onOpenTask={openTask} />
+        <div className="flex flex-col gap-2">
+          {canManage && <QuickAddTask projectId={null} />}
+          <TaskTable tasks={filtered} onOpenTask={openTask} />
+        </div>
       )}
 
       <TaskDialog

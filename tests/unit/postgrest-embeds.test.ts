@@ -124,16 +124,30 @@ function queries(): { file: string; from: string; select: string }[] {
 
   for (const file of files) {
     const source = readFileSync(file, "utf8");
+
+    // A select can be a named constant — `.select(TASK_WITH_ASSIGNEES)` — and
+    // the check is worthless if extracting one hides it. Resolve the string
+    // constants declared in the same file.
+    const constants = new Map(
+      [...source.matchAll(/const\s+(\w+)\s*(?::\s*string\s*)?=\s*\n?\s*["']([^"']*)["']\s*;/g)].map(
+        (m) => [m[1], m[2]],
+      ),
+    );
     // Each select belongs to the nearest `.from()` above it, which is how the
     // query builder chains read — including when the chain is split across a
     // `let query = …` and a later `.select()`.
     const froms = [...source.matchAll(/\.from\(\s*["'](\w+)["']\s*\)/g)];
 
-    for (const select of source.matchAll(/\.select\(\s*["']([^"']*)["']/g)) {
+    for (const select of source.matchAll(
+      /\.select\(\s*(?:["']([^"']*)["']|(\w+))/g,
+    )) {
+      const literal = select[1] ?? constants.get(select[2] ?? "");
+      if (literal === undefined) continue;
+
       const at = select.index ?? 0;
       const owner = froms.filter((f) => (f.index ?? 0) < at).pop();
       if (!owner) continue;
-      pairs.push({ file: path.relative(ROOT, file), from: owner[1], select: select[1] });
+      pairs.push({ file: path.relative(ROOT, file), from: owner[1], select: literal });
     }
   }
 
