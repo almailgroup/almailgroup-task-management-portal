@@ -491,6 +491,19 @@ which takes days. Outside a 24-hour window since the user last messaged you,
 only approved templates are delivered; free-text messages are rejected. Set
 `TWILIO_WHATSAPP_TEMPLATE_SID` once you have one approved.
 
+## Calendar
+
+**Calendar** in the sidebar shows every task you can see on the day it is due,
+a month at a time. Placement happens in the browser, because only the browser
+knows which local day an instant falls on — a task due at 01:00 on Tuesday
+belongs on Tuesday whatever the offset. Overdue tasks are marked, done ones
+struck through, and anything with no date is counted at the top rather than
+silently left out.
+
+On a wide screen each square lists its tasks; on a phone the squares show a
+count and tapping one lists that day below the grid. The month is part of the
+address (`/calendar?month=2026-10`), so it survives a reload and can be sent.
+
 ## My List
 
 A private daily list, reached from **My List** in the sidebar. It is shaped

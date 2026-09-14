@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarDays,
   ClipboardList,
   Hash,
   LayoutDashboard,
@@ -72,6 +73,13 @@ export function SidebarNav({
             icon={<Sunrise />}
             label="Today"
             active={pathname === "/today"}
+            onNavigate={onNavigate}
+          />
+          <NavLink
+            href="/calendar"
+            icon={<CalendarDays />}
+            label="Calendar"
+            active={pathname === "/calendar"}
             onNavigate={onNavigate}
           />
           <NavLink

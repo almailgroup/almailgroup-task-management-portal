@@ -21,10 +21,16 @@ import {
   describeDayGap,
   describeDayGapDetail,
 } from "@/lib/dates";
+import {
+  WEEKDAYS,
+  dayKey,
+  isSameDay,
+  monthGrid,
+  startOfDay,
+} from "@/lib/calendar";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const timeFormat = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -53,37 +59,6 @@ const fullDateFormat = new Intl.DateTimeFormat(undefined, {
 });
 
 /** Midnight-local for a date, so days compare without time-of-day noise. */
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-/** A stable per-day key: ISO would shift with the timezone at the boundary. */
-function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
-
-function isSameDay(a: Date, b: Date) {
-  return startOfDay(a).getTime() === startOfDay(b).getTime();
-}
-
-/**
- * The six-week grid for a month, Monday-first, padded with the adjacent
- * months' days so every row is full.
- */
-function monthGrid(month: Date): Date[] {
-  const first = new Date(month.getFullYear(), month.getMonth(), 1);
-  // getDay() is Sunday-first; shift so Monday is 0.
-  const lead = (first.getDay() + 6) % 7;
-  const start = new Date(first);
-  start.setDate(first.getDate() - lead);
-
-  return Array.from({ length: 42 }, (_, index) => {
-    const day = new Date(start);
-    day.setDate(start.getDate() + index);
-    return day;
-  });
-}
-
 /**
  * Live clock pinned to the foot of the sidebar, ticking to the second.
  * Clicking it opens a calendar on the current month with today marked.

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
+  CalendarDays,
   CheckSquare,
   ClipboardList,
   CornerDownLeft,
@@ -128,6 +129,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       { id: "signout", label: "Sign out", href: "/auth/signout", icon: LogOut, group: "Actions" },
       { id: "today", label: "Today", href: "/today", icon: Sunrise, group: "Go to" },
       { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Go to" },
+      { id: "calendar", label: "Calendar", href: "/calendar", icon: CalendarDays, group: "Go to" },
       { id: "general", label: "General tasks", href: "/general", icon: ClipboardList, group: "Go to" },
       { id: "my-list", label: "My List", href: "/my-list", icon: ListChecks, group: "Go to" },
       { id: "tasks", label: "All tasks", href: "/tasks?filter=all", icon: Search, group: "Go to" },
