@@ -444,12 +444,21 @@ export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
   const supabase = await createClient();
   const user = await getAuthUser();
 
-  // RLS returns the caller's own lists and the ones shared with them, so this
-  // is both at once — which is why each note has to say whose it is.
+  /**
+   * RLS returns the caller's own lists and the ones shared with them, so this
+   * is both at once — which is why each note has to say whose it is.
+   *
+   * `owner` names its foreign key even though `personal_notes` reaches
+   * `profiles` through only one of its own columns. PostgREST also resolves
+   * many-to-many relationships through junction tables, and both
+   * `personal_note_items` and `personal_note_shares` point at a note and at a
+   * profile — which makes them junctions, and makes a bare `profiles(*)` here
+   * ambiguous four ways over.
+   */
   const withShares = await supabase
     .from("personal_notes")
     .select(
-      "*, items:personal_note_items(*), owner:profiles(*), shares:personal_note_shares(user:profiles!personal_note_shares_user_id_fkey(*))",
+      "*, items:personal_note_items(*), owner:profiles!personal_notes_user_id_fkey(*), shares:personal_note_shares(user:profiles!personal_note_shares_user_id_fkey(*))",
     )
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false });
@@ -466,7 +475,7 @@ export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
         reportQueryError("getMyNotes:shares", withShares.error);
         return supabase
           .from("personal_notes")
-          .select("*, items:personal_note_items(*), owner:profiles(*)")
+          .select("*, items:personal_note_items(*), owner:profiles!personal_notes_user_id_fkey(*)")
           .order("pinned", { ascending: false })
           .order("updated_at", { ascending: false });
       })()

@@ -25,9 +25,17 @@ const TYPES = path.join(ROOT, "src/lib/supabase/database.types.ts");
 
 type ForeignKey = { table: string; column: string; target: string };
 
-/** Every inline `references public.<table>` in the migrations. */
-function foreignKeys(): ForeignKey[] {
+/**
+ * Every inline `references public.<table>` in the migrations, and every
+ * table's primary key.
+ *
+ * The primary key matters because it is what separates a junction table from
+ * an ordinary one: PostgREST reads a table whose composite primary key is two
+ * foreign keys as a many-to-many relationship between them.
+ */
+function schema(): { keys: ForeignKey[]; primaryKeys: Map<string, string[]> } {
   const keys: ForeignKey[] = [];
+  const primaryKeys = new Map<string, string[]>();
 
   for (const file of readdirSync(MIGRATIONS).sort()) {
     if (!file.endsWith(".sql")) continue;
@@ -49,10 +57,23 @@ function foreignKeys(): ForeignKey[] {
         /^\s*(\w+)\s+\w+[^,]*?references\s+public\.(\w+)\s*\(/i,
       );
       if (column) keys.push({ table, column: column[1], target: column[2] });
+
+      // `id uuid primary key …`
+      const inlinePk = line.match(/^\s*(\w+)\s+\w+[^,]*\bprimary key\b/i);
+      if (inlinePk) primaryKeys.set(table, [inlinePk[1]]);
+
+      // `primary key (a, b)`
+      const tablePk = line.match(/^\s*primary key\s*\(([^)]+)\)/i);
+      if (tablePk) {
+        primaryKeys.set(
+          table,
+          tablePk[1].split(",").map((part) => part.trim()),
+        );
+      }
     }
   }
 
-  return keys;
+  return { keys, primaryKeys };
 }
 
 type Embed = { parent: string; target: string; hints: string[] };
@@ -155,21 +176,66 @@ function queries(): { file: string; from: string; select: string }[] {
 }
 
 describe("PostgREST embeds", () => {
-  const keys = foreignKeys();
+  const { keys, primaryKeys } = schema();
 
-  const routes = (parent: string, target: string) =>
-    keys.filter((key) => key.table === parent && key.target === target);
+  /**
+   * A junction: a table whose composite primary key is made of foreign keys.
+   * PostgREST reads one of those as a many-to-many relationship between the
+   * tables it points at, which is a second route between them.
+   */
+  const isJunction = (table: string) => {
+    const pk = primaryKeys.get(table) ?? [];
+    if (pk.length < 2) return false;
+    return pk.every((column) =>
+      keys.some((key) => key.table === table && key.column === column),
+    );
+  };
 
-  it("knows the two-way relationships that make a bare embed ambiguous", () => {
-    // If this ever reads zero the parser has stopped seeing the schema, and
+  /**
+   * Every way PostgREST can get from one table to another.
+   *
+   * Not just the foreign keys on the table itself: a third table holding a key
+   * to each of them is a junction, and PostgREST offers that as a
+   * many-to-many embed too. So a table with a single foreign key to `profiles`
+   * can still be ambiguous about it — `personal_notes` has one, and two other
+   * tables (its lines and its shares) point at both a note and a profile,
+   * which makes four routes and one refused query.
+   */
+  const routes = (parent: string, target: string): string[] => {
+    const direct = keys
+      .filter((key) => key.table === parent && key.target === target)
+      .map((key) => `${parent}.${key.column}`);
+
+    const viaJunction = keys
+      .filter((key) => key.target === parent && isJunction(key.table))
+      .flatMap((toParent) =>
+        keys
+          .filter((key) => key.table === toParent.table && key.target === target)
+          .map((toTarget) => `${toParent.table}.${toTarget.column}`),
+      );
+
+    return [...direct, ...viaJunction];
+  };
+
+  it("knows the relationships that make a bare embed ambiguous", () => {
+    // If these ever read empty the parser has stopped seeing the schema, and
     // every other assertion below would pass for the wrong reason.
-    expect(routes("project_members", "profiles").map((k) => k.column).sort()).toEqual([
-      "added_by",
-      "user_id",
+    expect(routes("project_members", "profiles").sort()).toEqual([
+      "project_members.added_by",
+      "project_members.user_id",
     ]);
-    expect(routes("notifications", "profiles").map((k) => k.column).sort()).toEqual([
-      "actor_id",
-      "user_id",
+    expect(routes("notifications", "profiles").sort()).toEqual([
+      "notifications.actor_id",
+      "notifications.user_id",
+    ]);
+
+    // One of its own, and three more through tables that point at both. This
+    // is the shape that took My List down: a single foreign key is not the
+    // same as a single route.
+    expect(routes("personal_notes", "profiles").sort()).toEqual([
+      "personal_note_shares.added_by",
+      "personal_note_shares.user_id",
+      "personal_notes.user_id",
     ]);
   });
 
@@ -186,14 +252,15 @@ describe("PostgREST embeds", () => {
         if (!hint) {
           ambiguous.push(
             `${query.file}: ${embed.parent} → ${embed.target} reaches through ` +
-              `${paths.map((p) => p.column).join(" and ")}, so the embed must say which`,
+              `${paths.join(" and ")}, so the embed must say which`,
           );
           continue;
         }
 
-        const named = paths.some(
-          (p) => hint === p.column || hint === `${p.table}_${p.column}_fkey`,
-        );
+        const named = paths.some((path) => {
+          const [table, column] = path.split(".");
+          return hint === column || hint === `${table}_${column}_fkey`;
+        });
         expect(
           named,
           `${query.file}: "${hint}" is not a foreign key from ${embed.parent} to ${embed.target}`,
@@ -227,7 +294,7 @@ describe("database.types.ts", () => {
    * foreign key is exactly how an ambiguous embed type-checks cleanly.
    */
   it("declares every foreign key the migrations create", () => {
-    const undeclared = foreignKeys()
+    const undeclared = schema().keys
       .filter((key) => described.has(key.table))
       .filter(
         (key) =>

@@ -391,7 +391,11 @@ export async function searchTasks(term: string): Promise<TaskSearchHit[]> {
 
   const { data, error } = await supabase
     .from("tasks")
-    .select("id, title, status, project_id, project:projects(name)")
+    // Named for the same reason as the owner embed in getMyNotes: `tasks`
+    // holds one key to `projects`, but `notifications` points at both, and
+    // where exactly PostgREST draws the line on what counts as a junction is
+    // not worth finding out from a search that silently returns nothing.
+    .select("id, title, status, project_id, project:projects!tasks_project_id_fkey(name)")
     .or(`title.ilike.${pattern},description.ilike.${pattern}`)
     .order("updated_at", { ascending: false })
     .limit(8);
