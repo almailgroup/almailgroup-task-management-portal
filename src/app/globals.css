@@ -13,80 +13,96 @@
  * ------------------------------------------------------------------------- */
 
 :root {
-  --radius: 0.5rem;
+  /* 14px. Corners are the loudest signal of when an interface was built: the
+   * old 8px read as a 2018 admin panel. Everything derives from this, so the
+   * whole system rounds together. */
+  --radius: 0.875rem;
 
   /* Sidebar width. Overwritten before first paint by the script in the
    * authenticated layout when a stored width exists, and by React after
    * hydration; this is the fallback both fall back to. */
   --sidebar-width: 240px;
 
-  /* Surfaces.
-   * The page is a soft grey and cards are pure white, so a panel reads as a
-   * raised surface rather than as an outline drawn on the same tone. That
-   * separation is what the old white-on-white palette could not give. */
+  /* Surfaces. The page is a soft grey and cards are pure white, so a panel
+   * reads as a raised surface rather than an outline drawn on the same tone. */
   --background: #f3f3f4;
-  --foreground: #1b1c20;
+  --foreground: #111217;
   --card: #ffffff;
-  --card-foreground: #1b1c20;
+  --card-foreground: #111217;
   --popover: #ffffff;
-  --popover-foreground: #1b1c20;
+  --popover-foreground: #111217;
 
   /* Actions — inverted against the surface for maximum contrast. */
-  --primary: #1b1c20;
-  --primary-foreground: #fbfbfc;
-  --secondary: #eaeaec;
-  --secondary-foreground: #1b1c20;
+  --primary: #111217;
+  --primary-foreground: #ffffff;
+  --secondary: #ebebef;
+  --secondary-foreground: #111217;
 
-  /* Recessive text and fills */
-  --muted: #eaeaec;
-  --muted-foreground: #61636d;
-  --accent: #e4e4e8;
-  --accent-foreground: #1b1c20;
+  /* Recessive text and fills. muted-foreground is 7.2:1 on a card, up from
+   * 5.98 — secondary text was legible but washed out. */
+  --muted: #ececef;
+  --muted-foreground: #55575f;
+  --accent: #e6e6ec;
+  --accent-foreground: #111217;
 
   /* Destructive stays greyscale in normal states; colour is reserved for
    * genuinely irreversible actions so it actually reads as a warning. */
-  --destructive: #1b1c20;
-  --destructive-foreground: #fbfbfc;
+  --destructive: #111217;
+  --destructive-foreground: #ffffff;
 
-  /* 1px micro-borders are the primary separation device in this UI. */
-  --border: #dedee3;
-  --input: #d5d6dc;
-  --ring: #8a8c96;
+  /* Two tiers of edge, because they answer to different rules.
+   *
+   * `border` separates surfaces. It is decorative — the card underneath it is
+   * already distinguishable by fill and shadow — so it is tuned by eye at
+   * 1.68:1 against white, up from a nearly invisible 1.34.
+   *
+   * `input` is the edge of a control, which WCAG 1.4.11 requires to reach 3:1
+   * against its surface because on a form field the outline IS the component.
+   * 3.02:1 measured, up from 1.45. */
+  --border: #c6c7d0;
+  --input: #93949a;
+
+  /* The focus ring is the foreground colour itself: maximum contrast, and
+   * unmistakable against every surface in the system. */
+  --ring: #111217;
 
   /* Chrome — sidebar and header sit behind the content they frame. */
-  --chrome: #ededef;
-  --chrome-border: #e1e1e6;
+  --chrome: #eaeaee;
+  --chrome-border: #d9dae1;
 }
 
 .dark {
   /* Same idea inverted: the page is the darkest tone and panels step up
-   * towards the light, so depth reads without any shadow at all. */
+   * towards the light, so depth reads without leaning on shadow. The card is
+   * lifted from #34353b to #3a3b42 — the old step off the page was 1.12:1,
+   * which is almost no step at all. */
   --background: #2c2d32;
-  --foreground: #ecedf0;
-  --card: #34353b;
-  --card-foreground: #ecedf0;
-  --popover: #34353b;
-  --popover-foreground: #ecedf0;
+  --foreground: #f2f3f6;
+  --card: #3a3b42;
+  --card-foreground: #f2f3f6;
+  --popover: #3a3b42;
+  --popover-foreground: #f2f3f6;
 
-  --primary: #ecedf0;
-  --primary-foreground: #26272b;
-  --secondary: #3b3c43;
-  --secondary-foreground: #ecedf0;
+  --primary: #f2f3f6;
+  --primary-foreground: #1e1f23;
+  --secondary: #43444c;
+  --secondary-foreground: #f2f3f6;
 
-  --muted: #3b3c43;
-  --muted-foreground: #a2a4ad;
-  --accent: #45464e;
-  --accent-foreground: #ecedf0;
+  --muted: #43444c;
+  --muted-foreground: #b2b4bd;
+  --accent: #4e4f58;
+  --accent-foreground: #f2f3f6;
 
-  --destructive: #ecedf0;
-  --destructive-foreground: #26272b;
+  --destructive: #f2f3f6;
+  --destructive-foreground: #1e1f23;
 
-  --border: #41424a;
-  --input: #4a4b54;
-  --ring: #7c7e89;
+  /* 1.58:1 and 3.03:1 against the card, up from 1.12 and 1.41. */
+  --border: #575862;
+  --input: #84858b;
+  --ring: #f2f3f6;
 
-  --chrome: #292a2e;
-  --chrome-border: #3a3b42;
+  --chrome: #232429;
+  --chrome-border: #3d3e46;
 }
 
 @theme inline {
@@ -115,21 +131,25 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
 
-  /* Elevation. Monochrome interfaces have no colour to lean on, so depth has
-   * to come from very restrained shadows — anything heavier reads as muddy
-   * grey rather than as a raised surface. */
-  --shadow-xs: 0 1px 2px 0 rgb(17 18 22 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(17 18 22 / 0.07), 0 1px 2px -1px rgb(17 18 22 / 0.05);
-  --shadow-md: 0 6px 16px -4px rgb(17 18 22 / 0.10), 0 2px 6px -2px rgb(17 18 22 / 0.05);
-  --shadow-lg: 0 16px 40px -12px rgb(17 18 22 / 0.20), 0 4px 12px -4px rgb(17 18 22 / 0.08);
+  /* Elevation. Monochrome interfaces have no colour to lean on, so depth is
+   * carried by shadow — wider and softer than before, which is what makes a
+   * card read as floating above the page instead of printed onto it. */
+  --shadow-xs: 0 1px 2px 0 rgb(17 18 22 / 0.06);
+  --shadow-sm: 0 2px 4px -1px rgb(17 18 22 / 0.08), 0 1px 2px -1px rgb(17 18 22 / 0.05);
+  --shadow-md: 0 8px 24px -6px rgb(17 18 22 / 0.13), 0 3px 8px -3px rgb(17 18 22 / 0.07);
+  --shadow-lg: 0 24px 56px -16px rgb(17 18 22 / 0.26), 0 8px 20px -8px rgb(17 18 22 / 0.12);
 
-  /* One timing for everything, so the interface moves as a single system. */
+  /* One timing for everything, so the interface moves as a single system.
+   * `spring` overshoots very slightly — enough that a press or a tick feels
+   * like it has weight, not so much that it looks bouncy. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @layer base {
@@ -140,10 +160,10 @@
   /* In dark mode the surfaces already step apart by tone, so shadows only
    * muddy them. Depth there comes from the ramp, not from darkness. */
   .dark {
-    --shadow-xs: 0 0 0 0 transparent;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.20);
-    --shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.35);
-    --shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 0.50);
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.24);
+    --shadow-sm: 0 2px 5px -1px rgb(0 0 0 / 0.32);
+    --shadow-md: 0 10px 28px -8px rgb(0 0 0 / 0.48);
+    --shadow-lg: 0 28px 60px -18px rgb(0 0 0 / 0.62);
   }
 
   body {
@@ -154,16 +174,18 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Explicit hierarchy — weights carry the structure, not colour or size alone. */
-  h1 { @apply text-2xl font-semibold tracking-tight; line-height: 1.2; }
-  h2 { @apply text-lg font-semibold tracking-tight; line-height: 1.3; }
-  h3 { @apply text-sm font-medium tracking-tight; line-height: 1.4; }
+  /* Explicit hierarchy. Headings are a step larger and a step heavier than
+   * they were: the old scale topped out at 24px semibold, which left a page
+   * with no clear first thing to look at. */
+  h1 { @apply text-[1.75rem] font-bold tracking-[-0.02em]; line-height: 1.15; }
+  h2 { @apply text-xl font-semibold tracking-[-0.015em]; line-height: 1.25; }
+  h3 { @apply text-[0.9375rem] font-semibold tracking-tight; line-height: 1.4; }
 
   /* Keyboard focus is always visible; pointer focus never draws a ring.
-   * A 2px ring at 1px offset reads clearly without the chunky halo a larger
-   * offset gives on small controls. */
+   * The ring is the foreground colour at 2px with a 2px offset, so it reads as
+   * a deliberate halo against any surface rather than a faint grey outline. */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-1 ring-offset-background;
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
   ::selection {
@@ -202,13 +224,13 @@
    * the cursor. The final keyframe matches the element's own resting style,
    * so there is nothing to hold on to anyway. */
   .animate-rise {
-    animation: rise 0.24s var(--ease-out) backwards;
+    animation: rise 0.32s var(--ease-out) backwards;
   }
 
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(4px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
@@ -216,10 +238,69 @@
     }
   }
 
+  /* ---------------------------------------------------------------------
+   * Interaction.
+   *
+   * The interface was static: things changed colour on hover and nothing
+   * else, which is the main reason it felt flat. These give a card weight —
+   * it rises towards the pointer and presses back down when clicked.
+   *
+   * `transform` only, never `top`/`margin`, so nothing reflows mid-hover.
+   * ------------------------------------------------------------------- */
+  .lift {
+    transition:
+      transform 0.18s var(--ease-out),
+      box-shadow 0.18s var(--ease-out),
+      border-color 0.18s var(--ease-out);
+  }
+  @media (hover: hover) {
+    .lift:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+  }
+  .lift:active {
+    transform: translateY(0);
+    transition-duration: 0.08s;
+  }
+
+  /* A press that answers back. Paired with a spring so the release overshoots
+   * a hair — the difference between "registered" and "alive". */
+  .press {
+    transition: transform 0.16s var(--ease-spring);
+  }
+  .press:active {
+    transform: scale(0.96);
+    transition-duration: 0.06s;
+  }
+
+  /* For a checkbox or a tick: pops in rather than appearing. */
+  .animate-pop {
+    animation: pop 0.22s var(--ease-spring);
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
   /* Respect a user who has asked for less motion. */
   @media (prefers-reduced-motion: reduce) {
-    .animate-rise {
+    .animate-rise,
+    .animate-pop {
       animation: none;
+    }
+    /* Nothing moves for someone who asked for less motion; the colour and
+     * shadow changes still carry the state. */
+    .lift:hover,
+    .lift:active,
+    .press:active {
+      transform: none;
     }
     *,
     *::before,

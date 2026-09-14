@@ -22,7 +22,7 @@ export default function ErrorBoundary({
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 text-center">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-[var(--shadow-md)]">
         <h1 className="text-base font-semibold tracking-tight">
           Something went wrong
         </h1>

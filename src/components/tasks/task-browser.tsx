@@ -85,7 +85,7 @@ export function TaskBrowser({
               href={`/tasks?filter=${entry.value}`}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
+                "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all duration-150",
                 "pointer-coarse:min-h-10 pointer-coarse:px-3",
                 active
                   ? "border-transparent bg-primary text-primary-foreground"
@@ -131,7 +131,7 @@ export function TaskBrowser({
         <ul className="flex flex-col gap-2">
           {visible.map((task) => (
             <li key={task.id}>
-              <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-xs)] transition-colors hover:border-foreground/25">
+              <div className="lift flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-sm)] hover:border-foreground/30">
                 {/* Four trailing controls against one title: on a phone they
                     left it 29px wide. The title owns the first row and they
                     wrap beneath it until there is room for one line. */}

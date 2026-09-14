@@ -101,7 +101,7 @@ function Group({
           <li
             key={task.id}
             className={cn(
-              "flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border bg-card p-4 shadow-[var(--shadow-xs)]",
+              "flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border bg-card p-4 shadow-[var(--shadow-sm)]",
               overdue ? "border-foreground/30" : "border-border",
             )}
           >

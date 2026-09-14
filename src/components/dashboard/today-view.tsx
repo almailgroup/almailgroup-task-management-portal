@@ -304,7 +304,7 @@ function Section({
           tasks.map((task) => (
             <div
               key={task.id}
-              className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border bg-card px-3.5 py-3 shadow-[var(--shadow-xs)]"
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-border bg-card px-3.5 py-3 shadow-[var(--shadow-sm)]"
             >
               {/* On a phone the badge, avatars and reschedule button between
                   them left the title about 100px and it read "Photogra…".

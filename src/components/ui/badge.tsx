@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * border rather than hue, keeping the board strictly monochrome.
  */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium leading-none whitespace-nowrap transition-colors [&_svg]:size-3 [&_svg]:pointer-events-none",
+  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium leading-none whitespace-nowrap transition-colors [&_svg]:size-3 [&_svg]:pointer-events-none",
   {
     variants: {
       variant: {

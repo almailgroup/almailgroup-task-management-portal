@@ -270,14 +270,14 @@ export function NoteEditor({
                   className={cn(
                     // A generous hit box around a small circle: the tick is
                     // the most-tapped thing on this page.
-                    "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+                    "press mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150",
                     "pointer-coarse:size-7",
                     item.done
                       ? "border-foreground bg-foreground text-background"
                       : "border-input hover:border-foreground/40",
                   )}
                 >
-                  {item.done && <Check className="size-3.5" />}
+                  {item.done && <Check className="size-3.5 animate-pop" />}
                 </button>
 
                 <input

@@ -106,7 +106,7 @@ export function SidebarClock() {
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         className={cn(
-          "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors",
+          "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors",
           "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
           "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",

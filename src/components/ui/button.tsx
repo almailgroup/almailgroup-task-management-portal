@@ -8,16 +8,16 @@ const buttonVariants = cva(
   // `pointer-coarse` raises every control to a 40px minimum on touch without
   // loosening the desktop density: a 32px icon button is comfortable with a
   // mouse and a poor target for a thumb.
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[background-color,border-color,color,opacity,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 focus-visible:outline-none pointer-coarse:min-h-10",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-[background-color,border-color,color,opacity,transform,box-shadow] duration-150 ease-[var(--ease-spring)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 focus-visible:outline-none pointer-coarse:min-h-10",
   {
     variants: {
       variant: {
         /** Inverted fill — the single strongest emphasis in the UI. */
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[var(--shadow-xs)]",
+          "bg-primary text-primary-foreground shadow-[var(--shadow-sm)] hover:bg-primary/90 hover:shadow-[var(--shadow-md)]",
         /** 1px micro-border, the workhorse for most actions. */
         outline:
-          "border border-input bg-card hover:border-foreground/25 hover:bg-accent hover:text-accent-foreground",
+          "border border-input bg-card hover:border-foreground/40 hover:bg-accent hover:text-accent-foreground hover:shadow-[var(--shadow-xs)]",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
@@ -27,11 +27,11 @@ const buttonVariants = cva(
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
       },
       size: {
-        default: "h-9 px-4 py-2 [&_svg]:size-4",
-        sm: "h-8 rounded-md px-3 text-xs [&_svg]:size-3.5",
-        lg: "h-10 rounded-md px-6 [&_svg]:size-4",
+        default: "h-10 px-4 py-2 [&_svg]:size-4",
+        sm: "h-9 rounded-lg px-3.5 text-xs [&_svg]:size-3.5",
+        lg: "h-11 rounded-xl px-6 [&_svg]:size-4",
         icon: "size-9 pointer-coarse:min-w-10 [&_svg]:size-4",
-        "icon-sm": "size-8 rounded-md pointer-coarse:min-w-10 [&_svg]:size-3.5",
+        "icon-sm": "size-9 rounded-lg pointer-coarse:min-w-10 [&_svg]:size-3.5",
       },
     },
     defaultVariants: {

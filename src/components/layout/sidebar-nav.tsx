@@ -142,7 +142,7 @@ export function SidebarNav({
             onClick={onOpenMaham}
             data-maham-launcher
             className={cn(
-              "group/maham flex items-center gap-2.5 rounded-md border border-border bg-card px-2 py-2 text-left transition-colors",
+              "group/maham lift flex items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-left shadow-[var(--shadow-xs)]",
               "hover:border-foreground/25 hover:bg-accent",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
             )}
@@ -191,15 +191,13 @@ function NavLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-        "[&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
-        // A 2px marker on the leading edge, rather than a heavier fill.
-        "before:absolute before:left-0 before:top-1/2 before:h-4 before:w-0.5",
-        "before:-translate-y-1/2 before:rounded-full before:bg-foreground",
-        "before:transition-opacity",
+        "relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-150",
+        "[&_svg]:size-4 [&_svg]:shrink-0",
         active
-          ? "bg-accent font-medium text-accent-foreground before:opacity-100 [&_svg]:text-foreground"
-          : "text-muted-foreground before:opacity-0 hover:bg-accent/60 hover:text-foreground",
+          // Inverted fill: the current page should be unmistakable at a glance,
+          // which a hairline marker on the leading edge never was.
+          ? "bg-primary font-semibold text-primary-foreground shadow-[var(--shadow-sm)] [&_svg]:text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:text-muted-foreground",
       )}
     >
       {icon}

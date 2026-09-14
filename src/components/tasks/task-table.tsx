@@ -36,7 +36,7 @@ export function TaskTable({
   return (
     <>
       {/* Desktop */}
-      <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-xs)] md:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-sm)] md:block">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/60 text-left">
@@ -93,7 +93,7 @@ export function TaskTable({
             <button
               type="button"
               onClick={() => onOpenTask(task)}
-              className="w-full rounded-lg border border-border bg-card p-4 text-left shadow-[var(--shadow-xs)] transition-colors hover:border-foreground/25"
+              className="lift w-full rounded-xl border border-border bg-card p-4 text-left shadow-[var(--shadow-sm)] hover:border-foreground/30"
             >
               <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">

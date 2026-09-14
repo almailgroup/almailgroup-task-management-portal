@@ -216,7 +216,7 @@ function Bubble({ message }: { message: MahamMessage }) {
 
       <div
         className={cn(
-          "max-w-[88%] rounded-lg px-3 py-2 text-[0.8125rem] leading-relaxed",
+          "max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[0.8125rem] leading-relaxed",
           mine
             ? "bg-primary text-primary-foreground"
             : "border border-border bg-card",
@@ -301,7 +301,7 @@ function Thinking() {
       >
         <Sparkles className="size-2.5" />
       </span>
-      <span className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2.5">
+      <span className="flex items-center gap-1 rounded-2xl border border-border bg-card px-3.5 py-3">
         {[0, 1, 2].map((dot) => (
           <span
             key={dot}

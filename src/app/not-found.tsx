@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 text-center">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-[var(--shadow-md)]">
         <p className="font-mono text-xs text-muted-foreground">404</p>
         <h1 className="mt-1 text-base font-semibold tracking-tight">
           Not found

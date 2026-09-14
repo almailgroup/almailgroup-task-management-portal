@@ -25,9 +25,9 @@ export function MetricCard({
   href?: string;
 }) {
   const className = cn(
-    "group block rounded-lg border bg-card p-5 transition-colors",
+    "group block rounded-2xl border bg-card p-5 shadow-[var(--shadow-sm)]",
     emphasis ? "border-foreground/30" : "border-border",
-    href && "hover:border-foreground/40 focus-visible:outline-none",
+    href && "lift hover:border-foreground/40 focus-visible:outline-none",
   );
 
   const body = (
@@ -41,7 +41,7 @@ export function MetricCard({
         )}
       </div>
 
-      <p className="mt-2.5 text-[1.75rem] font-semibold tabular-nums leading-none tracking-tight">
+      <p className="mt-3 text-[2rem] font-bold tabular-nums leading-none tracking-[-0.02em]">
         {value}
       </p>
 

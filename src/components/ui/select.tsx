@@ -22,11 +22,11 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-md border border-input bg-card px-3 py-1 text-sm transition-colors pointer-coarse:min-h-10",
+        "flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-card px-3.5 py-1 text-sm transition-[border-color,box-shadow] pointer-coarse:min-h-11",
         "data-[placeholder]:text-muted-foreground focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "[&>span]:line-clamp-1 [&>span]:text-left",
-        size === "sm" ? "h-8 text-xs" : "h-9",
+        size === "sm" ? "h-9 rounded-lg text-xs" : "h-10",
         className,
       )}
       {...props}
@@ -51,7 +51,7 @@ function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-[var(--shadow-md)]",
+          "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-[var(--shadow-lg)]",
           "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
@@ -101,7 +101,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none transition-colors pointer-coarse:min-h-10",
+        "relative flex w-full cursor-default select-none items-center gap-2 rounded-lg py-2 pl-2.5 pr-8 text-sm outline-none transition-colors pointer-coarse:min-h-10",
         "focus:bg-accent focus:text-accent-foreground",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         "[&_svg]:size-4 [&_svg]:shrink-0",
