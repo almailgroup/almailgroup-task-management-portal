@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { describeAuthError } from "@/lib/auth/errors";
 import {
   fail,
   fieldErrorsFrom,
@@ -106,7 +107,7 @@ export async function signUp(
   });
 
   if (error) {
-    return fail(error.message);
+    return fail(describeAuthError(error));
   }
 
   // With email confirmation enabled Supabase returns a user but no session.
@@ -194,7 +195,7 @@ export async function updatePassword(
   }
 
   const { error } = await supabase.auth.updateUser({ password: password.data });
-  if (error) return fail(error.message);
+  if (error) return fail(describeAuthError(error));
 
   revalidatePath("/", "layout");
   return ok(undefined);

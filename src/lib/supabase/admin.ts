@@ -14,11 +14,13 @@ import type { Database } from "./database.types";
  *     it into a browser bundle
  *   * this module imports "server-only", so importing it from a Client
  *     Component is a build error rather than a silent leak
- *   * it is used by exactly one caller: the reminder dispatcher, which has to
- *     read every user's queued reminders and therefore cannot run as any one
- *     of them
+ *   * it has two callers, and both need to act outside any one user's view:
+ *     the reminder dispatcher, which reads every user's queued reminders, and
+ *     adding a teammate, which creates an auth user
  *
- * Nothing that serves a user request should use this. Use `@/lib/supabase/server`.
+ * Anything else that serves a user request should use `@/lib/supabase/server`,
+ * which runs as the signed-in user and is governed by RLS. A caller here must
+ * check the caller's own role first — there is no policy left to do it.
  */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -26,7 +28,7 @@ export function createAdminClient() {
 
   if (!url || !serviceRoleKey) {
     throw new Error(
-      "Reminder delivery needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+      "This needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the server environment.",
     );
   }
 

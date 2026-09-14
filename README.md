@@ -22,7 +22,8 @@ monochrome interface.
 ## Features
 
 - **Auth** — email/password sign-in and registration, email confirmation,
-  profile management. The first account to register becomes the admin.
+  profile management. The first account to register becomes the admin, and
+  admins add everyone else from Team → Add teammate, which needs no email.
 - **Roles** — Admin, Manager, Team Member, enforced in the database.
 - **Projects** — multi-project workspace with a switcher; create, edit, delete.
 - **Tasks** — title, description, priority (Low/Medium/High/Urgent), status
@@ -130,6 +131,42 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 Visit `/register`. **The first account created becomes the admin**, so a fresh
 deployment is never locked out of project creation. Everyone after that joins as
 a Team Member; an admin can change roles on `/team`.
+
+### 4. Adding everyone else
+
+**Team → Add teammate.** An admin fills in a name, an email and a role, and the
+account exists immediately with a one-time password to hand over. Nothing is
+emailed, and the person changes the password from their profile once they are
+in. This is the intended route for a workspace: access is granted by whoever is
+responsible for it, rather than claimed.
+
+Self-registration at `/register` still works, but it depends on a confirmation
+email, and that is where a new Supabase project has a sharp edge — see below.
+
+#### "email rate limit exceeded"
+
+A Supabase project starts with a **shared, development-only mail service that
+sends a handful of messages an hour** across confirmations and password resets
+together. Onboarding a company through the sign-up form exhausts it quickly, and
+the sign-up form then reports that no account was created. It is a quota, not a
+fault, and it clears on its own within the hour.
+
+Two ways past it, and they are worth doing both:
+
+1. **Add people from Team → Add teammate**, which sends nothing at all. This
+   needs `SUPABASE_SERVICE_ROLE_KEY` in the server environment — the same key
+   the reminder dispatcher already uses.
+2. **Connect your own mail service** in Supabase → Project Settings → Auth →
+   SMTP Settings. Password resets go through the same quota, so until this is
+   set, "Forgot password" is unreliable for exactly the same reason. If you are
+   already sending reminders through Resend, the same account works as SMTP:
+   host `smtp.resend.com`, port `465`, username `resend`, password your Resend
+   API key, and a sender on a domain you have verified.
+
+If you would rather people simply registered themselves without any of this,
+turn off Authentication → Sign In / Providers → **Confirm email**. Sign-up then
+returns a session straight away and no mail is sent — at the cost of nobody
+proving they own the address they typed.
 
 ## Authorisation model
 

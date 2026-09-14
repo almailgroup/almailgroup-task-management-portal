@@ -9,6 +9,7 @@ import { initialsFrom } from "@/lib/initials";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
+import { AddMemberDialog } from "@/components/team/add-member-dialog";
 import { RoleSelect } from "@/components/team/role-select";
 import { PositionSelect } from "@/components/team/position-select";
 import { Users } from "lucide-react";
@@ -32,10 +33,11 @@ export default async function TeamPage() {
             {team.length} {team.length === 1 ? "member" : "members"} in this
             workspace.
             {isAdmin
-              ? " As an admin you can set roles and positions."
+              ? " As an admin you can add people, and set roles and positions."
               : " Only admins can change roles and positions."}
           </>
         }
+        actions={isAdmin ? <AddMemberDialog /> : undefined}
       />
 
       <Card className="divide-y divide-border">
