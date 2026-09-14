@@ -16,7 +16,10 @@ import {
 } from "@/lib/data/queries";
 import { configuredChannels } from "@/lib/reminders/providers";
 
-export const metadata: Metadata = { title: "Profile" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("shell.profile") };
+}
 
 export default async function ProfilePage() {
   const { t } = await getI18n();
@@ -34,9 +37,9 @@ export default async function ProfilePage() {
   return (
     <PageShell width="narrow">
       <PageHeader
-        title="Profile"
+        title={t("shell.profile")}
         icon={<UserCog />}
-        description="How you appear to the rest of the workspace, and where your reminders go."
+        description={t("profile.description")}
         actions={
           <>
             {profile.job_title && (
@@ -55,7 +58,7 @@ export default async function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Password</CardTitle>
+          <CardTitle>{t("auth.password")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ChangePassword />
@@ -65,7 +68,7 @@ export default async function ProfilePage() {
       {preferences && (
         <Card>
           <CardHeader>
-            <CardTitle>Task reminders</CardTitle>
+            <CardTitle>{t("profile.reminders")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ReminderSettings
@@ -80,15 +83,15 @@ export default async function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your access</CardTitle>
+          <CardTitle>{t("profile.access")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
           <p>{t(role.description)}</p>
           <p>
-            <span className="font-medium text-foreground">Position:</span>{" "}
-            {profile.job_title ?? "Not set"}
+            <span className="font-medium text-foreground">{t("position.label")}:</span>{" "}
+            {profile.job_title ?? t("profile.notSet")}
           </p>
-          <p>Roles and positions are assigned by an admin.</p>
+          <p>{t("profile.assignedByAdmin")}</p>
         </CardContent>
       </Card>
     </PageShell>

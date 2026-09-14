@@ -6,17 +6,18 @@ import { CornerDownLeft, Loader2, RotateCcw, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { Maham } from "@/components/maham/use-maham";
 import type { MahamMessage } from "@/lib/maham/types";
 
 /** Openers that match what the assistant can actually answer today. */
 const STARTERS = [
-  "What is overdue?",
-  "What is due today?",
-  "What should I work on next?",
-  "What is waiting in review?",
-  "Give me a status summary",
-];
+  "maham.starter.overdue",
+  "maham.starter.today",
+  "maham.starter.next",
+  "maham.starter.review",
+  "maham.starter.summary",
+] as const;
 
 /**
  * MAHAM AI — the assistant, living in the sidebar rail rather than in a modal
@@ -42,6 +43,7 @@ export function MahamPanel({
   onClose: () => void;
 }) {
   const { messages, draft, setDraft, pending, send, clear } = maham;
+  const { t } = useI18n();
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
@@ -77,10 +79,10 @@ export function MahamPanel({
           </span>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold leading-tight tracking-tight">
-              MAHAM AI
+              {t("nav.maham")}
             </h2>
             <p className="truncate text-[0.6875rem] leading-tight text-muted-foreground">
-              Answers from the tasks you can see
+              {t("maham.subtitle")}
             </p>
           </div>
         </div>
@@ -92,8 +94,8 @@ export function MahamPanel({
               size="icon-sm"
               onClick={clear}
               disabled={pending}
-              aria-label="Clear conversation"
-              title="Clear conversation"
+              aria-label={t("maham.clear")}
+              title={t("maham.clear")}
             >
               <RotateCcw />
             </Button>
@@ -102,8 +104,8 @@ export function MahamPanel({
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
-            aria-label="Close MAHAM AI"
-            title="Back to navigation"
+            aria-label={t("maham.close")}
+            title={t("maham.backToNav")}
           >
             <X />
           </Button>
@@ -145,17 +147,17 @@ export function MahamPanel({
                 send(draft);
               }
             }}
-            placeholder="Ask about your tasks…"
+            placeholder={t("maham.placeholder")}
             rows={1}
             maxLength={2000}
             className="max-h-28 min-h-[2.25rem] resize-none py-1.5 text-sm"
-            aria-label="Ask MAHAM AI"
+            aria-label={t("maham.ask")}
           />
           <Button
             type="submit"
             size="icon-sm"
             disabled={pending || !draft.trim()}
-            aria-label="Send"
+            aria-label={t("maham.send")}
           >
             {pending ? <Loader2 className="animate-spin" /> : <CornerDownLeft className="rtl:-scale-x-100" />}
           </Button>
@@ -172,11 +174,11 @@ function Welcome({
   onPick: (question: string) => void;
   disabled: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-3 py-1">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Ask me where the work stands. I read the same board you do, so I can
-        only tell you about tasks you already have access to.
+        {t("maham.welcome")}
       </p>
 
       <div className="flex flex-col items-start gap-1.5">
@@ -185,14 +187,14 @@ function Welcome({
             key={starter}
             type="button"
             disabled={disabled}
-            onClick={() => onPick(starter)}
+            onClick={() => onPick(t(starter))}
             className={cn(
               "max-w-full rounded-full border border-border px-3 py-1.5 text-start text-xs transition-colors",
               "text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            {starter}
+            {t(starter)}
           </button>
         ))}
       </div>
@@ -201,6 +203,7 @@ function Welcome({
 }
 
 function Bubble({ message }: { message: MahamMessage }) {
+  const { t } = useI18n();
   const mine = message.role === "user";
 
   return (
@@ -223,7 +226,7 @@ function Bubble({ message }: { message: MahamMessage }) {
         )}
       >
         <span className="sr-only">
-          {mine ? "You asked: " : "MAHAM AI answered: "}
+          {mine ? t("maham.youAsked") : t("maham.answered")}
         </span>
         <AnswerText text={message.text} />
       </div>
@@ -293,6 +296,7 @@ function AnswerText({ text }: { text: string }) {
 }
 
 function Thinking() {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2" aria-live="polite">
       <span
@@ -309,7 +313,7 @@ function Thinking() {
             style={{ animationDelay: `${dot * 160}ms` }}
           />
         ))}
-        <span className="sr-only">MAHAM AI is thinking</span>
+        <span className="sr-only">{t("maham.thinking")}</span>
       </span>
     </div>
   );

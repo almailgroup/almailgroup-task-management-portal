@@ -33,14 +33,14 @@ export async function addLinkAttachment(
   });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const { data, error } = await supabase
     .from("task_attachments")
@@ -65,18 +65,18 @@ export async function recordFileAttachment(
   input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = fileAttachmentSchema.safeParse(input);
-  if (!parsed.success) return fail("That file could not be attached.");
+  if (!parsed.success) return fail("action.fileNotAttached");
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   // The storage policy already checked the upload; this guards against a
   // recorded path that points at a different task's folder.
   if (!parsed.data.storagePath.startsWith(`${taskId}/`)) {
-    return fail("That file does not belong to this task.");
+    return fail("action.fileNotThisTask");
   }
 
   const { data, error } = await supabase
@@ -116,7 +116,7 @@ export async function deleteAttachment(
     .eq("id", attachmentId)
     .maybeSingle();
 
-  if (!row) return fail("That attachment no longer exists.");
+  if (!row) return fail("action.attachmentGone");
 
   const { data, error } = await supabase
     .from("task_attachments")
@@ -126,7 +126,7 @@ export async function deleteAttachment(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to remove that.");
+  if (!data) return fail("action.noPermissionRemove");
 
   // Best effort: the row is gone either way, and a stray object is harmless.
   if (row.storage_path) {
@@ -154,15 +154,15 @@ export async function getAttachmentUrl(
     .eq("id", attachmentId)
     .maybeSingle<Pick<TaskAttachment, "kind" | "url" | "storage_path">>();
 
-  if (!row) return fail("That attachment no longer exists.");
+  if (!row) return fail("action.attachmentGone");
   if (row.kind === "link" && row.url) return ok({ url: row.url });
-  if (!row.storage_path) return fail("That attachment has no file.");
+  if (!row.storage_path) return fail("action.attachmentNoFile");
 
   const { data, error } = await supabase.storage
     .from(ATTACHMENT_BUCKET)
     .createSignedUrl(row.storage_path, SIGNED_URL_TTL);
 
-  if (error || !data) return fail("Could not prepare that download.");
+  if (error || !data) return fail("action.downloadFailed");
 
   return ok({ url: data.signedUrl });
 }

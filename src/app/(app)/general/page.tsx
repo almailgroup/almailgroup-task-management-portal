@@ -7,8 +7,12 @@ import {
   getTeam,
   requireProfile,
 } from "@/lib/data/queries";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "General tasks" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("nav.general") };
+}
 
 export default async function GeneralTasksPage() {
   const [profile, tasks, followUps, team] = await Promise.all([

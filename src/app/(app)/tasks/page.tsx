@@ -9,14 +9,15 @@ import {
   type TaskFilter,
 } from "@/lib/task-filters";
 import { getAllTasks, getProjects, getTeam, requireProfile } from "@/lib/data/queries";
+import { getI18n } from "@/lib/i18n/server";
 
 type PageProps = { searchParams: Promise<{ filter?: string }> };
 
 export async function generateMetadata({
   searchParams,
 }: PageProps): Promise<Metadata> {
-  const { filter } = await searchParams;
-  return { title: isTaskFilter(filter) ? filterLabel(filter) : "Tasks" };
+  const [{ filter }, { t }] = await Promise.all([searchParams, getI18n()]);
+  return { title: t(isTaskFilter(filter) ? filterLabel(filter) : "nav.tasks") };
 }
 
 export default async function TasksPage({ searchParams }: PageProps) {

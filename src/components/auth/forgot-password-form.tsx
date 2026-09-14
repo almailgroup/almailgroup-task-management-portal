@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { requestPasswordReset } from "@/lib/auth/actions";
+import { Emphasised, MARK, useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
 
 export function ForgotPasswordForm() {
+  const { t } = useI18n();
   const [pending, setPending] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<{
     sentTo: string;
@@ -34,11 +36,11 @@ export function ForgotPasswordForm() {
             <MailCheck className="size-5" />
           </span>
           <div className="flex flex-col gap-1">
-            <p className="font-medium">Check your email</p>
+            <p className="font-medium">{t("auth.checkEmail")}</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              If an account exists for{" "}
-              <span className="font-medium text-foreground">{result.data.sentTo}</span>,
-              a link to set a new password is on its way. It expires in an hour.
+              <Emphasised sentence={t("auth.resetSent", { email: MARK })}>
+                {result.data.sentTo}
+              </Emphasised>
             </p>
           </div>
         </div>
@@ -46,7 +48,7 @@ export function ForgotPasswordForm() {
         <Button asChild variant="outline">
           <Link href="/login">
             <ArrowLeft className="rtl:-scale-x-100" />
-            Back to sign in
+            {t("auth.backToSignIn")}
           </Link>
         </Button>
       </div>
@@ -60,13 +62,13 @@ export function ForgotPasswordForm() {
       <FormError message={result?.ok === false ? result.error : null} />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("auth.email")}</Label>
         <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="you@almailgroup.com"
+          placeholder={t("auth.emailPlaceholder")}
           required
           autoFocus
           aria-invalid={Boolean(errors?.email)}
@@ -76,15 +78,16 @@ export function ForgotPasswordForm() {
 
       <Button type="submit" disabled={pending} className="mt-1">
         {pending && <Loader2 className="animate-spin" />}
-        {pending ? "Sending" : "Email me a link"}
+        {pending ? t("auth.sending") : t("auth.emailMeLink")}
       </Button>
 
       <Button asChild variant="ghost" size="sm">
         <Link href="/login">
           <ArrowLeft className="rtl:-scale-x-100" />
-          Back to sign in
+          {t("auth.backToSignIn")}
         </Link>
       </Button>
     </form>
   );
 }
+

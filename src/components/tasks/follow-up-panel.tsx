@@ -17,6 +17,7 @@ import {
   toLocalInput,
 } from "@/lib/dates";
 import { formatDateTime } from "@/lib/dates";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**
@@ -33,6 +34,8 @@ export function FollowUpPanel({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const i18n = useI18n();
+  const { t, tm, tag } = i18n;
   const [editing, setEditing] = React.useState(false);
   const [when, setWhen] = React.useState(toLocalInput(task.follow_up_at));
   const [note, setNote] = React.useState(task.follow_up_note ?? "");
@@ -45,14 +48,14 @@ export function FollowUpPanel({
 
   async function save() {
     if (!when) {
-      toast.error("Pick a date and time to follow up.");
+      toast.error(t("follow.pickDate"));
       return;
     }
     // Wall-clock in, absolute instant out — the server cannot do this
     // conversion, it does not know the viewer's timezone.
     const followUpAt = isoFromLocalInput(when);
     if (!followUpAt) {
-      toast.error("Pick a valid date and time to follow up.");
+      toast.error(t("follow.pickValid"));
       return;
     }
 
@@ -64,10 +67,10 @@ export function FollowUpPanel({
     setPending(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
-    toast.success("Follow-up set");
+    toast.success(t("follow.set"));
     setEditing(false);
     router.refresh();
   }
@@ -78,10 +81,10 @@ export function FollowUpPanel({
     setPending(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
-    toast.success("Follow-up cleared");
+    toast.success(t("follow.cleared"));
     setEditing(false);
     router.refresh();
   }
@@ -94,9 +97,9 @@ export function FollowUpPanel({
         {task.follow_up_at ? (
           <span className="min-w-0 flex-1">
             <span className="block text-sm">
-              Follow up {relativeDay(task.follow_up_at)}
+              {t("follow.on", { when: relativeDay(task.follow_up_at, i18n) })}
               <span className="ms-1.5 text-xs text-muted-foreground">
-                {formatDateTime(task.follow_up_at)}
+                {formatDateTime(task.follow_up_at, tag)}
               </span>
             </span>
             {task.follow_up_note && (
@@ -107,7 +110,7 @@ export function FollowUpPanel({
           </span>
         ) : (
           <span className="flex-1 text-sm text-muted-foreground">
-            No follow-up set.
+            {t("follow.none")}
           </span>
         )}
 
@@ -119,7 +122,7 @@ export function FollowUpPanel({
               size="sm"
               onClick={() => setEditing(true)}
             >
-              {task.follow_up_at ? "Change" : "Set follow-up"}
+              {task.follow_up_at ? t("follow.change") : t("follow.setButton")}
             </Button>
             {task.follow_up_at && (
               <Button
@@ -128,7 +131,7 @@ export function FollowUpPanel({
                 size="icon-sm"
                 onClick={clear}
                 disabled={pending}
-                aria-label="Clear follow-up"
+                aria-label={t("follow.clear")}
               >
                 {pending ? <Loader2 className="animate-spin" /> : <X />}
               </Button>
@@ -142,7 +145,7 @@ export function FollowUpPanel({
   return (
     <div className="flex flex-col gap-2.5 rounded-md border border-border p-3">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="followUpAt">Follow up on</Label>
+        <Label htmlFor="followUpAt">{t("follow.onLabel")}</Label>
         <Input
           id="followUpAt"
           type="datetime-local"
@@ -152,10 +155,10 @@ export function FollowUpPanel({
         />
         <div className="flex flex-wrap gap-1.5">
           {[
-            { label: "Tomorrow", value: () => atHourToday(9, 1) },
-            { label: "In 3 days", value: () => atHourToday(9, 3) },
-            { label: "Next Monday", value: () => nextMonday(9) },
-            { label: "In a week", value: () => atHourToday(9, 7) },
+            { label: t("quick.tomorrow"), value: () => atHourToday(9, 1) },
+            { label: t("quick.in3Days"), value: () => atHourToday(9, 3) },
+            { label: t("quick.nextMonday"), value: () => nextMonday(9) },
+            { label: t("quick.inAWeek"), value: () => atHourToday(9, 7) },
           ].map((option) => (
             <button
               key={option.label}
@@ -170,12 +173,12 @@ export function FollowUpPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="followUpNote">What to chase</Label>
+        <Label htmlFor="followUpNote">{t("follow.what")}</Label>
         <Input
           id="followUpNote"
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          placeholder="Call the supplier about delivery"
+          placeholder={t("follow.whatPlaceholder")}
           maxLength={500}
         />
       </div>
@@ -188,11 +191,11 @@ export function FollowUpPanel({
           onClick={() => setEditing(false)}
           disabled={pending}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="button" size="sm" onClick={save} disabled={pending}>
           {pending && <Loader2 className="animate-spin" />}
-          Save follow-up
+          {t("follow.save")}
         </Button>
       </div>
     </div>

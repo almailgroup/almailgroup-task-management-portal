@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * How sound the password is, in four honest steps.
@@ -11,7 +12,12 @@ import { cn } from "@/lib/utils";
  * as a secondary bonus. It never blocks anything; the minimum is enforced by
  * the schema on the server.
  */
-const LABELS = ["Too short", "Weak", "Good", "Strong"] as const;
+const LABELS = [
+  "auth.strength.tooShort",
+  "auth.strength.weak",
+  "auth.strength.good",
+  "auth.strength.strong",
+] as const;
 
 export function strengthOf(value: string): number {
   if (value.length < 8) return 0;
@@ -29,10 +35,11 @@ export function strengthOf(value: string): number {
 }
 
 export function PasswordMeter({ value }: { value: string }) {
+  const { t } = useI18n();
   if (!value) {
     return (
       <p className="text-xs text-muted-foreground">
-        At least 8 characters. Longer beats complicated.
+        {t("auth.passwordHint")}
       </p>
     );
   }
@@ -62,7 +69,7 @@ export function PasswordMeter({ value }: { value: string }) {
           score === 0 ? "font-medium text-warning" : "text-muted-foreground",
         )}
       >
-        {LABELS[score]}
+        {t(LABELS[score])}
       </span>
     </div>
   );

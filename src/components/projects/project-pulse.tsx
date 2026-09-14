@@ -1,4 +1,7 @@
+"use client";
+
 import { ProgressBar } from "@/components/dashboard/metric-card";
+import { useI18n } from "@/lib/i18n/client";
 import { isOverdue } from "@/lib/dates";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
@@ -10,6 +13,7 @@ import type { TaskWithAssignees } from "@/lib/supabase/database.types";
  * cards. Now it is the first thing under the title.
  */
 export function ProjectPulse({ tasks }: { tasks: TaskWithAssignees[] }) {
+  const { t } = useI18n();
   const total = tasks.length;
   if (total === 0) return null;
 
@@ -19,9 +23,9 @@ export function ProjectPulse({ tasks }: { tasks: TaskWithAssignees[] }) {
   const percent = Math.round((done / total) * 100);
 
   const parts = [
-    `${done} of ${total} done`,
-    inReview > 0 && `${inReview} awaiting review`,
-    overdue > 0 && `${overdue} overdue`,
+    t("common.doneOf", { done, total }),
+    inReview > 0 && t("pulse.awaiting", { n: inReview }),
+    overdue > 0 && t("dash.overdueCount", { n: overdue }),
   ].filter(Boolean);
 
   return (
@@ -30,7 +34,7 @@ export function ProjectPulse({ tasks }: { tasks: TaskWithAssignees[] }) {
         <span className="text-muted-foreground">{parts.join(" · ")}</span>
         <span className="font-medium tabular-nums">{percent}%</span>
       </div>
-      <ProgressBar value={percent} label={`${percent}% of this project complete`} />
+      <ProgressBar value={percent} label={t("pulse.label", { n: percent })} />
     </div>
   );
 }

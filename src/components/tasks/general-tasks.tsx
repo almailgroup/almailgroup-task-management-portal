@@ -24,6 +24,7 @@ import { csvFilename, tasksToCsv } from "@/lib/csv";
 import { downloadText } from "@/lib/download";
 import { matchesFilters } from "@/lib/task-filters";
 import { useTaskFilters } from "@/lib/use-task-filters";
+import { useI18n } from "@/lib/i18n/client";
 import type {
   Profile,
   TaskStatus,
@@ -47,6 +48,7 @@ export function GeneralTasks({
   team: Profile[];
   profile: Profile;
 }) {
+  const { t } = useI18n();
   const liveTasks = useTaskStream({ projectId: null, initial: tasks });
 
   const [view, setView] = React.useState<"board" | "list" | "followups">(
@@ -90,18 +92,14 @@ export function GeneralTasks({
   return (
     <PageShell>
       <PageHeader
-        title="General tasks"
+        title={t("nav.general")}
         icon={<ClipboardList />}
-        description={
-          canManage
-            ? "Work that belongs to no project. Assign it to anyone on the team."
-            : "Work assigned to you outside of any project."
-        }
+        description={canManage ? t("general.descManager") : t("general.descMember")}
         actions={
           canManage ? (
             <Button size="sm" onClick={() => createTask("todo")}>
               <Plus />
-              New general task
+              {t("general.new")}
             </Button>
           ) : undefined
         }
@@ -114,9 +112,9 @@ export function GeneralTasks({
         team={team}
         shown={filtered.length}
         total={liveTasks.length}
-        searchLabel="Search general tasks"
+        searchLabel={t("general.search")}
         onExport={() =>
-          downloadText(csvFilename("general tasks"), tasksToCsv(filtered))
+          downloadText(csvFilename("general tasks"), tasksToCsv(filtered, undefined, t))
         }
       >
         <Tabs
@@ -128,15 +126,15 @@ export function GeneralTasks({
           <TabsList>
             <TabsTrigger value="board">
               <Columns3 />
-              Board
+              {t("view.board")}
             </TabsTrigger>
             <TabsTrigger value="list">
               <List />
-              List
+              {t("view.list")}
             </TabsTrigger>
             <TabsTrigger value="followups">
               <PhoneCall />
-              Follow-ups
+              {t("view.followUps")}
               {followUps.length > 0 && (
                 <span className="ms-0.5 tabular-nums opacity-70">
                   {followUps.length}

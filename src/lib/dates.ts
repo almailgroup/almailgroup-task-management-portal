@@ -1,6 +1,14 @@
+import { createTranslator, type Translator } from "@/lib/i18n";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 
 /** Date helpers shared by the task views, the reschedule and follow-up controls. */
+
+/**
+ * Whoever renders one of these passes their translator; the pure callers —
+ * tests, the CSV writer — get English by leaving it out.
+ */
+export type Speaker = Pick<Translator, "t" | "tn">;
+const english: Speaker = createTranslator("en");
 
 /**
  * A task is overdue once its due instant has passed and the work is not done.
@@ -68,13 +76,13 @@ export function nextMonday(hour = 9): string {
  * 17:00 is the default hour — end of the working day, not midnight, so
  * "tomorrow" means tomorrow evening rather than the instant it begins.
  */
-export function quickDateOptions() {
+export function quickDateOptions({ t }: Speaker = english) {
   return [
-    { label: "Later today", value: () => atHourToday(17) },
-    { label: "Tomorrow", value: () => atHourToday(17, 1) },
-    { label: "In 3 days", value: () => atHourToday(17, 3) },
-    { label: "Next Monday", value: () => nextMonday(9) },
-    { label: "In a week", value: () => atHourToday(17, 7) },
+    { key: "laterToday", label: t("quick.laterToday"), value: () => atHourToday(17) },
+    { key: "tomorrow", label: t("quick.tomorrow"), value: () => atHourToday(17, 1) },
+    { key: "in3Days", label: t("quick.in3Days"), value: () => atHourToday(17, 3) },
+    { key: "nextMonday", label: t("quick.nextMonday"), value: () => nextMonday(9) },
+    { key: "inAWeek", label: t("quick.inAWeek"), value: () => atHourToday(17, 7) },
   ];
 }
 
@@ -105,7 +113,7 @@ export function toLocalInput(iso: string | null): string {
 }
 
 /** Short, human relative phrasing: "in 2 days", "3 days ago", "today". */
-export function relativeDay(iso: string): string {
+export function relativeDay(iso: string, { t, tn }: Speaker = english): string {
   const then = new Date(iso);
   const startOfDay = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -113,11 +121,11 @@ export function relativeDay(iso: string): string {
     (startOfDay(then) - startOfDay(new Date())) / 86_400_000,
   );
 
-  if (days === 0) return "today";
-  if (days === 1) return "tomorrow";
-  if (days === -1) return "yesterday";
-  if (days > 0) return `in ${days} days`;
-  return `${Math.abs(days)} days ago`;
+  if (days === 0) return t("rel.today");
+  if (days === 1) return t("rel.tomorrow");
+  if (days === -1) return t("rel.yesterday");
+  if (days > 0) return tn("rel.inDays", days);
+  return tn("rel.daysAgo", Math.abs(days));
 }
 
 /**
@@ -128,16 +136,20 @@ export function relativeDay(iso: string): string {
  * task open three days reading "72:07:04" is precise without being useful.
  * The exact figure is still a hover away.
  */
-export function compactAge(fromIso: string, nowMs: number): string {
+export function compactAge(
+  fromIso: string,
+  nowMs: number,
+  { t }: Speaker = english,
+): string {
   const seconds = Math.max(0, Math.floor((nowMs - new Date(fromIso).getTime()) / 1000));
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) return t("compact.seconds", { n: seconds });
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return t("compact.minutes", { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return t("compact.hours", { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d`;
-  return `${Math.floor(days / 7)}w`;
+  if (days < 7) return t("compact.days", { n: days });
+  return t("compact.weeks", { n: Math.floor(days / 7) });
 }
 
 /**
@@ -179,21 +191,24 @@ export function daysBetween(from: Date, to: Date): number {
  * Singular and plural are both spelled out rather than assembled, because
  * "1 days ago" is the kind of thing nobody notices until a customer does.
  */
-export function describeDayGap(days: number): string {
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  if (days === -1) return "Yesterday";
-  return days > 0 ? `In ${days} days` : `${Math.abs(days)} days ago`;
+export function describeDayGap(days: number, { t, tn }: Speaker = english): string {
+  if (days === 0) return t("gap.today");
+  if (days === 1) return t("gap.tomorrow");
+  if (days === -1) return t("gap.yesterday");
+  return days > 0 ? tn("gap.inDays", days) : tn("gap.daysAgo", Math.abs(days));
 }
 
 /** "1 week, 5 days" — the same gap broken up, for anything over a fortnight. */
-export function describeDayGapDetail(days: number): string | null {
+export function describeDayGapDetail(
+  days: number,
+  { t, tn }: Speaker = english,
+): string | null {
   const total = Math.abs(days);
   if (total < 14) return null;
 
   const weeks = Math.floor(total / 7);
   const rest = total % 7;
-  const weekPart = `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+  const weekPart = tn("gap.weeks", weeks);
   if (rest === 0) return weekPart;
-  return `${weekPart}, ${rest} ${rest === 1 ? "day" : "days"}`;
+  return `${weekPart}${t("gap.join")}${tn("gap.days", rest)}`;
 }

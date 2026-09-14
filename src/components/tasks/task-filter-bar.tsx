@@ -36,7 +36,7 @@ export function TaskFilterBar({
   shown,
   total,
   onExport,
-  searchLabel = "Search tasks",
+  searchLabel,
   children,
 }: {
   filters: TaskListFilters;
@@ -64,9 +64,9 @@ export function TaskFilterBar({
         <Input
           value={filters.query}
           onChange={(event) => onChange({ query: event.target.value })}
-          placeholder="Search tasks"
+          placeholder={t("browser.searchTasks")}
           className="h-9 ps-8"
-          aria-label={searchLabel}
+          aria-label={searchLabel ?? t("browser.searchTasks")}
         />
       </div>
 
@@ -74,11 +74,11 @@ export function TaskFilterBar({
         value={filters.status}
         onValueChange={(value) => onChange({ status: value as TaskStatus | "all" })}
       >
-        <SelectTrigger size="sm" className="w-[8.5rem]" aria-label="Status">
-          <SelectValue placeholder="Status" />
+        <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("sort.status")}>
+          <SelectValue placeholder={t("sort.status")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="all">{t("filter.allStatuses")}</SelectItem>
           {TASK_STATUSES.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {t(option.label)}
@@ -93,11 +93,11 @@ export function TaskFilterBar({
           onChange({ priority: value as TaskPriority | "all" })
         }
       >
-        <SelectTrigger size="sm" className="w-[8.5rem]" aria-label="Priority">
-          <SelectValue placeholder="Priority" />
+        <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("sort.priority")}>
+          <SelectValue placeholder={t("sort.priority")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All priorities</SelectItem>
+          <SelectItem value="all">{t("filter.allPriorities")}</SelectItem>
           {TASK_PRIORITIES.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {t(option.label)}
@@ -110,12 +110,12 @@ export function TaskFilterBar({
         value={filters.assignee}
         onValueChange={(value) => onChange({ assignee: value })}
       >
-        <SelectTrigger size="sm" className="w-[9.5rem]" aria-label="Assignee">
-          <SelectValue placeholder="Assignee" />
+        <SelectTrigger size="sm" className="w-[9.5rem]" aria-label={t("filter.assignee")}>
+          <SelectValue placeholder={t("filter.assignee")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Anyone</SelectItem>
-          <SelectItem value="unassigned">Unassigned</SelectItem>
+          <SelectItem value="all">{t("filter.anyone")}</SelectItem>
+          <SelectItem value="unassigned">{t("filter.unassigned")}</SelectItem>
           {team.map((person) => (
             <SelectItem key={person.id} value={person.id}>
               {person.full_name ?? person.email}
@@ -126,24 +126,24 @@ export function TaskFilterBar({
 
       {active && (
         <Button variant="ghost" size="sm" onClick={onClear}>
-          Clear
+          {t("common.clear")}
         </Button>
       )}
 
       <span className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
         <span className="tabular-nums">
-          {shown} of {total}
+          {t("browser.countOf", { shown, total })}
         </span>
         {onExport && shown > 0 && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onExport}
-            aria-label="Export these tasks as CSV"
-            title="Export as CSV"
+            aria-label={t("browser.exportLabel")}
+            title={t("browser.exportTitle")}
           >
             <Download />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">{t("common.export")}</span>
           </Button>
         )}
       </span>

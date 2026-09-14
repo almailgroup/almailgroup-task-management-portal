@@ -20,10 +20,13 @@ import { getI18n } from "@/lib/i18n/server";
 import { getTeam, requireProfile } from "@/lib/data/queries";
 import { hasServiceRole } from "@/lib/supabase/admin";
 
-export const metadata: Metadata = { title: "Team" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("nav.team") };
+}
 
 export default async function TeamPage() {
-  const { t } = await getI18n();
+  const { t, tn } = await getI18n();
   const [profile, team] = await Promise.all([requireProfile(), getTeam()]);
   const isAdmin = profile.role === "admin";
   // Both admin actions here need the service-role key; say so rather than
@@ -33,15 +36,12 @@ export default async function TeamPage() {
   return (
     <PageShell width="wide">
       <PageHeader
-        title="Team"
+        title={t("nav.team")}
         icon={<Users />}
         description={
           <>
-            {team.length} {team.length === 1 ? "member" : "members"} in this
-            workspace.
-            {isAdmin
-              ? " As an admin you can add people, and set roles and positions."
-              : " Only admins can change roles and positions."}
+            {t("team.membersIn", { members: tn("count.members", team.length) })}{" "}
+            {isAdmin ? t("team.adminHint") : t("team.memberHint")}
           </>
         }
         actions={isAdmin ? <AddMemberDialog configured={serviceRole} /> : undefined}
@@ -67,7 +67,7 @@ export default async function TeamPage() {
                   {member.full_name ?? member.email}
                   {member.id === profile.id && (
                     <span className="ms-1.5 text-xs font-normal text-muted-foreground">
-                      you
+                      {t("common.you")}
                     </span>
                   )}
                 </p>

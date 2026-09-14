@@ -1,6 +1,6 @@
 import { isDueToday, isOverdue } from "@/lib/dates";
-import { en } from "@/lib/i18n/en";
 import { statusMeta } from "@/lib/constants";
+import { createTranslator, type Translator } from "@/lib/i18n";
 import type { MahamAnswer, MahamSnapshot, MahamTask } from "@/lib/maham/types";
 
 /**
@@ -13,29 +13,33 @@ import type { MahamAnswer, MahamSnapshot, MahamTask } from "@/lib/maham/types";
  * that call fails, so the panel is never simply dead.
  *
  * Pure, and free of server imports, so it runs in the action, in a test, or
- * inside the Worker itself.
+ * inside the Worker itself. It answers in the asker's language: the intents
+ * are matched against words from both, and every sentence comes from the
+ * dictionary.
  */
 
-const plural = (n: number, one: string, many = `${one}s`) =>
-  `${n} ${n === 1 ? one : many}`;
+type Speaker = Pick<Translator, "t" | "tn" | "tag">;
+const english: Speaker = createTranslator("en");
 
-function dueLabel(task: MahamTask): string {
-  if (!task.dueAt) return "no due date";
+function dueLabel(task: MahamTask, { t, tag }: Speaker): string {
+  if (!task.dueAt) return t("brain.noDueDate");
   const due = new Date(task.dueAt);
-  return `due ${due.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+  return t("brain.due", {
+    date: due.toLocaleDateString(tag, { day: "numeric", month: "short" }),
+  });
 }
 
 /** "Ship the catalogue — In Progress, due 14 Sep (Gemellry)" */
-function describe(task: MahamTask): string {
-  const bits = [en[statusMeta(task.status).label], dueLabel(task)];
+function describe(task: MahamTask, i18n: Speaker): string {
+  const bits = [i18n.t(statusMeta(task.status).label), dueLabel(task, i18n)];
   if (task.project) bits.push(task.project);
   return `${task.title} — ${bits.join(", ")}`;
 }
 
-function list(tasks: MahamTask[], limit = 8): string {
-  const shown = tasks.slice(0, limit).map((task) => `• ${describe(task)}`);
+function list(tasks: MahamTask[], i18n: Speaker, limit = 8): string {
+  const shown = tasks.slice(0, limit).map((task) => `• ${describe(task, i18n)}`);
   if (tasks.length > limit) {
-    shown.push(`…and ${tasks.length - limit} more.`);
+    shown.push(i18n.t("brain.andMore", { n: tasks.length - limit }));
   }
   return shown.join("\n");
 }
@@ -49,30 +53,30 @@ const matches = (question: string, ...groups: string[][]) =>
 export function answerLocally(
   question: string,
   snapshot: MahamSnapshot,
+  i18n: Speaker = english,
 ): MahamAnswer {
+  const { t, tn } = i18n;
   const q = question.toLowerCase().trim();
   const { counts, tasks } = snapshot;
   const open = tasks.filter((task) => task.status !== "done");
 
   if (tasks.length === 0) {
-    return answer(
-      "There are no tasks I can see yet. Once work is assigned to you it will show up here and I can track it.",
-    );
+    return answer(t("brain.noTasks"));
   }
 
   // Overdue ------------------------------------------------------------
-  if (matches(q, ["overdue"], ["late"], ["past", "due"], ["behind"])) {
+  if (
+    matches(q, ["overdue"], ["late"], ["past", "due"], ["behind"], ["متأخر"], ["تأخر"], ["فات"])
+  ) {
     const overdue = tasks.filter((task) => isOverdue(task.dueAt, task.status));
     if (overdue.length === 0) {
-      return answer("Nothing is overdue. Every task with a due date is still inside it.");
+      return answer(t("brain.nothingOverdue"));
     }
-    return answer(
-      `${plural(overdue.length, "task is", "tasks are")} overdue:\n\n${list(overdue)}`,
-    );
+    return answer(`${tn("brain.overdueList", overdue.length)}\n\n${list(overdue, i18n)}`);
   }
 
   // Due today ----------------------------------------------------------
-  if (matches(q, ["due", "today"], ["today"], ["due", "now"])) {
+  if (matches(q, ["due", "today"], ["today"], ["due", "now"], ["اليوم"])) {
     const today = open.filter((task) => isDueToday(task.dueAt));
     // A task due at 09:00 this morning is both due today and overdue. It
     // belongs under today's heading, once — so the overdue section below
@@ -83,54 +87,65 @@ export function answerLocally(
     );
 
     if (today.length === 0 && earlier.length === 0) {
-      return answer("Nothing is due today, and nothing is overdue.");
+      return answer(t("brain.nothingTodayOrOverdue"));
     }
 
     const parts: string[] = [
       today.length > 0
-        ? `Due today — ${plural(today.length, "task")}:\n\n${list(today)}`
-        : "Nothing is due today.",
+        ? `${t("brain.dueTodayHeading", { tasks: tn("count.tasks", today.length) })}\n\n${list(today, i18n)}`
+        : t("brain.nothingToday"),
     ];
     if (earlier.length > 0) {
       parts.push(
-        `\nOverdue from before today — ${plural(earlier.length, "task")}:\n\n${list(earlier)}`,
+        `\n${t("brain.overdueBefore", { tasks: tn("count.tasks", earlier.length) })}\n\n${list(earlier, i18n)}`,
       );
     }
     return answer(parts.join("\n"));
   }
 
   // Review queue -------------------------------------------------------
-  if (matches(q, ["review"], ["waiting"], ["approve"], ["approval"])) {
+  if (
+    matches(q, ["review"], ["waiting"], ["approve"], ["approval"], ["مراجعة"], ["اعتماد"], ["موافقة"], ["ينتظر"])
+  ) {
     const inReview = tasks.filter((task) => task.status === "in_review");
     if (inReview.length === 0) {
-      return answer("Nothing is waiting in review right now.");
+      return answer(t("brain.nothingInReview"));
     }
-    return answer(
-      `${plural(inReview.length, "task is", "tasks are")} in review:\n\n${list(inReview)}`,
-    );
+    return answer(`${tn("brain.inReviewList", inReview.length)}\n\n${list(inReview, i18n)}`);
   }
 
   // Unassigned ---------------------------------------------------------
-  if (matches(q, ["unassigned"], ["nobody"], ["no", "one"], ["not", "assigned"])) {
+  if (
+    matches(
+      q,
+      ["unassigned"],
+      ["nobody"],
+      ["no", "one"],
+      ["not", "assigned"],
+      ["غير مسند"],
+      ["بدون مكلف"],
+      ["لا أحد"],
+    )
+  ) {
     const unassigned = open.filter((task) => task.assignees.length === 0);
     if (unassigned.length === 0) {
-      return answer("Every open task has someone on it.");
+      return answer(t("brain.everyoneAssigned"));
     }
     return answer(
-      `${plural(unassigned.length, "open task has", "open tasks have")} nobody assigned:\n\n${list(unassigned)}`,
+      `${tn("brain.unassignedList", unassigned.length)}\n\n${list(unassigned, i18n)}`,
     );
   }
 
   // Follow-ups ---------------------------------------------------------
-  if (matches(q, ["follow"], ["chase"], ["remind"])) {
+  if (matches(q, ["follow"], ["chase"], ["remind"], ["متابع"], ["تذكير"])) {
     const followUps = open
       .filter((task) => task.followUpAt !== null)
       .sort((a, b) => (a.followUpAt ?? "").localeCompare(b.followUpAt ?? ""));
     if (followUps.length === 0) {
-      return answer("No follow-ups are set. You can add one from any task.");
+      return answer(t("brain.noFollowUps"));
     }
     return answer(
-      `${plural(followUps.length, "task has", "tasks have")} a follow-up set:\n\n${list(followUps)}`,
+      `${tn("brain.followUpList", followUps.length)}\n\n${list(followUps, i18n)}`,
     );
   }
 
@@ -144,6 +159,11 @@ export function answerLocally(
       ["my", "task"],
       ["assigned", "me"],
       ["start"],
+      ["أعمل"],
+      ["أبدأ"],
+      ["أولوي"],
+      ["مهامي"],
+      ["تالي"],
     )
   ) {
     const weight = (task: MahamTask) => {
@@ -158,11 +178,9 @@ export function answerLocally(
         weight(a) - weight(b) || (a.dueAt ?? "9999").localeCompare(b.dueAt ?? "9999"),
     );
     if (ordered.length === 0) {
-      return answer("Nothing open — everything visible to you is done.");
+      return answer(t("brain.nothingOpen"));
     }
-    return answer(
-      `Here is what I would take first, overdue and due-today work ahead of the rest:\n\n${list(ordered, 6)}`,
-    );
+    return answer(`${t("brain.workNext")}\n\n${list(ordered, i18n, 6)}`);
   }
 
   // Summary / counts ---------------------------------------------------
@@ -177,43 +195,46 @@ export function answerLocally(
       ["count"],
       ["where", "we"],
       ["stand"],
+      ["كم"],
+      ["ملخص"],
+      ["حالة"],
+      ["نظرة"],
+      ["تقدم"],
+      ["عدد"],
+      ["أين", "نحن"],
     )
   ) {
     const lines = [
-      `${plural(counts.total, "task")} in view, ${counts.done} done.`,
-      `To Do ${counts.todo} · In Progress ${counts.inProgress} · In Review ${counts.inReview} · Done ${counts.done}`,
+      t("brain.summaryLine", { tasks: tn("count.tasks", counts.total), done: counts.done }),
+      [
+        `${t("status.todo")} ${counts.todo}`,
+        `${t("status.in_progress")} ${counts.inProgress}`,
+        `${t("status.in_review")} ${counts.inReview}`,
+        `${t("status.done")} ${counts.done}`,
+      ].join(" · "),
     ];
-    if (counts.overdue > 0) lines.push(`${plural(counts.overdue, "task is", "tasks are")} overdue.`);
-    if (counts.dueToday > 0) lines.push(`${plural(counts.dueToday, "task is", "tasks are")} due today.`);
-    if (counts.unassigned > 0) lines.push(`${plural(counts.unassigned, "open task has", "open tasks have")} no assignee.`);
-    if (counts.noDueDate > 0) lines.push(`${plural(counts.noDueDate, "open task has", "open tasks have")} no due date.`);
+    if (counts.overdue > 0) lines.push(tn("brain.overdueCount", counts.overdue));
+    if (counts.dueToday > 0) lines.push(tn("brain.dueTodayCount", counts.dueToday));
+    if (counts.unassigned > 0) lines.push(tn("brain.noAssigneeCount", counts.unassigned));
+    if (counts.noDueDate > 0) lines.push(tn("brain.noDueDateCount", counts.noDueDate));
     return answer(lines.join("\n"));
   }
 
   // Capabilities -------------------------------------------------------
-  if (matches(q, ["help"], ["what", "can", "you"], ["who", "are", "you"])) {
+  if (
+    matches(q, ["help"], ["what", "can", "you"], ["who", "are", "you"], ["مساعدة"], ["ماذا", "تستطيع"], ["من", "أنت"])
+  ) {
     return answer(
-      [
-        "I am MAHAM, the assistant for this portal. I can see exactly the tasks you can see — no more.",
-        "",
-        "Ask me things like:",
-        "• What is overdue?",
-        "• What is due today?",
-        "• What should I work on next?",
-        "• What is waiting in review?",
-        "• Give me a status summary",
-        "",
-        "Anything more open-ended needs my language model, which is not connected yet.",
-      ].join("\n"),
+      t("brain.help", {
+        q1: t("maham.starter.overdue"),
+        q2: t("maham.starter.today"),
+        q3: t("maham.starter.next"),
+        q4: t("maham.starter.review"),
+        q5: t("maham.starter.summary"),
+      }),
     );
   }
 
   // Fallback -----------------------------------------------------------
-  return answer(
-    [
-      "I cannot answer that one yet — my language model is not connected, so for now I only handle the tracking questions I can count from the board.",
-      "",
-      "Try: what is overdue, what is due today, what should I work on next, what is in review, or a status summary.",
-    ].join("\n"),
-  );
+  return answer(t("brain.fallback"));
 }

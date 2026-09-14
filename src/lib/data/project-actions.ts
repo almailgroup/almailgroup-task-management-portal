@@ -39,11 +39,11 @@ export async function createProject(
   });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const { supabase, userId } = await requireUserId();
-  if (!userId) return fail("Your session expired. Please sign in again.");
+  if (!userId) return fail("action.sessionExpired");
 
   const { data, error } = await supabase
     .from("projects")
@@ -72,7 +72,7 @@ export async function updateProject(
   });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
@@ -88,7 +88,7 @@ export async function updateProject(
 
   if (error) return fail(describeDatabaseError(error));
   // No row came back: RLS filtered the update out rather than erroring.
-  if (!data) return fail("You do not have permission to edit this project.");
+  if (!data) return fail("action.noPermissionEditProject");
 
   revalidatePath("/", "layout");
   return ok({ id: data.id });
@@ -107,7 +107,7 @@ export async function deleteProject(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to delete this project.");
+  if (!data) return fail("action.noPermissionDeleteProject");
 
   revalidatePath("/", "layout");
   return ok({ id: data.id });
@@ -129,7 +129,7 @@ export async function addProjectMember(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const { error } = await supabase
     .from("project_members")
@@ -172,7 +172,7 @@ export async function removeProjectMember(
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (still) return fail("You do not have permission to change membership.");
+    if (still) return fail("action.noPermissionMembership");
   }
 
   revalidatePath("/", "layout");

@@ -16,6 +16,8 @@ import { MentionTextarea } from "@/components/tasks/mention-textarea";
 import { deleteComment, postComment } from "@/lib/data/comment-actions";
 import { MentionText } from "@/lib/mentions";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/client";
+import type { Translator } from "@/lib/i18n";
 import type {
   CommentWithAuthor,
   Profile,
@@ -38,6 +40,7 @@ export function CommentThread({
   currentProfile: Profile;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
+  const { t, tm, tag } = useI18n();
 
   // Comments are append-only for members: deleting one — their own included —
   // is a manager action, so the control is not offered.
@@ -70,7 +73,7 @@ export function CommentThread({
 
       if (!active) return;
       if (error) {
-        toast.error("Could not load comments.");
+        toast.error(t("comment.loadFailed"));
         setComments([]);
         return;
       }
@@ -126,7 +129,7 @@ export function CommentThread({
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [supabase, taskId, teamById]);
+  }, [supabase, taskId, teamById, t]);
 
   // Keep the newest comment in view as the thread grows.
   React.useEffect(() => {
@@ -144,7 +147,7 @@ export function CommentThread({
     setSending(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
@@ -155,7 +158,7 @@ export function CommentThread({
   async function remove(commentId: string) {
     const outcome = await deleteComment(commentId);
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     setComments((current) =>
@@ -173,7 +176,7 @@ export function CommentThread({
           </div>
         ) : comments.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No comments yet. Start the discussion.
+            {t("comment.empty")}
           </p>
         ) : (
           comments.map((comment) => {
@@ -193,9 +196,9 @@ export function CommentThread({
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">
-                      {author?.full_name ?? author?.email ?? "Unknown user"}
+                      {author?.full_name ?? author?.email ?? t("comment.unknownUser")}
                     </span>
-                    <span>{formatTime(comment.created_at)}</span>
+                    <span>{formatTime(comment.created_at, t, tag)}</span>
                   </p>
                   <div className="mt-0.5 text-sm leading-relaxed">
                     <MentionText content={comment.content} team={team} />
@@ -207,7 +210,7 @@ export function CommentThread({
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => remove(comment.id)}
-                    aria-label="Delete comment"
+                    aria-label={t("comment.delete")}
                   >
                     <Trash2 />
                   </Button>
@@ -227,16 +230,16 @@ export function CommentThread({
           onSubmit={send}
           rows={2}
           maxLength={5000}
-          placeholder="Write a comment. Use @ to mention someone."
-          aria-label="New comment"
+          placeholder={t("comment.placeholder")}
+          aria-label={t("comment.new")}
         />
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            @ to mention · Ctrl+Enter to send
+            {t("comment.hint")}
           </p>
           <Button size="sm" onClick={send} disabled={sending || !draft.trim()}>
             {sending ? <Loader2 className="animate-spin" /> : <Send />}
-            Comment
+            {t("comment.send")}
           </Button>
         </div>
       </div>
@@ -244,13 +247,13 @@ export function CommentThread({
   );
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, t: Translator["t"], tag: Translator["tag"]): string {
   const then = new Date(iso);
   const minutes = Math.round((Date.now() - then.getTime()) / 60000);
 
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (minutes < 60 * 24) return `${Math.round(minutes / 60)}h ago`;
+  if (minutes < 1) return t("common.justNow");
+  if (minutes < 60) return t("common.minutesAgo", { n: minutes });
+  if (minutes < 60 * 24) return t("common.hoursAgo", { n: Math.round(minutes / 60) });
 
-  return then.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return then.toLocaleDateString(tag, { day: "numeric", month: "short" });
 }

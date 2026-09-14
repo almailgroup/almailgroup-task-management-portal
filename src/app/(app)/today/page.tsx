@@ -8,8 +8,12 @@ import {
   getTeam,
   requireProfile,
 } from "@/lib/data/queries";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Today" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("nav.today") };
+}
 
 export default async function TodayPage() {
   const [profile, tasks, followUps, projects, team] = await Promise.all([

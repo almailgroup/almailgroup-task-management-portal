@@ -68,7 +68,7 @@ export function KanbanBoard({
   onCreateTask: (status: TaskStatus) => void;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, tm } = useI18n();
   const [items, setItems] = React.useState(tasks);
   const [activeId, setActiveId] = React.useState<string | null>(null);
 
@@ -114,9 +114,7 @@ export function KanbanBoard({
 
     if (!canComplete && (targetStatus === "done" || task.status === "done")) {
       toast.error(
-        targetStatus === "done"
-          ? "Only a manager or admin can mark a task done. Move it to In Review instead."
-          : "Only a manager or admin can reopen a completed task.",
+        targetStatus === "done" ? t("kanban.doneGate") : t("kanban.reopenGate"),
       );
       return;
     }
@@ -138,7 +136,7 @@ export function KanbanBoard({
     const outcome = await moveTask(task.id, projectId, targetStatus, position);
     if (!outcome.ok) {
       setItems(previous);
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     router.refresh();
@@ -171,13 +169,11 @@ export function KanbanBoard({
     // visibly jumping into Done and then snapping back.
     if (!canComplete && targetStatus !== task.status) {
       if (targetStatus === "done") {
-        toast.error(
-          "Only a manager or admin can mark a task done. Move it to In Review instead.",
-        );
+        toast.error(t("kanban.doneGate"));
         return;
       }
       if (task.status === "done") {
-        toast.error("Only a manager or admin can reopen a completed task.");
+        toast.error(t("kanban.reopenGate"));
         return;
       }
     }
@@ -212,7 +208,7 @@ export function KanbanBoard({
 
     if (!outcome.ok) {
       setItems(previous);
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
@@ -228,8 +224,7 @@ export function KanbanBoard({
       onDragCancel={() => setActiveId(null)}
       accessibility={{
         screenReaderInstructions: {
-          draggable:
-            "Press space or enter to pick up this task, arrow keys to move it, space or enter to drop.",
+          draggable: t("kanban.srDraggable"),
         },
       }}
     >
@@ -271,7 +266,7 @@ export function KanbanBoard({
 
               {columnTasks.length === 0 && !canCreate && (
                 <p className="rounded-md border border-dashed border-border px-2 py-6 text-center text-xs text-muted-foreground">
-                  Nothing here
+                  {t("kanban.nothingHere")}
                 </p>
               )}
             </Column>
@@ -330,6 +325,7 @@ function Column({
   projectId: string | null;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   // Column-level droppable, so an empty column still accepts a card.
   const { setNodeRef, isOver } = useDroppable({ id: `column:${status}` });
 
@@ -353,7 +349,7 @@ function Column({
             variant="ghost"
             size="icon-sm"
             onClick={onCreate}
-            aria-label={`Add task to ${label}`}
+            aria-label={t("kanban.addTo", { column: label })}
           >
             <Plus />
           </Button>

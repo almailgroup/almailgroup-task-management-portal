@@ -15,6 +15,7 @@ import { csvFilename, tasksToCsv } from "@/lib/csv";
 import { downloadText } from "@/lib/download";
 import { TASK_FILTERS, filterLabel, type TaskFilter } from "@/lib/task-filters";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type {
   Profile,
   Project,
@@ -43,6 +44,7 @@ export function TaskBrowser({
   profile: Profile;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useSearchParams();
   const [query, setQuery] = React.useState(params.get("q") ?? "");
   const canManage = profile.role === "admin" || profile.role === "manager";
@@ -83,8 +85,9 @@ export function TaskBrowser({
 
   const projectName = React.useMemo(() => {
     const map = new Map(projects.map((p) => [p.id, p.name]));
-    return (id: string | null) => (id ? (map.get(id) ?? "Project") : "General");
-  }, [projects]);
+    return (id: string | null) =>
+      id ? (map.get(id) ?? t("common.project")) : t("common.general");
+  }, [projects, t]);
 
   const visible = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -97,13 +100,13 @@ export function TaskBrowser({
   return (
     <PageShell>
       <PageHeader
-        title="Tasks"
+        title={t("nav.tasks")}
         icon={<ListFilter />}
-        description="Everything you can see, across every project and the general list."
+        description={t("browser.description")}
       />
 
       {/* Filter chips double as the legend for the dashboard cards. */}
-      <nav className="flex flex-wrap gap-1.5" aria-label="Task filters">
+      <nav className="flex flex-wrap gap-1.5" aria-label={t("browser.filters")}>
         {TASK_FILTERS.map((entry) => {
           const active = entry.value === filter;
           return (
@@ -119,7 +122,7 @@ export function TaskBrowser({
                   : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              {entry.label}
+              {t(entry.label)}
               <span
                 className={cn(
                   "tabular-nums",
@@ -139,14 +142,14 @@ export function TaskBrowser({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search these tasks"
+            placeholder={t("browser.searchThese")}
             className="h-9 ps-8"
-            aria-label="Search tasks"
+            aria-label={t("browser.searchTasks")}
           />
         </div>
         <span className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
           <span className="tabular-nums">
-            {visible.length} of {tasks.length}
+            {t("browser.countOf", { shown: visible.length, total: tasks.length })}
           </span>
           {visible.length > 0 && (
             <Button
@@ -154,15 +157,15 @@ export function TaskBrowser({
               size="sm"
               onClick={() =>
                 downloadText(
-                  csvFilename(`${filterLabel(filter)} tasks`),
-                  tasksToCsv(visible, projectName),
+                  csvFilename(`${t(filterLabel(filter))} ${t("nav.tasks")}`),
+                  tasksToCsv(visible, projectName, t),
                 )
               }
-              aria-label="Export these tasks as CSV"
-              title="Export as CSV"
+              aria-label={t("browser.exportLabel")}
+              title={t("browser.exportTitle")}
             >
               <Download />
-              <span className="hidden sm:inline">Export</span>
+              <span className="hidden sm:inline">{t("common.export")}</span>
             </Button>
           )}
         </span>
@@ -183,11 +186,11 @@ export function TaskBrowser({
         emptyState={
           <EmptyState
             icon={<FolderOpen />}
-            title={query.trim() ? "No matches" : "Nothing in this view"}
+            title={query.trim() ? t("browser.noMatches") : t("browser.nothingInView")}
             description={
               query.trim()
-                ? `Nothing matches “${query.trim()}”. Try a different search, or pick another filter above.`
-                : "Pick another filter above to see tasks in a different state."
+                ? t("browser.noMatchesBody", { query: query.trim() })
+                : t("browser.pickFilter")
             }
           />
         }

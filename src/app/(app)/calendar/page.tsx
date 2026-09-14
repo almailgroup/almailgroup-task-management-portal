@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 
 import { CalendarView } from "@/components/tasks/calendar-view";
 import { getAllTasks, getProjects, getTeam, requireProfile } from "@/lib/data/queries";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Calendar" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("nav.calendar") };
+}
 
 /**
  * Every task the viewer can see, on the day it is due. Placement happens in

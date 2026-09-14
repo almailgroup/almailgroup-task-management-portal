@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { OneTimePassword } from "@/components/team/one-time-password";
 import { resetMemberPassword } from "@/lib/data/team-actions";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * Per-member admin actions. Currently one: issue a new password.
@@ -46,6 +47,7 @@ export function MemberActions({
   configured: boolean;
 }) {
   const router = useRouter();
+  const { t, tm } = useI18n();
   const [confirming, setConfirming] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [issued, setIssued] = React.useState<{
@@ -60,7 +62,7 @@ export function MemberActions({
     setConfirming(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
@@ -75,7 +77,7 @@ export function MemberActions({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={`Actions for ${name}`}
+            aria-label={t("team.actionsFor", { name })}
             disabled={pending}
           >
             {pending ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
@@ -90,7 +92,7 @@ export function MemberActions({
             }}
           >
             <KeyRound />
-            Reset password
+            {t("team.resetPassword")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -98,15 +100,9 @@ export function MemberActions({
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
-        title="Reset this password?"
-        description={
-          <>
-            {name}&rsquo;s current password stops working immediately, and you
-            get a one-time password to pass on. They choose their own the next
-            time they sign in.
-          </>
-        }
-        confirmLabel="Reset password"
+        title={t("team.resetTitle")}
+        description={t("team.resetBody", { name })}
+        confirmLabel={t("team.resetPassword")}
         onConfirm={reset}
       />
 
@@ -118,10 +114,8 @@ export function MemberActions({
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>New password for {name}</DialogTitle>
-            <DialogDescription>
-              Nothing was emailed. Pass this on however you normally would.
-            </DialogDescription>
+            <DialogTitle>{t("team.newPasswordFor", { name })}</DialogTitle>
+            <DialogDescription>{t("team.nothingEmailed")}</DialogDescription>
           </DialogHeader>
 
           {issued && (
@@ -130,7 +124,7 @@ export function MemberActions({
 
           <div className="flex justify-end">
             <Button size="sm" onClick={() => setIssued(null)}>
-              Done
+              {t("common.done")}
             </Button>
           </div>
         </DialogContent>

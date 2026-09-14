@@ -5,6 +5,10 @@
  * "email rate limit exceeded" — and were being shown to the person signing up
  * word for word. Each one below says what happened, whether anything was
  * saved, and what to do next.
+ *
+ * Every recognised failure is returned as a dictionary key, so the form can
+ * show it in the reader's language; a fragment nobody anticipated is tidied
+ * into a sentence and shown as it is.
  */
 
 type AuthErrorLike = { message?: string; status?: number; code?: string };
@@ -38,17 +42,12 @@ export function describeAuthError(error: AuthErrorLike): string {
     message.includes("rate limit") ||
     (error.status === 429 && message.includes("email"))
   ) {
-    return (
-      "The workspace has sent as many confirmation emails as it is allowed " +
-      "this hour, so the account was not created. Either wait an hour and try " +
-      "again, or ask an admin to add the account from the Team page — that " +
-      "way needs no email at all."
-    );
+    return "auth.emailCap";
   }
 
   // A blanket 429 that is not about email: repeated attempts from one address.
   if (error.status === 429 || code === "over_request_rate_limit") {
-    return "Too many attempts in a short time. Wait a minute and try again.";
+    return "auth.tooManyAttempts";
   }
 
   if (
@@ -56,45 +55,47 @@ export function describeAuthError(error: AuthErrorLike): string {
     message.includes("already registered") ||
     message.includes("already been registered")
   ) {
-    return "An account already exists for that email address. Sign in instead, or reset the password.";
+    return "auth.accountExists";
   }
 
   if (code === "signup_disabled" || message.includes("signups not allowed")) {
-    return "New sign-ups are turned off for this workspace. Ask an admin to add your account from the Team page.";
+    return "auth.signupsOff";
   }
 
   if (message.includes("for security purposes")) {
-    return "That was a moment ago — wait a few seconds and try again.";
+    return "auth.momentAgo";
   }
 
   if (code === "weak_password" || message.includes("password should be")) {
-    return "That password is too weak. Use at least 8 characters, mixing letters, numbers and symbols.";
+    return "auth.weakPassword";
   }
 
   if (message.includes("unable to validate email") || code === "validation_failed") {
-    return "That email address does not look right. Check it and try again.";
+    return "auth.emailLooksWrong";
   }
 
   if (message.includes("email not confirmed")) {
-    return "This account still needs confirming. Open the link in the confirmation email, or ask an admin to confirm it for you.";
+    return "auth.needsConfirming";
   }
 
   if (error.status === 0 || message.includes("fetch failed") || message.includes("network")) {
-    return "Could not reach the server. Check your connection and try again.";
+    return "auth.noNetwork";
   }
 
   /**
    * The sign-in service itself failed — a 500 from the auth server, or a 502
    * or 504 from in front of it. Nothing the person typed is wrong, and telling
-   * them otherwise sends them round retyping a password that was right.
+   * them otherwise sends them round retyping a password that was right. The
+   * status code goes to the server log, where whoever is on call can see it.
    */
   if (typeof error.status === "number" && error.status >= 500) {
-    return `The sign-in service is not responding right now (error ${error.status}). Nothing is wrong with your details — wait a moment and try again.`;
+    console.error(`[auth] the auth service answered ${error.status}`);
+    return "auth.serviceDown";
   }
 
   // Anything unrecognised: show it, but as a sentence rather than a fragment.
   const raw = (error.message ?? "").trim();
-  if (!raw) return "Something went wrong. Please try again.";
+  if (!raw) return "common.somethingWrong";
   const sentence = raw.charAt(0).toUpperCase() + raw.slice(1);
   return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
 }

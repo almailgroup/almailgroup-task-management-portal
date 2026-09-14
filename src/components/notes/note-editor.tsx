@@ -30,6 +30,7 @@ import {
 import { ShareNoteDialog } from "@/components/notes/share-note-dialog";
 import { useNoteStream } from "@/lib/realtime/use-note-stream";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type {
   NoteWithItems,
   PersonalNoteItem,
@@ -67,6 +68,7 @@ export function NoteEditor({
   /** After leaving a list shared with you, it is no longer on your page. */
   onLeft: () => void;
 }) {
+  const { t, tm } = useI18n();
   const [title, setTitle] = React.useState(note.title);
   const [body, setBody] = React.useState(note.body);
   const [status, setStatus] = React.useState<"idle" | "saving" | "saved">("idle");
@@ -105,7 +107,7 @@ export function NoteEditor({
       const outcome = await saveNote(note.id, { title, body });
       if (!outcome.ok) {
         setStatus("idle");
-        toast.error(outcome.error);
+        toast.error(tm(outcome.error));
         return;
       }
       onPatch({ title, body, updated_at: outcome.data.updatedAt });
@@ -203,7 +205,7 @@ export function NoteEditor({
     const outcome = await updateNoteItem(item.id, { done });
     if (!outcome.ok) {
       patchItems(items);
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
     }
   }
 
@@ -216,7 +218,7 @@ export function NoteEditor({
   async function commitItem(item: PersonalNoteItem, content: string) {
     if (content === item.content) return;
     const outcome = await updateNoteItem(item.id, { content });
-    if (!outcome.ok) toast.error(outcome.error);
+    if (!outcome.ok) toast.error(tm(outcome.error));
   }
 
   async function addItem() {
@@ -226,7 +228,7 @@ export function NoteEditor({
     setAdding(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     focusNext.current = outcome.data.id;
@@ -245,7 +247,7 @@ export function NoteEditor({
     const outcome = await deleteNoteItem(item.id);
     if (!outcome.ok) {
       patchItems(previous);
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
     }
   }
 
@@ -256,7 +258,7 @@ export function NoteEditor({
     const outcome = await clearDoneItems(note.id);
     if (!outcome.ok) {
       patchItems(previous);
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
     }
   }
 
@@ -270,19 +272,19 @@ export function NoteEditor({
           size="sm"
           onClick={onBack}
           className="lg:hidden"
-          aria-label="Back to your notes"
+          aria-label={t("notes.back")}
         >
           <ChevronLeft className="rtl:-scale-x-100" />
-          Notes
+          {t("notes.notes")}
         </Button>
 
         <span className="min-w-0 flex-1 truncate px-2 text-xs text-muted-foreground">
           {status === "saving"
-            ? "Saving…"
+            ? t("notes.saving")
             : status === "saved"
-              ? "Saved"
+              ? t("notes.saved")
               : items.length > 0
-                ? `${doneCount} of ${items.length} done`
+                ? t("common.doneOf", { done: doneCount, total: items.length })
                 : ""}
         </span>
 
@@ -297,15 +299,15 @@ export function NoteEditor({
           variant="ghost"
           size="icon-sm"
           onClick={onTogglePin}
-          aria-label={note.pinned ? "Unpin this note" : "Pin this note"}
-          title={note.pinned ? "Unpin" : "Pin to the top"}
+          aria-label={note.pinned ? t("notes.unpin") : t("notes.pin")}
+          title={note.pinned ? t("notes.unpinShort") : t("notes.pinShort")}
         >
           {note.pinned ? <PinOff /> : <Pin />}
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Note actions">
+            <Button variant="ghost" size="icon-sm" aria-label={t("notes.actions")}>
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
@@ -315,14 +317,14 @@ export function NoteEditor({
               disabled={doneCount === 0}
             >
               <Check />
-              Clear ticked lines
+              {t("notes.clearTicked")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {/* Deleting somebody else's list is not collaboration — the
                 database refuses it too. Leaving is in the share dialog. */}
             <DropdownMenuItem onSelect={onRequestDelete} disabled={!note.mine}>
               <Trash2 />
-              {note.mine ? "Delete note" : "Only the owner can delete"}
+              {note.mine ? t("notes.delete") : t("notes.onlyOwnerDeletes")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -333,9 +335,9 @@ export function NoteEditor({
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Title"
+            placeholder={t("notes.titlePlaceholder")}
             maxLength={200}
-            aria-label="Note title"
+            aria-label={t("notes.titleLabel")}
             className={cn(
               "w-full bg-transparent text-xl font-semibold tracking-tight outline-none",
               "placeholder:font-normal placeholder:text-muted-foreground",
@@ -351,8 +353,8 @@ export function NoteEditor({
                   aria-pressed={item.done}
                   aria-label={
                     item.done
-                      ? `Mark “${item.content || "this line"}” as not done`
-                      : `Mark “${item.content || "this line"}” as done`
+                      ? t("notes.markNotDone", { line: item.content || t("notes.thisLine") })
+                      : t("notes.markDone", { line: item.content || t("notes.thisLine") })
                   }
                   className={cn(
                     // A generous hit box around a small circle: the tick is
@@ -393,7 +395,7 @@ export function NoteEditor({
                       void removeItem(item);
                     }
                   }}
-                  placeholder="Something to do"
+                  placeholder={t("notes.linePlaceholder")}
                   maxLength={1000}
                   className={cn(
                     "min-h-7 w-full bg-transparent py-0.5 text-[0.9375rem] leading-relaxed outline-none",
@@ -405,7 +407,7 @@ export function NoteEditor({
                 <button
                   type="button"
                   onClick={() => removeItem(item)}
-                  aria-label={`Remove “${item.content || "this line"}”`}
+                  aria-label={t("notes.removeLine", { line: item.content || t("notes.thisLine") })}
                   className={cn(
                     "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors",
                     "hover:bg-accent hover:text-foreground",
@@ -433,15 +435,15 @@ export function NoteEditor({
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-input pointer-coarse:size-7">
               <Plus className="size-3.5" />
             </span>
-            Add a to-do
+            {t("notes.addTodo")}
           </button>
 
           <textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder="Anything else worth remembering…"
+            placeholder={t("notes.bodyPlaceholder")}
             maxLength={20000}
-            aria-label="Note text"
+            aria-label={t("notes.bodyLabel")}
             rows={6}
             className={cn(
               "min-h-40 w-full resize-none bg-transparent text-[0.9375rem] leading-relaxed outline-none",

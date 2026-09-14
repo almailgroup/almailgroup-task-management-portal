@@ -48,7 +48,7 @@ export function TaskDetailReadonly({
   onSaved?: () => void;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, tm } = useI18n();
   const [status, setStatus] = React.useState<TaskStatus>(task.status);
   const [saving, setSaving] = React.useState(false);
 
@@ -64,11 +64,11 @@ export function TaskDetailReadonly({
 
     if (!outcome.ok) {
       setStatus(previous); // Fall back to the server's truth.
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
-    toast.success("Status updated");
+    toast.success(t("readonly.statusUpdated"));
     onSaved?.();
     router.refresh();
   }
@@ -85,14 +85,14 @@ export function TaskDetailReadonly({
           </p>
         ) : (
           <p className="mt-1.5 text-sm text-muted-foreground">
-            No description.
+            {t("readonly.noDescription")}
           </p>
         )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="member-status">Status</Label>
+          <Label htmlFor="member-status">{t("sort.status")}</Label>
           <Select
             value={status}
             onValueChange={onStatusChange}
@@ -116,34 +116,34 @@ export function TaskDetailReadonly({
           {saving && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Loader2 className="size-3 animate-spin" />
-              Saving
+              {t("auth.saving")}
             </span>
           )}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium leading-none">Priority</span>
+          <span className="text-sm font-medium leading-none">{t("sort.priority")}</span>
           <div className="flex h-9 items-center">
             <PriorityIndicator priority={task.priority} showLabel />
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium leading-none">Due date</span>
+          <span className="text-sm font-medium leading-none">{t("meta.dueDate")}</span>
           <div className="flex h-9 items-center">
             {task.due_at ? (
               <DueDate dueAt={task.due_at} status={task.status} />
             ) : (
-              <span className="text-sm text-muted-foreground">None</span>
+              <span className="text-sm text-muted-foreground">{t("readonly.none")}</span>
             )}
           </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium leading-none">Assignees</span>
+        <span className="text-sm font-medium leading-none">{t("table.assignees")}</span>
         {task.assignees.length === 0 ? (
-          <span className="text-sm text-muted-foreground">Unassigned</span>
+          <span className="text-sm text-muted-foreground">{t("filter.unassigned")}</span>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {task.assignees.map((person) => (
@@ -171,9 +171,8 @@ export function TaskDetailReadonly({
       <p className="flex items-start gap-1.5 rounded-md border border-border bg-muted px-2.5 py-2 text-xs leading-relaxed text-muted-foreground">
         <Eye className="mt-0.5 size-3.5 shrink-0" />
         <span>
-          Task details are set by your manager. You can update the status, add
-          comments and attach files.
-          {!canComplete && " Move it to In Review when it is ready to check."}
+          {t("readonly.hint")}
+          {!canComplete && ` ${t("readonly.reviewHint")}`}
         </span>
       </p>
     </div>

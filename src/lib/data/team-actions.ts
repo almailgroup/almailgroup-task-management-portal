@@ -13,6 +13,7 @@ import {
   ok,
   type ActionResult,
 } from "@/lib/action-result";
+import { getI18n } from "@/lib/i18n/server";
 import { emailSchema, userRoleSchema } from "@/lib/validation";
 
 /**
@@ -33,8 +34,8 @@ const newMemberSchema = z.object({
   fullName: z
     .string()
     .trim()
-    .min(2, "Enter their full name")
-    .max(120, "Name must be 120 characters or fewer"),
+    .min(2, "validation.enterTheirName")
+    .max(120, "validation.nameMax"),
   email: emailSchema,
   role: userRoleSchema,
 });
@@ -76,7 +77,7 @@ async function requireAdmin(): Promise<
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Your session expired. Please sign in again." };
+  if (!user) return { error: "action.sessionExpired" };
 
   const { data: caller } = await supabase
     .from("profiles")
@@ -85,7 +86,7 @@ async function requireAdmin(): Promise<
     .maybeSingle();
 
   if (caller?.role !== "admin") {
-    return { error: "Only an admin can do this." };
+    return { error: "action.adminOnly" };
   }
 
   try {
@@ -93,7 +94,7 @@ async function requireAdmin(): Promise<
   } catch {
     return {
       error:
-        "This needs SUPABASE_SERVICE_ROLE_KEY in the server environment. Until it is set, accounts can only be managed from the Supabase dashboard.",
+        "action.needsServiceRole",
     };
   }
 }
@@ -109,7 +110,7 @@ export async function addTeamMember(
   });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const permitted = await requireAdmin();
@@ -134,7 +135,7 @@ export async function addTeamMember(
   });
 
   if (error) return fail(describeAuthError(error));
-  if (!created.user) return fail("The account could not be created.");
+  if (!created.user) return fail("action.accountNotCreated");
 
   // The profile row already exists — handle_new_user creates it as the auth
   // user is inserted — so the role is set on it rather than passed in. This
@@ -148,8 +149,12 @@ export async function addTeamMember(
 
     if (roleError) {
       revalidatePath("/team");
+      const { t, tm } = await getI18n();
       return fail(
-        `${parsed.data.fullName} was added, but their role could not be set: ${describeDatabaseError(roleError)}`,
+        t("action.roleNotSet", {
+          name: parsed.data.fullName,
+          reason: tm(describeDatabaseError(roleError)),
+        }),
       );
     }
   }
@@ -176,7 +181,7 @@ export async function resetMemberPassword(
   userId: string,
 ): Promise<ActionResult<{ email: string; password: string }>> {
   if (!z.string().uuid().safeParse(userId).success) {
-    return fail("Unknown member.");
+    return fail("action.unknownMember");
   }
 
   const permitted = await requireAdmin();
@@ -186,14 +191,14 @@ export async function resetMemberPassword(
   // Changing your own password is a different act with a different rule: it
   // asks for the current one, and that lives on the profile page.
   if (userId === callerId) {
-    return fail("To change your own password, use Profile → Password.");
+    return fail("action.ownPasswordFromProfile");
   }
 
   const { data: target, error: lookupError } =
     await admin.auth.admin.getUserById(userId);
 
   if (lookupError || !target.user?.email) {
-    return fail("That account could not be found.");
+    return fail("action.accountNotFound");
   }
 
   const password = temporaryPassword();

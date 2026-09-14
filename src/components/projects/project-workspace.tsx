@@ -38,6 +38,7 @@ import { csvFilename, tasksToCsv } from "@/lib/csv";
 import { downloadText } from "@/lib/download";
 import { matchesFilters } from "@/lib/task-filters";
 import { useTaskFilters } from "@/lib/use-task-filters";
+import { Emphasised, MARK, useI18n } from "@/lib/i18n/client";
 import type {
   Profile,
   Project,
@@ -68,6 +69,7 @@ export function ProjectWorkspace({
   profile: Profile;
 }) {
   const router = useRouter();
+  const { t, tn, tm } = useI18n();
 
   // Keeps the board in sync when teammates change tasks elsewhere.
   const liveTasks = useTaskStream({ projectId: project.id, initial: tasks });
@@ -119,10 +121,10 @@ export function ProjectWorkspace({
   async function onDeleteProject() {
     const outcome = await deleteProject(project.id);
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
-    toast.success("Project deleted");
+    toast.success(t("project.deleted"));
     router.push("/dashboard");
     router.refresh();
   }
@@ -144,7 +146,7 @@ export function ProjectWorkspace({
             {canCreate && (
               <Button size="sm" onClick={() => createTask("todo")}>
                 <Plus />
-                New task
+                {t("palette.newTask")}
               </Button>
             )}
 
@@ -154,7 +156,7 @@ export function ProjectWorkspace({
                   <Button
                     variant="outline"
                     size="icon"
-                    aria-label="Project actions"
+                    aria-label={t("project.actions")}
                   >
                     <MoreHorizontal />
                   </Button>
@@ -162,12 +164,12 @@ export function ProjectWorkspace({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={() => setProjectDialogOpen(true)}>
                     <Pencil />
-                    Edit project
+                    {t("project.edit")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => setConfirmDelete(true)}>
                     <Trash2 />
-                    Delete project
+                    {t("project.delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -186,18 +188,18 @@ export function ProjectWorkspace({
         shown={filtered.length}
         total={liveTasks.length}
         onExport={() =>
-          downloadText(csvFilename(project.name), tasksToCsv(filtered))
+          downloadText(csvFilename(project.name), tasksToCsv(filtered, undefined, t))
         }
       >
         <Tabs value={view} onValueChange={(value) => setView(value as View)}>
           <TabsList>
             <TabsTrigger value="board">
               <Columns3 />
-              Board
+              {t("view.board")}
             </TabsTrigger>
             <TabsTrigger value="list">
               <List />
-              List
+              {t("view.list")}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -245,17 +247,18 @@ export function ProjectWorkspace({
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Delete this project?"
+        title={t("project.deleteTitle")}
         description={
-          <>
-            <span className="font-medium text-foreground">{project.name}</span>{" "}
-            and all {liveTasks.length}{" "}
-            {liveTasks.length === 1 ? "task" : "tasks"} in it will be
-            permanently deleted, along with their comments, attachments and
-            history. This cannot be undone.
-          </>
+          <Emphasised
+            sentence={t("project.deleteBody", {
+              name: MARK,
+              tasks: tn("count.tasks", liveTasks.length),
+            })}
+          >
+            {project.name}
+          </Emphasised>
         }
-        confirmLabel="Delete project"
+        confirmLabel={t("project.delete")}
         onConfirm={async () => {
           await onDeleteProject();
           setConfirmDelete(false);

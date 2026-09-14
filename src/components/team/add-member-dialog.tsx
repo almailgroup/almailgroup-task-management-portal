@@ -24,7 +24,7 @@ import {
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { OneTimePassword } from "@/components/team/one-time-password";
 import { USER_ROLES } from "@/lib/constants";
-import { useI18n } from "@/lib/i18n/client";
+import { MARK, useI18n } from "@/lib/i18n/client";
 import { addTeamMember } from "@/lib/data/team-actions";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -80,12 +80,22 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
           disabled={!configured}
         >
           <UserPlus />
-          Add teammate
+          {t("team.add")}
         </Button>
         {!configured && (
           <p className="max-w-[15rem] text-end text-xs leading-relaxed text-muted-foreground">
-            Needs <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> in
-            the server environment.
+            {t("team.needsKey", { key: MARK })
+              .split(MARK)
+              .map((part, index) =>
+                index === 0 ? (
+                  <React.Fragment key={index}>
+                    {part}
+                    <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code>
+                  </React.Fragment>
+                ) : (
+                  part
+                ),
+              )}
           </p>
         )}
       </div>
@@ -101,12 +111,8 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
           {created ? (
             <>
               <DialogHeader>
-                <DialogTitle>Account ready</DialogTitle>
-                <DialogDescription>
-                  Nothing was emailed. Pass these on however you normally would
-                  — the first time they sign in, the app asks them to choose a
-                  password of their own.
-                </DialogDescription>
+                <DialogTitle>{t("team.ready")}</DialogTitle>
+                <DialogDescription>{t("team.readyDesc")}</DialogDescription>
               </DialogHeader>
 
               <OneTimePassword
@@ -116,32 +122,29 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={reset}>
-                  Add another
+                  {t("team.addAnother")}
                 </Button>
                 <Button size="sm" onClick={() => setOpen(false)}>
-                  Done
+                  {t("common.done")}
                 </Button>
               </div>
             </>
           ) : (
             <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
               <DialogHeader>
-                <DialogTitle>Add a teammate</DialogTitle>
-                <DialogDescription>
-                  Creates a working account straight away. No confirmation email
-                  is sent, so this works however busy the mail quota is.
-                </DialogDescription>
+                <DialogTitle>{t("team.addTitle")}</DialogTitle>
+                <DialogDescription>{t("team.addDesc")}</DialogDescription>
               </DialogHeader>
 
               <FormError message={result?.ok === false ? result.error : null} />
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="member-name">Full name</Label>
+                <Label htmlFor="member-name">{t("auth.fullName")}</Label>
                 <Input
                   id="member-name"
                   name="fullName"
                   autoComplete="off"
-                  placeholder="Koshy John"
+                  placeholder={t("team.namePlaceholder")}
                   required
                   aria-invalid={Boolean(errors?.fullName)}
                 />
@@ -149,13 +152,13 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="member-email">Email</Label>
+                <Label htmlFor="member-email">{t("auth.email")}</Label>
                 <Input
                   id="member-email"
                   name="email"
                   type="email"
                   autoComplete="off"
-                  placeholder="name@almailgroup.com"
+                  placeholder={t("team.emailPlaceholder")}
                   required
                   aria-invalid={Boolean(errors?.email)}
                 />
@@ -163,7 +166,7 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="member-role">Role</Label>
+                <Label htmlFor="member-role">{t("team.role")}</Label>
                 <Select name="role" defaultValue="member">
                   <SelectTrigger id="member-role">
                     <SelectValue />
@@ -186,11 +189,11 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
                   size="sm"
                   onClick={() => setOpen(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" size="sm" disabled={pending}>
                   {pending && <Loader2 className="animate-spin" />}
-                  {pending ? "Creating" : "Create account"}
+                  {pending ? t("team.creating") : t("auth.createAccount")}
                 </Button>
               </div>
             </form>

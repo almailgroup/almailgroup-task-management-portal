@@ -5,25 +5,25 @@ import { z } from "zod";
 export const emailSchema = z
   .string()
   .trim()
-  .min(1, "Email is required")
-  .email("Enter a valid email address");
+  .min(1, "validation.emailRequired")
+  .email("validation.emailInvalid");
 
 export const passwordSchema = z
   .string()
-  .min(8, "Password must be at least 8 characters")
-  .max(72, "Password must be 72 characters or fewer");
+  .min(8, "validation.passwordMin")
+  .max(72, "validation.passwordMax");
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(1, "validation.passwordRequired"),
 });
 
 export const registerSchema = z.object({
   fullName: z
     .string()
     .trim()
-    .min(2, "Enter your full name")
-    .max(120, "Name must be 120 characters or fewer"),
+    .min(2, "validation.enterFullName")
+    .max(120, "validation.nameMax"),
   email: emailSchema,
   password: passwordSchema,
 });
@@ -32,10 +32,10 @@ export const profileSchema = z.object({
   fullName: z
     .string()
     .trim()
-    .min(2, "Enter your full name")
-    .max(120, "Name must be 120 characters or fewer"),
+    .min(2, "validation.enterFullName")
+    .max(120, "validation.nameMax"),
   avatarUrl: z
-    .union([z.string().trim().url("Enter a valid URL"), z.literal("")])
+    .union([z.string().trim().url("validation.urlInvalid"), z.literal("")])
     .optional(),
 });
 
@@ -43,12 +43,12 @@ export const projectSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Project name is required")
-    .max(120, "Name must be 120 characters or fewer"),
+    .min(1, "validation.projectNameRequired")
+    .max(120, "validation.nameMax"),
   description: z
     .string()
     .trim()
-    .max(2000, "Description must be 2000 characters or fewer")
+    .max(2000, "validation.descriptionMax2000")
     .optional(),
 });
 
@@ -58,7 +58,7 @@ export const userRoleSchema = z.enum(["admin", "manager", "member"]);
 export const positionSchema = z
   .string()
   .trim()
-  .max(60, "Position must be 60 characters or fewer");
+  .max(60, "validation.positionMax");
 
 export const taskStatusSchema = z.enum([
   "todo",
@@ -73,12 +73,12 @@ export const taskSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, "Title is required")
-    .max(200, "Title must be 200 characters or fewer"),
+    .min(1, "validation.titleRequired")
+    .max(200, "validation.titleMax"),
   description: z
     .string()
     .trim()
-    .max(20000, "Description is too long")
+    .max(20000, "validation.descriptionTooLong")
     .optional(),
   status: taskStatusSchema,
   priority: taskPrioritySchema,
@@ -93,7 +93,7 @@ export const taskSchema = z.object({
    */
   dueAt: z
     .union([
-      z.string().datetime({ offset: true, message: "Enter a valid date and time" }),
+      z.string().datetime({ offset: true, message: "validation.dateTimeInvalid" }),
       z.literal(""),
     ])
     .optional(),
@@ -104,8 +104,8 @@ export const commentSchema = z.object({
   content: z
     .string()
     .trim()
-    .min(1, "Write something first")
-    .max(5000, "Comment must be 5000 characters or fewer"),
+    .min(1, "validation.commentRequired")
+    .max(5000, "validation.commentMax"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -120,16 +120,16 @@ export const linkAttachmentSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Give the link a name")
-    .max(255, "Name must be 255 characters or fewer"),
+    .min(1, "validation.linkName")
+    .max(255, "validation.nameMax255"),
   url: z
     .string()
     .trim()
-    .min(1, "URL is required")
-    .max(2048, "That URL is too long")
+    .min(1, "validation.urlRequired")
+    .max(2048, "validation.urlTooLong")
     .refine(
       (value) => /^https?:\/\//i.test(value),
-      "Link must start with http:// or https://",
+      "validation.urlScheme",
     ),
 });
 
@@ -149,11 +149,11 @@ export const followUpSchema = z.object({
   /** An absolute instant, converted in the browser. See taskSchema.dueAt. */
   followUpAt: z
     .string()
-    .datetime({ offset: true, message: "Pick a date and time" }),
+    .datetime({ offset: true, message: "validation.pickDateTime" }),
   note: z
     .string()
     .trim()
-    .max(500, "Note must be 500 characters or fewer")
+    .max(500, "validation.noteMax")
     .optional(),
 });
 

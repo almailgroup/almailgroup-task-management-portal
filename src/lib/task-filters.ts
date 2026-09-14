@@ -14,15 +14,15 @@ import type {
  * both sides run the same predicate over the same task list.
  */
 export const TASK_FILTERS = [
-  { value: "todo", label: "To Do", blurb: "Not started yet." },
-  { value: "pending", label: "Pending", blurb: "Everything not yet done." },
-  { value: "in_progress", label: "In Progress", blurb: "Being worked on." },
-  { value: "in_review", label: "In Review", blurb: "Waiting on a review." },
-  { value: "done", label: "Completed", blurb: "Finished and signed off." },
-  { value: "due_today", label: "Due Today", blurb: "Unfinished and due today." },
-  { value: "overdue", label: "Overdue", blurb: "Past due and still open." },
-  { value: "all", label: "All tasks", blurb: "Everything you can see." },
-] as const;
+  { value: "todo", label: "status.todo", blurb: "filter.todo.blurb" },
+  { value: "pending", label: "filter.pending", blurb: "filter.pending.blurb" },
+  { value: "in_progress", label: "status.in_progress", blurb: "filter.in_progress.blurb" },
+  { value: "in_review", label: "status.in_review", blurb: "filter.in_review.blurb" },
+  { value: "done", label: "filter.done", blurb: "filter.done.blurb" },
+  { value: "due_today", label: "filter.dueToday", blurb: "filter.dueToday.blurb" },
+  { value: "overdue", label: "meta.overdue", blurb: "filter.overdue.blurb" },
+  { value: "all", label: "filter.all", blurb: "filter.all.blurb" },
+] as const satisfies readonly { value: string; label: TranslationKey; blurb: TranslationKey }[];
 
 export type TaskFilter = (typeof TASK_FILTERS)[number]["value"];
 
@@ -30,11 +30,12 @@ export function isTaskFilter(value: string | undefined): value is TaskFilter {
   return TASK_FILTERS.some((filter) => filter.value === value);
 }
 
-export function filterLabel(filter: TaskFilter): string {
-  return TASK_FILTERS.find((f) => f.value === filter)?.label ?? "Tasks";
+/** A dictionary key — render with `t(filterLabel(filter))`. */
+export function filterLabel(filter: TaskFilter): TranslationKey {
+  return TASK_FILTERS.find((f) => f.value === filter)?.label ?? "nav.tasks";
 }
 
-export function filterBlurb(filter: TaskFilter): string {
+export function filterBlurb(filter: TaskFilter): TranslationKey | "" {
   return TASK_FILTERS.find((f) => f.value === filter)?.blurb ?? "";
 }
 

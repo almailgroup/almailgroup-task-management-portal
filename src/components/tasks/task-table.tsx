@@ -70,7 +70,7 @@ export function TaskTable({
   emptyState?: React.ReactNode;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
   // No sort is a state: the list then keeps the board's own order.
@@ -123,7 +123,9 @@ export function TaskTable({
       ),
     );
     const failed = results.filter((r) => !r.ok).length;
-    report(batch.length - failed, failed, `Moved`, status);
+    report(batch.length - failed, failed, (tasks) =>
+      t("table.movedTo", { tasks, status: t(statusMeta(status).label) }),
+    );
     setSelected(new Set());
     router.refresh();
   }
@@ -135,13 +137,13 @@ export function TaskTable({
     );
     const done = batch.filter((_, index) => results[index].ok);
     const failed = batch.length - done.length;
-    report(done.length, failed, "Deleted", undefined, async () => {
+    report(done.length, failed, (tasks) => t("table.deleted", { tasks }), async () => {
       const back = await Promise.all(
         done.map((task) => restoreTask(task.id, task.project_id ?? projectId)),
       );
       const lost = back.filter((r) => !r.ok).length;
-      if (lost > 0) toast.error(`${lost} could not be restored.`);
-      else toast.success(`Restored ${done.length} ${done.length === 1 ? "task" : "tasks"}`);
+      if (lost > 0) toast.error(t("table.restoredFailed", { n: lost }));
+      else toast.success(t("table.restored", { tasks: tn("count.tasks", done.length) }));
       router.refresh();
     });
     setSelected(new Set());
@@ -151,24 +153,22 @@ export function TaskTable({
   function report(
     done: number,
     failed: number,
-    verb: string,
-    status?: TaskStatus,
+    describe: (tasks: string) => string,
     undo?: () => Promise<void>,
   ) {
-    const what = `${done} ${done === 1 ? "task" : "tasks"}`;
     if (done > 0) {
       toast.success(
-        status ? `${verb} ${what} to ${t(statusMeta(status).label)}` : `${verb} ${what}`,
+        describe(tn("count.tasks", done)),
         // A delete is undoable for ten seconds; the bin keeps it for a month.
-        undo ? { duration: 10_000, action: { label: "Undo", onClick: () => void undo() } } : undefined,
+        undo
+          ? { duration: 10_000, action: { label: t("common.undo"), onClick: () => void undo() } }
+          : undefined,
       );
     }
     // Partial failure is the interesting case: RLS may refuse some of a
     // selection and allow the rest, and silence there would be a lie.
     if (failed > 0) {
-      toast.error(
-        `${failed} ${failed === 1 ? "task" : "tasks"} could not be changed — you may not have permission.`,
-      );
+      toast.error(t("table.partialFail", { tasks: tn("count.tasks", failed) }));
     }
   }
   if (tasks.length === 0) {
@@ -176,8 +176,8 @@ export function TaskTable({
       emptyState ?? (
         <EmptyState
           icon={<ListFilter />}
-          title="No tasks match these filters"
-          description="Try a different status or priority, or clear the filters to see everything."
+          title={t("table.noMatch")}
+          description={t("table.noMatchBody")}
         />
       )
     );
@@ -197,29 +197,29 @@ export function TaskTable({
                     onCheckedChange={() =>
                       setSelected(allSelected ? new Set() : new Set(visibleIds))
                     }
-                    aria-label={allSelected ? "Clear selection" : "Select all tasks"}
+                    aria-label={allSelected ? t("bulk.clearSelection") : t("table.selectAll")}
                   />
                 </Th>
               )}
               <SortTh column="title" sort={sort} onSort={toggleSort} className={projectName ? "w-[34%]" : "w-[45%]"}>
-                Task
+                {t("table.task")}
               </SortTh>
               {projectName && (
                 <SortTh column="project" sort={sort} onSort={toggleSort}>
-                  Project
+                  {t("sort.project")}
                 </SortTh>
               )}
               <SortTh column="status" sort={sort} onSort={toggleSort}>
-                Status
+                {t("sort.status")}
               </SortTh>
               <SortTh column="priority" sort={sort} onSort={toggleSort}>
-                Priority
+                {t("sort.priority")}
               </SortTh>
               <SortTh column="due" sort={sort} onSort={toggleSort}>
-                Due
+                {t("table.due")}
               </SortTh>
-              <Th className="text-end">Assignees</Th>
-              {canReschedule && <Th className="w-10 text-end sr-only">Move date</Th>}
+              <Th className="text-end">{t("table.assignees")}</Th>
+              {canReschedule && <Th className="w-10 text-end sr-only">{t("table.moveDate")}</Th>}
             </tr>
           </thead>
           <tbody>
@@ -237,7 +237,7 @@ export function TaskTable({
                     <Checkbox
                       checked={selected.has(task.id)}
                       onCheckedChange={() => toggle(task.id)}
-                      aria-label={`Select ${task.title}`}
+                      aria-label={t("table.selectTask", { title: task.title })}
                     />
                   </td>
                 )}
@@ -315,7 +315,7 @@ export function TaskTable({
               ))}
             {sort && (
               <DropdownMenuItem onSelect={() => setSort(null)}>
-                Board order
+                {t("table.boardOrder")}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -337,7 +337,7 @@ export function TaskTable({
               <button
                 type="button"
                 onClick={() => onOpenTask(task)}
-                aria-label={`Open ${task.title}`}
+                aria-label={t("table.openTask", { title: task.title })}
                 className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               />
 
@@ -368,9 +368,9 @@ export function TaskTable({
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggle(task.id)}
-                        aria-label={`Select ${task.title}`}
+                        aria-label={t("table.selectTask", { title: task.title })}
                       />
-                      Select
+                      {t("table.select")}
                     </label>
                   ) : (
                     <span />

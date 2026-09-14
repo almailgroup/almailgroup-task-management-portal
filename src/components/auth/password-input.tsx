@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * A password field you can read back.
@@ -28,6 +29,7 @@ export function PasswordInput({
   className,
   ...props
 }: React.ComponentProps<"input"> & { invalid?: boolean }) {
+  const { t } = useI18n();
   const [visible, setVisible] = React.useState(false);
   const [capsLock, setCapsLock] = React.useState(false);
 
@@ -60,8 +62,8 @@ export function PasswordInput({
           tabIndex={-1}
           onClick={() => setVisible((current) => !current)}
           aria-pressed={visible}
-          aria-label={visible ? "Hide password" : "Show password"}
-          title={visible ? "Hide password" : "Show password"}
+          aria-label={visible ? t("auth.hidePassword") : t("auth.showPassword")}
+          title={visible ? t("auth.hidePassword") : t("auth.showPassword")}
           className={cn(
             "absolute end-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg",
             "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
@@ -75,7 +77,7 @@ export function PasswordInput({
 
       {capsLock && (
         <p role="status" className="text-xs font-medium text-warning">
-          Caps Lock is on.
+          {t("auth.capsLock")}
         </p>
       )}
     </div>

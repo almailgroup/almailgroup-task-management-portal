@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { askMaham } from "@/lib/data/maham-actions";
+import { useI18n } from "@/lib/i18n/client";
 import type { MahamMessage } from "@/lib/maham/types";
 
 export type Maham = {
@@ -32,6 +33,7 @@ export function useMaham(): Maham {
   const [messages, setMessages] = React.useState<MahamMessage[]>([]);
   const [draft, setDraft] = React.useState("");
   const [pending, setPending] = React.useState(false);
+  const { t, tm } = useI18n();
 
   const send = React.useCallback(
     (text: string) => {
@@ -54,14 +56,13 @@ export function useMaham(): Maham {
         let reply: string;
         try {
           const outcome = await askMaham(history);
-          reply = outcome.ok ? outcome.data.text : outcome.error;
+          reply = outcome.ok ? outcome.data.text : tm(outcome.error);
         } catch {
           // A Server Action rejects outright when the network drops or the
           // deployment 500s. Without this the spinner ran forever and the
           // panel stayed disabled — and since it is no longer a dialog that
           // unmounts, closing and reopening did not clear it either.
-          reply =
-            "I could not reach the server. Check your connection and ask me again.";
+          reply = t("maham.unreachable");
         }
 
         setMessages((current) => [
@@ -76,7 +77,7 @@ export function useMaham(): Maham {
         setPending(false);
       })();
     },
-    [messages, pending],
+    [messages, pending, t, tm],
   );
 
   const clear = React.useCallback(() => {

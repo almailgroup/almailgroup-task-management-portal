@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * Confirmation step for irreversible actions.
@@ -25,8 +26,8 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "Delete",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   onConfirm,
 }: {
   open: boolean;
@@ -37,6 +38,7 @@ export function ConfirmDialog({
   cancelLabel?: string;
   onConfirm: () => void | Promise<void>;
 }) {
+  const { t } = useI18n();
   const [pending, setPending] = React.useState(false);
 
   async function confirm() {
@@ -68,11 +70,11 @@ export function ConfirmDialog({
             onClick={() => onOpenChange(false)}
             disabled={pending}
           >
-            {cancelLabel}
+            {cancelLabel ?? t("common.cancel")}
           </Button>
           <Button type="button" onClick={confirm} disabled={pending} autoFocus>
             {pending && <Loader2 className="animate-spin" />}
-            {confirmLabel}
+            {confirmLabel ?? t("common.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

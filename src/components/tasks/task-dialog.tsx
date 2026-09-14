@@ -73,7 +73,8 @@ export function TaskDialog({
   defaultStatus?: TaskStatus;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const i18n = useI18n();
+  const { t, tm } = i18n;
   const editing = Boolean(task);
   const canComplete =
     currentProfile.role === "admin" || currentProfile.role === "manager";
@@ -125,7 +126,7 @@ export function TaskDialog({
       return;
     }
 
-    toast.success(editing ? "Task updated" : "Task created");
+    toast.success(editing ? t("task.updated") : t("task.created"));
     onOpenChange(false);
     router.refresh();
   }
@@ -137,25 +138,25 @@ export function TaskDialog({
     setDeleting(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
     // Immediate, and undoable for ten seconds — rather than a question first.
     // A confirmation nobody reads protects nothing; a bin does.
     const { id, title } = task;
-    toast.success("Task deleted", {
+    toast.success(t("task.deletedToast"), {
       description: title,
       duration: 10_000,
       action: {
-        label: "Undo",
+        label: t("common.undo"),
         onClick: async () => {
           const restored = await restoreTask(id, projectId);
           if (!restored.ok) {
-            toast.error(restored.error);
+            toast.error(tm(restored.error));
             return;
           }
-          toast.success("Task restored");
+          toast.success(t("task.restored"));
           router.refresh();
         },
       },
@@ -170,13 +171,13 @@ export function TaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editing ? "Task" : "New task"}</DialogTitle>
+          <DialogTitle>{editing ? t("task.title") : t("palette.newTask")}</DialogTitle>
           <DialogDescription>
             {!editing
-              ? "Add a task to this project."
+              ? t("task.addToProject")
               : canEditDetails
-                ? "Update the details, or discuss it in the thread below."
-                : "Update your progress, or discuss it in the thread below."}
+                ? t("task.updateDetails")
+                : t("task.updateProgress")}
           </DialogDescription>
         </DialogHeader>
 
@@ -194,12 +195,12 @@ export function TaskDialog({
             <FormError message={result?.ok === false ? result.error : null} />
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">{t("task.fieldTitle")}</Label>
               <Input
                 id="title"
                 name="title"
                 defaultValue={task?.title ?? ""}
-                placeholder="What needs to be done?"
+                placeholder={t("task.titlePlaceholder")}
                 maxLength={200}
                 required
                 autoFocus={!editing}
@@ -209,12 +210,12 @@ export function TaskDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t("task.description")}</Label>
               <Textarea
                 id="description"
                 name="description"
                 defaultValue={task?.description ?? ""}
-                placeholder="Add detail, acceptance criteria, links..."
+                placeholder={t("task.descriptionPlaceholder")}
                 rows={4}
                 maxLength={20000}
                 aria-invalid={Boolean(errors?.description)}
@@ -228,7 +229,7 @@ export function TaskDialog({
                 past the field's own border. */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <div className="flex min-w-0 flex-col gap-1.5">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">{t("sort.status")}</Label>
                 <Select
                   name="status"
                   defaultValue={task?.status ?? defaultStatus}
@@ -252,13 +253,13 @@ export function TaskDialog({
                 </Select>
                 {!canComplete && (
                   <p className="text-xs text-muted-foreground">
-                    Move to In Review when finished; a manager marks it done.
+                    {t("task.reviewHint")}
                   </p>
                 )}
               </div>
 
               <div className="flex min-w-0 flex-col gap-1.5">
-                <Label htmlFor="priority">Priority</Label>
+                <Label htmlFor="priority">{t("sort.priority")}</Label>
                 <Select name="priority" defaultValue={task?.priority ?? "medium"}>
                   <SelectTrigger id="priority">
                     <SelectValue />
@@ -274,7 +275,7 @@ export function TaskDialog({
               </div>
 
               <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor="dueAt">Due date &amp; time</Label>
+                <Label htmlFor="dueAt">{t("task.dueDateTime")}</Label>
                 <Input
                   ref={dueRef}
                   id="dueAt"
@@ -289,10 +290,10 @@ export function TaskDialog({
                     picker is still there for anything else — but "tomorrow
                     evening" should not take five taps through a calendar. */}
                 {canEditDetails && (
-                  <div className="flex flex-wrap gap-1.5" aria-label="Quick due dates">
-                    {quickDateOptions().map((option) => (
+                  <div className="flex flex-wrap gap-1.5" aria-label={t("task.quickDates")}>
+                    {quickDateOptions(i18n).map((option) => (
                       <button
-                        key={option.label}
+                        key={option.key}
                         type="button"
                         onClick={() => setDue(option.value())}
                         className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground pointer-coarse:min-h-9"
@@ -305,7 +306,7 @@ export function TaskDialog({
                       onClick={() => setDue(null)}
                       className="rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-9"
                     >
-                      No date
+                      {t("task.noDate")}
                     </button>
                   </div>
                 )}
@@ -314,7 +315,7 @@ export function TaskDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>Assignees</Label>
+              <Label>{t("table.assignees")}</Label>
               <AssigneePicker
                 team={team}
                 value={assigneeIds}
@@ -332,7 +333,7 @@ export function TaskDialog({
                   disabled={deleting || pending}
                 >
                   {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                  Delete
+                  {t("common.delete")}
                 </Button>
               ) : (
                 <span />
@@ -345,11 +346,11 @@ export function TaskDialog({
                   onClick={() => onOpenChange(false)}
                   disabled={pending}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={pending}>
                   {pending && <Loader2 className="animate-spin" />}
-                  {editing ? "Save changes" : "Create task"}
+                  {editing ? t("task.saveChanges") : t("task.create")}
                 </Button>
               </div>
             </div>
@@ -369,9 +370,9 @@ export function TaskDialog({
             <Separator />
             <Tabs defaultValue="comments">
               <TabsList>
-                <TabsTrigger value="comments">Comments</TabsTrigger>
-                <TabsTrigger value="files">Files</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="comments">{t("task.comments")}</TabsTrigger>
+                <TabsTrigger value="files">{t("task.files")}</TabsTrigger>
+                <TabsTrigger value="activity">{t("task.activity")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="comments">

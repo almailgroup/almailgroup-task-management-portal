@@ -17,6 +17,7 @@ import {
   updateNotificationPreferences,
 } from "@/lib/data/profile-actions";
 import { cn } from "@/lib/utils";
+import { MARK, useI18n } from "@/lib/i18n/client";
 import type { NotificationPreferences } from "@/lib/supabase/database.types";
 
 /**
@@ -38,6 +39,7 @@ export function ReminderSettings({
   botUsername: string | null;
 }) {
   const router = useRouter();
+  const { t, tm } = useI18n();
   const [saving, setSaving] = React.useState(false);
   const [linking, setLinking] = React.useState(false);
   const [code, setCode] = React.useState<string | null>(null);
@@ -63,10 +65,10 @@ export function ReminderSettings({
     setSaving(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
-    toast.success("Reminder settings saved");
+    toast.success(t("remind.saved"));
     router.refresh();
   }
 
@@ -76,7 +78,7 @@ export function ReminderSettings({
     setLinking(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     setCode(outcome.data.code);
@@ -88,12 +90,12 @@ export function ReminderSettings({
     setLinking(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     setCode(null);
     set("telegramEnabled", false);
-    toast.success("Telegram disconnected");
+    toast.success(t("remind.telegramOff"));
     router.refresh();
   }
 
@@ -103,26 +105,22 @@ export function ReminderSettings({
     <div className="flex flex-col gap-5">
       <Channel
         icon={<Mail />}
-        title="Email"
+        title={t("auth.email")}
         detail={email}
         enabled={form.emailEnabled}
         available={available.email}
-        unavailableReason="No email provider is configured on the server yet."
+        unavailableReason={t("remind.noEmailProvider")}
         onToggle={(value) => set("emailEnabled", value)}
       />
 
       <Channel
         icon={<Send />}
-        title="Telegram"
-        detail={
-          telegramLinked ? "Connected to your Telegram chat" : "Not connected"
-        }
+        title={t("remind.telegram")}
+        detail={telegramLinked ? t("remind.telegramConnected") : t("remind.notConnected")}
         enabled={form.telegramEnabled}
         available={available.telegram && telegramLinked}
         unavailableReason={
-          !available.telegram
-            ? "No Telegram bot is configured on the server yet."
-            : "Connect your Telegram account below to switch this on."
+          !available.telegram ? t("remind.noTelegramBot") : t("remind.connectFirst")
         }
         onToggle={(value) => set("telegramEnabled", value)}
       >
@@ -138,25 +136,34 @@ export function ReminderSettings({
                 className="self-start"
               >
                 {linking ? <Loader2 className="animate-spin" /> : <X />}
-                Disconnect Telegram
+                {t("remind.disconnectTelegram")}
               </Button>
             ) : code ? (
               <div className="rounded-md border border-border bg-muted p-3 text-sm">
                 <p className="leading-relaxed">
-                  Open{" "}
-                  {botUsername ? (
-                    <a
-                      href={`https://t.me/${botUsername}?start=${code}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium underline underline-offset-4"
-                    >
-                      @{botUsername}
-                    </a>
-                  ) : (
-                    "your Telegram bot"
-                  )}{" "}
-                  and send it this code:
+                  {t("remind.openBot", { bot: MARK })
+                    .split(MARK)
+                    .map((part, index) =>
+                      index === 0 ? (
+                        <React.Fragment key={index}>
+                          {part}
+                          {botUsername ? (
+                            <a
+                              href={`https://t.me/${botUsername}?start=${code}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium underline underline-offset-4"
+                            >
+                              @{botUsername}
+                            </a>
+                          ) : (
+                            t("remind.yourBot")
+                          )}
+                        </React.Fragment>
+                      ) : (
+                        part
+                      ),
+                    )}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   <code className="rounded border border-border bg-background px-2 py-1 font-mono text-sm tracking-widest">
@@ -168,15 +175,15 @@ export function ReminderSettings({
                     size="icon-sm"
                     onClick={() => {
                       navigator.clipboard?.writeText(`/start ${code}`);
-                      toast.success("Copied");
+                      toast.success(t("remind.copied"));
                     }}
-                    aria-label="Copy code"
+                    aria-label={t("remind.copyCode")}
                   >
                     <Copy />
                   </Button>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  The code works once. Refresh this page after sending it.
+                  {t("remind.codeOnce")}
                 </p>
               </div>
             ) : (
@@ -189,7 +196,7 @@ export function ReminderSettings({
                 className="self-start"
               >
                 {linking && <Loader2 className="animate-spin" />}
-                Connect Telegram
+                {t("remind.connectTelegram")}
               </Button>
             )}
           </div>
@@ -198,16 +205,16 @@ export function ReminderSettings({
 
       <Channel
         icon={<MessageCircle />}
-        title="WhatsApp"
-        detail={preferences.whatsapp_number ?? "No number set"}
+        title={t("remind.whatsapp")}
+        detail={preferences.whatsapp_number ?? t("remind.noNumber")}
         enabled={form.whatsappEnabled}
         available={available.whatsapp}
-        unavailableReason="No WhatsApp provider is configured on the server yet."
+        unavailableReason={t("remind.noWhatsappProvider")}
         onToggle={(value) => set("whatsappEnabled", value)}
       >
         {available.whatsapp && (
           <div className="mt-2 flex flex-col gap-1.5">
-            <Label htmlFor="whatsappNumber">WhatsApp number</Label>
+            <Label htmlFor="whatsappNumber">{t("remind.whatsappNumber")}</Label>
             <Input
               id="whatsappNumber"
               value={form.whatsappNumber}
@@ -216,7 +223,7 @@ export function ReminderSettings({
               className="max-w-xs"
             />
             <p className="text-xs text-muted-foreground">
-              International format, starting with +.
+              {t("remind.intlFormat")}
             </p>
           </div>
         )}
@@ -225,36 +232,36 @@ export function ReminderSettings({
       <Separator />
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="text-sm font-medium">Remind me when</legend>
+        <legend className="text-sm font-medium">{t("remind.when")}</legend>
 
         <Toggle
           id="remindAssigned"
-          label="A task is assigned to me"
+          label={t("remind.assigned")}
           checked={form.remindAssigned}
           onChange={(v) => set("remindAssigned", v)}
         />
         <Toggle
           id="remindDueSoon"
-          label="A task of mine is due soon"
+          label={t("remind.dueSoon")}
           checked={form.remindDueSoon}
           onChange={(v) => set("remindDueSoon", v)}
         />
         <Toggle
           id="remindOverdue"
-          label="A task of mine is overdue"
+          label={t("remind.overdue")}
           checked={form.remindOverdue}
           onChange={(v) => set("remindOverdue", v)}
         />
         <Toggle
           id="remindFollowUp"
-          label="A follow-up comes due"
+          label={t("remind.followUp")}
           checked={form.remindFollowUp}
           onChange={(v) => set("remindFollowUp", v)}
         />
 
         {form.remindDueSoon && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="lead">Warn me this many hours ahead</Label>
+            <Label htmlFor="lead">{t("remind.leadHours")}</Label>
             <Input
               id="lead"
               type="number"
@@ -273,7 +280,7 @@ export function ReminderSettings({
       <div>
         <Button type="button" onClick={save} disabled={saving}>
           {saving && <Loader2 className="animate-spin" />}
-          Save reminder settings
+          {t("remind.save")}
         </Button>
       </div>
     </div>
@@ -299,6 +306,7 @@ function Channel({
   onToggle: (value: boolean) => void;
   children?: React.ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -317,7 +325,7 @@ function Channel({
             {enabled && available && (
               <Badge variant="secondary">
                 <Check className="size-3" />
-                On
+                {t("remind.on")}
               </Badge>
             )}
           </div>
@@ -334,7 +342,7 @@ function Channel({
           checked={enabled && available}
           disabled={!available}
           onCheckedChange={(value) => onToggle(value === true)}
-          aria-label={`${title} reminders`}
+          aria-label={t("remind.channelLabel", { channel: title })}
         />
       </div>
     </div>

@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { AuthFormShell } from "@/components/auth/auth-form-shell";
+import { getI18n } from "@/lib/i18n/server";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { needsOwnPassword } from "@/lib/data/queries";
 
-export const metadata: Metadata = { title: "Choose your password" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("auth.setPassword.title") };
+}
 
 /**
  * First sign-in for an account an admin created.
@@ -21,12 +25,17 @@ export const metadata: Metadata = { title: "Choose your password" };
 export default async function SetPasswordPage() {
   // Someone who has already chosen has no business on this page.
   if (!(await needsOwnPassword())) redirect("/dashboard");
+  const { t } = await getI18n();
 
   return (
     <AuthFormShell
-      title="Choose your password"
-      subtitle="You signed in with a one-time password. Pick your own to finish setting up your account."
-      footer={{ prompt: "Not you?", linkLabel: "Sign out", href: "/auth/signout" }}
+      title={t("auth.setPassword.title")}
+      subtitle={t("auth.setPassword.subtitle")}
+      footer={{
+        prompt: t("auth.setPassword.prompt"),
+        linkLabel: t("shell.signOut"),
+        href: "/auth/signout",
+      }}
     >
       <ResetPasswordForm />
     </AuthFormShell>

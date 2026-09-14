@@ -10,6 +10,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { PasswordMeter } from "@/components/auth/password-meter";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { changeOwnPassword } from "@/lib/auth/actions";
+import { useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
 
 /**
@@ -21,6 +22,7 @@ import type { ActionResult } from "@/lib/action-result";
  * change it and no reason to go looking in their inbox.
  */
 export function ChangePassword() {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [password, setPassword] = React.useState("");
   const [pending, setPending] = React.useState(false);
@@ -40,7 +42,7 @@ export function ChangePassword() {
       formRef.current?.reset();
       setPassword("");
       setOpen(false);
-      toast.success("Password changed");
+      toast.success(t("auth.passwordChanged"));
     }
   }
 
@@ -51,14 +53,14 @@ export function ChangePassword() {
           {result?.ok ? (
             <span className="inline-flex items-center gap-1.5 text-foreground">
               <CheckCircle2 className="size-4" />
-              Your password was changed.
+              {t("password.wasChanged")}
             </span>
           ) : (
-            "Choose a new password for signing in."
+            t("password.chooseNew")
           )}
         </p>
         <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-          Change password
+          {t("password.change")}
         </Button>
       </div>
     );
@@ -76,7 +78,7 @@ export function ChangePassword() {
       <FormError message={result?.ok === false ? result.error : null} />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="currentPassword">Current password</Label>
+        <Label htmlFor="currentPassword">{t("password.current")}</Label>
         <PasswordInput
           id="currentPassword"
           name="currentPassword"
@@ -89,7 +91,7 @@ export function ChangePassword() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="newPassword">New password</Label>
+        <Label htmlFor="newPassword">{t("auth.newPassword")}</Label>
         <PasswordInput
           id="newPassword"
           name="password"
@@ -104,7 +106,7 @@ export function ChangePassword() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirmPassword">Confirm new password</Label>
+        <Label htmlFor="confirmPassword">{t("auth.confirmNewPassword")}</Label>
         <PasswordInput
           id="confirmPassword"
           name="confirm"
@@ -126,11 +128,11 @@ export function ChangePassword() {
             setPassword("");
           }}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" size="sm" disabled={pending}>
           {pending && <Loader2 className="animate-spin" />}
-          {pending ? "Saving" : "Save password"}
+          {pending ? t("auth.saving") : t("password.save")}
         </Button>
       </div>
     </form>

@@ -78,14 +78,14 @@ export async function createTask(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = parseTaskForm(formData);
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const position = await nextPosition(supabase, projectId, parsed.data.status);
 
@@ -121,7 +121,7 @@ export async function createTask(
     if (assignError) {
       revalidateTaskViews(projectId);
       return fail(
-        "Task created, but the assignees could not be saved. Try editing the task.",
+        "action.assigneesNotSaved",
       );
     }
   }
@@ -138,7 +138,7 @@ export async function updateTask(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = parseTaskForm(formData);
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
@@ -157,7 +157,7 @@ export async function updateTask(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to edit this task.");
+  if (!data) return fail("action.noPermissionEditTask");
 
   const syncError = await syncAssignees(supabase, taskId, parsed.data.assigneeIds);
   if (syncError) return fail(syncError);
@@ -222,8 +222,8 @@ export async function moveTask(
   position: number,
 ): Promise<ActionResult<{ id: string }>> {
   const parsedStatus = taskStatusSchema.safeParse(status);
-  if (!parsedStatus.success) return fail("Unknown status.");
-  if (!Number.isFinite(position)) return fail("Invalid drop position.");
+  if (!parsedStatus.success) return fail("action.unknownStatus");
+  if (!Number.isFinite(position)) return fail("action.invalidDrop");
 
   const supabase = await createClient();
 
@@ -235,7 +235,7 @@ export async function moveTask(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to move this task.");
+  if (!data) return fail("action.noPermissionMoveTask");
 
   revalidateTaskViews(projectId);
   return ok({ id: taskId });
@@ -259,7 +259,7 @@ export async function deleteTask(
   const { data, error } = await supabase.rpc("trash_task", { task: taskId });
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to delete this task.");
+  if (!data) return fail("action.noPermissionDeleteTask");
 
   revalidateTaskViews(projectId);
   return ok({ id: taskId });
@@ -275,7 +275,7 @@ export async function restoreTask(
   const { data, error } = await supabase.rpc("restore_task", { task: taskId });
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("That task could not be restored.");
+  if (!data) return fail("action.restoreFailed");
 
   revalidateTaskViews(projectId);
   return ok({ id: taskId });
@@ -295,7 +295,7 @@ export async function changeTaskStatus(
   status: string,
 ): Promise<ActionResult<{ status: TaskStatus }>> {
   const parsed = taskStatusSchema.safeParse(status);
-  if (!parsed.success) return fail("Unknown status.");
+  if (!parsed.success) return fail("action.unknownStatus");
 
   const supabase = await createClient();
 
@@ -307,7 +307,7 @@ export async function changeTaskStatus(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to update this task.");
+  if (!data) return fail("action.noPermissionUpdateTask");
 
   revalidateTaskViews(projectId);
   return ok({ status: data.status });
@@ -326,7 +326,7 @@ export async function rescheduleTask(
   dueAt: string | null,
 ): Promise<ActionResult<{ dueAt: string | null }>> {
   if (dueAt !== null && Number.isNaN(new Date(dueAt).getTime())) {
-    return fail("That is not a valid date.");
+    return fail("action.invalidDate");
   }
 
   const supabase = await createClient();
@@ -339,7 +339,7 @@ export async function rescheduleTask(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to reschedule this task.");
+  if (!data) return fail("action.noPermissionReschedule");
 
   revalidateTaskViews(projectId);
   return ok({ dueAt: data.due_at });
@@ -368,7 +368,7 @@ export async function setFollowUp(
         })();
 
   if (payload === null && input !== null) {
-    return fail("Pick a valid date and time to follow up.");
+    return fail("follow.pickValid");
   }
 
   const { data, error } = await supabase
@@ -379,7 +379,7 @@ export async function setFollowUp(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to set a follow-up.");
+  if (!data) return fail("action.noPermissionFollowUp");
 
   revalidateTaskViews(projectId);
   return ok(undefined);

@@ -60,7 +60,7 @@ export async function signIn(
   });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
@@ -84,7 +84,7 @@ export async function signIn(
      */
     return fail(
       isWrongCredentials(error)
-        ? "Incorrect email or password."
+        ? "action.wrongCredentials"
         : describeAuthError(error),
     );
   }
@@ -104,7 +104,7 @@ export async function signUp(
   });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
@@ -155,7 +155,7 @@ export async function requestPasswordReset(
 ): Promise<ActionResult<{ sentTo: string }>> {
   const parsed = emailSchema.safeParse(formData.get("email"));
   if (!parsed.success) {
-    return fail("Check the field below.", { email: parsed.error.issues[0].message });
+    return fail("action.checkField", { email: parsed.error.issues[0].message });
   }
 
   const supabase = await createClient();
@@ -186,14 +186,14 @@ export async function updatePassword(
 ): Promise<ActionResult<void>> {
   const password = passwordSchema.safeParse(formData.get("password"));
   if (!password.success) {
-    return fail("Check the fields below.", {
+    return fail("action.checkFields", {
       password: password.error.issues[0].message,
     });
   }
 
   if (formData.get("password") !== formData.get("confirm")) {
-    return fail("Those passwords do not match.", {
-      confirm: "Those passwords do not match.",
+    return fail("action.passwordsMismatch", {
+      confirm: "action.passwordsMismatch",
     });
   }
 
@@ -204,7 +204,7 @@ export async function updatePassword(
 
   if (!user) {
     return fail(
-      "That link has expired. Ask for a new one and try again.",
+      "action.linkExpired",
     );
   }
 
@@ -236,26 +236,26 @@ export async function changeOwnPassword(
   const password = passwordSchema.safeParse(formData.get("password"));
 
   if (!currentPassword) {
-    return fail("Enter your current password.", {
-      currentPassword: "Enter your current password.",
+    return fail("action.enterCurrentPassword", {
+      currentPassword: "action.enterCurrentPassword",
     });
   }
 
   if (!password.success) {
-    return fail("Check the fields below.", {
+    return fail("action.checkFields", {
       password: password.error.issues[0].message,
     });
   }
 
   if (formData.get("password") !== formData.get("confirm")) {
-    return fail("Those passwords do not match.", {
-      confirm: "Those passwords do not match.",
+    return fail("action.passwordsMismatch", {
+      confirm: "action.passwordsMismatch",
     });
   }
 
   if (currentPassword === password.data) {
-    return fail("That is already your password.", {
-      password: "Choose something different from your current password.",
+    return fail("action.samePassword", {
+      password: "action.chooseDifferent",
     });
   }
 
@@ -265,7 +265,7 @@ export async function changeOwnPassword(
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    return fail("Your session expired. Please sign in again.");
+    return fail("action.sessionExpired");
   }
 
   // Verified by signing in again as the same person. A failure leaves the
@@ -276,8 +276,8 @@ export async function changeOwnPassword(
   });
 
   if (wrongPassword) {
-    return fail("That is not your current password.", {
-      currentPassword: "That is not your current password.",
+    return fail("action.notCurrentPassword", {
+      currentPassword: "action.notCurrentPassword",
     });
   }
 

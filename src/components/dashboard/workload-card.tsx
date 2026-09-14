@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Avatar,
   AvatarFallback,
@@ -6,21 +8,23 @@ import {
 import { initialsFrom } from "@/lib/initials";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/dashboard/metric-card";
+import { useI18n } from "@/lib/i18n/client";
 import type { Workload } from "@/lib/metrics";
 
 /** Per-person workload, sized relative to the busiest member. */
 export function WorkloadCard({ workload }: { workload: Workload[] }) {
+  const { t } = useI18n();
   const busiest = Math.max(1, ...workload.map((entry) => entry.open));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Workload</CardTitle>
+        <CardTitle>{t("dash.workload")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {workload.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No tasks are assigned yet.
+            {t("dash.noAssigned")}
           </p>
         ) : (
           workload.map(({ profile, open, done, overdue }) => (
@@ -40,10 +44,10 @@ export function WorkloadCard({ workload }: { workload: Workload[] }) {
                     {profile.full_name ?? profile.email}
                   </span>
                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                    {open} open
+                    {t("dash.open", { n: open })}
                     {overdue > 0 && (
                       <span className="ms-1.5 font-medium text-foreground">
-                        {overdue} overdue
+                        {t("dash.overdueCount", { n: overdue })}
                       </span>
                     )}
                   </span>
@@ -51,11 +55,11 @@ export function WorkloadCard({ workload }: { workload: Workload[] }) {
                 <div className="mt-1.5">
                   <ProgressBar
                     value={(open / busiest) * 100}
-                    label={`${profile.full_name ?? profile.email}: ${open} open tasks`}
+                    label={t("dash.openTasksLabel", { name: profile.full_name ?? profile.email, n: open })}
                   />
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {done} completed
+                  {t("dash.completedCount", { n: done })}
                 </p>
               </div>
             </div>

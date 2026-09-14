@@ -26,7 +26,7 @@ export async function updateProfile(
   });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
@@ -34,7 +34,7 @@ export async function updateProfile(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const { error } = await supabase
     .from("profiles")
@@ -63,9 +63,9 @@ export async function updateMemberRole(
   // A Server Action is a public endpoint, so the arguments are validated at
   // runtime rather than trusted from the TypeScript signature.
   const parsed = userRoleSchema.safeParse(role);
-  if (!parsed.success) return fail("Unknown role.");
+  if (!parsed.success) return fail("action.unknownRole");
   if (!z.string().uuid().safeParse(userId).success) {
-    return fail("Unknown member.");
+    return fail("action.unknownMember");
   }
 
   const supabase = await createClient();
@@ -78,7 +78,7 @@ export async function updateMemberRole(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to change roles.");
+  if (!data) return fail("action.noPermissionRoles");
 
   revalidatePath("/team");
   return ok(undefined);
@@ -97,10 +97,10 @@ export async function updateMemberPosition(
 ): Promise<ActionResult<void>> {
   const parsed = positionSchema.safeParse(jobTitle);
   if (!parsed.success) {
-    return fail(parsed.error.issues[0]?.message ?? "That position is not valid.");
+    return fail(parsed.error.issues[0]?.message ?? "action.positionInvalid");
   }
   if (!z.string().uuid().safeParse(userId).success) {
-    return fail("Unknown member.");
+    return fail("action.unknownMember");
   }
 
   const supabase = await createClient();
@@ -113,7 +113,7 @@ export async function updateMemberPosition(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to set positions.");
+  if (!data) return fail("action.noPermissionPositions");
 
   revalidatePath("/", "layout");
   return ok(undefined);
@@ -125,14 +125,14 @@ export async function setOwnAvatar(
 ): Promise<ActionResult<void>> {
   const url = publicUrl.trim();
   if (url && !/^https?:\/\//i.test(url)) {
-    return fail("That image could not be saved.");
+    return fail("action.imageNotSaved");
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const { error } = await supabase
     .from("profiles")
@@ -167,12 +167,12 @@ export async function updateNotificationPreferences(input: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const number = input.whatsappNumber.trim();
   if (input.whatsappEnabled && !/^\+[1-9]\d{6,14}$/.test(number)) {
     return fail(
-      "Enter your WhatsApp number in international format, e.g. +971501234567.",
+      "action.whatsappFormat",
     );
   }
 
@@ -196,7 +196,7 @@ export async function updateNotificationPreferences(input: {
   if (error) {
     if (error.code === "23514") {
       return fail(
-        "A channel cannot be switched on without somewhere to send to. Link Telegram or add a WhatsApp number first.",
+        "action.channelNeedsTarget",
       );
     }
     return fail(describeDatabaseError(error));
@@ -219,7 +219,7 @@ export async function createTelegramLinkCode(): Promise<
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   // Unambiguous alphabet: no O/0 or I/1 to mistype when copying by hand.
   //
@@ -250,7 +250,7 @@ export async function unlinkTelegram(): Promise<ActionResult<void>> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const { error } = await supabase
     .from("notification_preferences")

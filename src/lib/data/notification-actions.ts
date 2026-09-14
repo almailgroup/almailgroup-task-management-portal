@@ -31,7 +31,7 @@ export async function markAllNotificationsRead(): Promise<ActionResult<void>> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const { error } = await supabase
     .from("notifications")

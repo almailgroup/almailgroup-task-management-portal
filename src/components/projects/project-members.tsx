@@ -31,6 +31,7 @@ import {
   removeProjectMember,
 } from "@/lib/data/project-actions";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { Profile } from "@/lib/supabase/database.types";
 
 /**
@@ -53,6 +54,7 @@ export function ProjectMembers({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const { t, tn, tm } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState<string | null>(null);
 
@@ -65,10 +67,10 @@ export function ProjectMembers({
     setPending(null);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
-    toast.success(`${person.full_name ?? person.email} can now see this project`);
+    toast.success(t("members.canSee", { name: person.full_name ?? person.email }));
     router.refresh();
   }
 
@@ -78,10 +80,10 @@ export function ProjectMembers({
     setPending(null);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
-    toast.success(`${person.full_name ?? person.email} removed from this project`);
+    toast.success(t("members.removed", { name: person.full_name ?? person.email }));
     router.refresh();
   }
 
@@ -94,24 +96,22 @@ export function ProjectMembers({
         className="gap-2 font-normal"
       >
         <Users />
-        {members.length} {members.length === 1 ? "member" : "members"}
+        {tn("count.members", members.length)}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Project members</DialogTitle>
+            <DialogTitle>{t("members.title")}</DialogTitle>
             <DialogDescription>
-              Only these people can see this project and its tasks.
-              {canManage
-                ? " Anyone assigned a task here is added automatically."
-                : " Ask a manager to add someone."}
+              {t("members.onlyThese")}{" "}
+              {canManage ? t("members.autoAdded") : t("members.askManager")}
             </DialogDescription>
           </DialogHeader>
 
           {members.length === 0 && (
             <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
-              Nobody is on this project yet.
+              {t("members.nobody")}
             </p>
           )}
 
@@ -145,7 +145,7 @@ export function ProjectMembers({
                     size="icon-sm"
                     onClick={() => remove(person)}
                     disabled={pending === person.id}
-                    aria-label={`Remove ${person.full_name ?? person.email}`}
+                    aria-label={t("assign.remove", { name: person.full_name ?? person.email })}
                   >
                     {pending === person.id ? (
                       <Loader2 className="animate-spin" />
@@ -164,15 +164,15 @@ export function ProjectMembers({
                 <Button variant="outline" size="sm" disabled={candidates.length === 0}>
                   <Users />
                   {candidates.length === 0
-                    ? "Everyone is a member"
-                    : "Add someone"}
+                    ? t("members.everyone")
+                    : t("members.addSomeone")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
                 className="max-h-64 w-64 overflow-y-auto"
               >
-                <DropdownMenuLabel>Add to this project</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("members.addTo")}</DropdownMenuLabel>
                 {candidates.map((person) => (
                   <DropdownMenuItem
                     key={person.id}

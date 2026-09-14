@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { createTask } from "@/lib/data/task-actions";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 
 /**
@@ -24,7 +25,7 @@ import type { TaskStatus } from "@/lib/supabase/database.types";
 export function QuickAddTask({
   projectId,
   status = "todo",
-  label = "Add task",
+  label,
   className,
 }: {
   projectId: string | null;
@@ -34,6 +35,8 @@ export function QuickAddTask({
   className?: string;
 }) {
   const router = useRouter();
+  const { t, tm } = useI18n();
+  const text = label ?? t("quick.addTask");
   const [open, setOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [saving, setSaving] = React.useState(false);
@@ -54,7 +57,7 @@ export function QuickAddTask({
     setSaving(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
@@ -81,7 +84,7 @@ export function QuickAddTask({
         )}
       >
         <Plus className="size-4" aria-hidden />
-        {label}
+        {text}
       </button>
     );
   }
@@ -116,8 +119,8 @@ export function QuickAddTask({
           if (!title.trim() && !saving) setOpen(false);
         }}
         maxLength={200}
-        placeholder="What needs doing?"
-        aria-label={label}
+        placeholder={t("quick.placeholder")}
+        aria-label={text}
         className="h-8 w-full min-w-0 bg-transparent text-sm outline-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
       />
       {saving ? (

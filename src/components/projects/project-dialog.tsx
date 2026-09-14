@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { createProject, updateProject } from "@/lib/data/project-actions";
+import { useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
 import type { Project } from "@/lib/supabase/database.types";
 
@@ -35,6 +36,7 @@ export function ProjectDialog({
   project?: Project | null;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const editing = Boolean(project);
 
   const [pending, setPending] = React.useState(false);
@@ -64,7 +66,7 @@ export function ProjectDialog({
       return;
     }
 
-    toast.success(editing ? "Project updated" : "Project created");
+    toast.success(editing ? t("project.updated") : t("project.created"));
     onOpenChange(false);
     router.push(`/projects/${outcome.data.id}`);
     router.refresh();
@@ -76,11 +78,9 @@ export function ProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit project" : "New project"}</DialogTitle>
+          <DialogTitle>{editing ? t("project.edit") : t("nav.newProject")}</DialogTitle>
           <DialogDescription>
-            {editing
-              ? "Update the project name and description."
-              : "Group related work into a project your team can switch to."}
+            {editing ? t("project.editDesc") : t("project.newDesc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -88,12 +88,12 @@ export function ProjectDialog({
           <FormError message={result?.ok === false ? result.error : null} />
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t("project.name")}</Label>
             <Input
               id="name"
               name="name"
               defaultValue={project?.name ?? ""}
-              placeholder="Website relaunch"
+              placeholder={t("project.namePlaceholder")}
               maxLength={120}
               required
               autoFocus
@@ -103,12 +103,12 @@ export function ProjectDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("task.description")}</Label>
             <Textarea
               id="description"
               name="description"
               defaultValue={project?.description ?? ""}
-              placeholder="What is this project for?"
+              placeholder={t("project.descPlaceholder")}
               maxLength={2000}
               rows={3}
               aria-invalid={Boolean(errors?.description)}
@@ -123,11 +123,11 @@ export function ProjectDialog({
               onClick={() => onOpenChange(false)}
               disabled={pending}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending && <Loader2 className="animate-spin" />}
-              {editing ? "Save changes" : "Create project"}
+              {editing ? t("task.saveChanges") : t("project.create")}
             </Button>
           </DialogFooter>
         </form>

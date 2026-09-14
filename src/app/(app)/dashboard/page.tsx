@@ -31,8 +31,12 @@ import {
   requireProfile,
 } from "@/lib/data/queries";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("nav.dashboard") };
+}
 
 export default async function DashboardPage() {
   // Five bounded reads instead of "fetch every task, then reduce it here".
@@ -48,16 +52,17 @@ export default async function DashboardPage() {
       getProjects(),
     ]);
 
+  const { t, tn } = await getI18n();
   const firstName = profile.full_name?.split(" ")[0];
 
   return (
     <PageShell>
       <PageHeader
-        title={firstName ? `Welcome back, ${firstName}` : "Dashboard"}
+        title={firstName ? t("dash.welcome", { name: firstName }) : t("nav.dashboard")}
         description={
           <>
-            {projects.length} {projects.length === 1 ? "project" : "projects"} ·{" "}
-            {metrics.total} {metrics.total === 1 ? "task" : "tasks"} you can see
+            {tn("count.projects", projects.length)} ·{" "}
+            {t("dash.youCanSee", { tasks: tn("count.tasks", metrics.total) })}
           </>
         }
       />
@@ -72,44 +77,44 @@ export default async function DashboardPage() {
               scrolling before the first list came into view. */}
           <section className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-6">
             <MetricCard
-              label="To Do"
+              label={t("status.todo")}
               value={metrics.todo}
-              hint="Not started"
+              hint={t("dash.notStarted")}
               icon={<CircleDashed />}
               href="/tasks?filter=todo"
             />
             <MetricCard
-              label="Pending"
+              label={t("filter.pending")}
               value={metrics.pending}
-              hint="Not yet done"
+              hint={t("dash.notYetDone")}
               icon={<CircleDot />}
               href="/tasks?filter=pending"
             />
             <MetricCard
-              label="In Review"
+              label={t("status.in_review")}
               value={metrics.inReview}
-              hint="Awaiting review"
+              hint={t("dash.awaitingReview")}
               icon={<Eye />}
               href="/tasks?filter=in_review"
             />
             <MetricCard
-              label="Completed"
+              label={t("filter.done")}
               value={metrics.done}
-              hint={`${metrics.completionRate}% of all`}
+              hint={t("dash.percentOfAll", { n: metrics.completionRate })}
               icon={<CircleCheck />}
               href="/tasks?filter=done"
             />
             <MetricCard
-              label="Due Today"
+              label={t("filter.dueToday")}
               value={metrics.dueToday}
-              hint="Due before midnight"
+              hint={t("dash.dueBeforeMidnight")}
               icon={<CalendarClock />}
               href="/tasks?filter=due_today"
             />
             <MetricCard
-              label="Overdue"
+              label={t("meta.overdue")}
               value={metrics.overdue}
-              hint={metrics.overdue === 0 ? "All clear" : "Past due"}
+              hint={metrics.overdue === 0 ? t("dash.allClear") : t("dash.pastDue")}
               icon={<CircleAlert />}
               emphasis={metrics.overdue > 0}
               href="/tasks?filter=overdue"
@@ -117,35 +122,34 @@ export default async function DashboardPage() {
           </section>
 
           <p className="-mt-1 text-xs text-muted-foreground">
-            {metrics.inProgress} in progress. Select any tile to see those
-            tasks.
+            {t("dash.inProgressNote", { n: metrics.inProgress })}
           </p>
 
           <Card>
             <CardHeader>
-              <CardTitle>Overall progress</CardTitle>
+              <CardTitle>{t("dash.overallProgress")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               <ProgressBar
                 value={metrics.completionRate}
-                label="Overall completion"
+                label={t("dash.overallCompletion")}
               />
               <p className="text-xs text-muted-foreground">
-                {metrics.done} of {metrics.total} tasks complete
+                {t("dash.completeOf", { done: metrics.done, total: metrics.total })}
               </p>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <TaskListCard
-              title="Assigned to you"
+              title={t("dash.assignedToYou")}
               tasks={myTasks}
-              empty="Nothing is assigned to you right now."
+              empty={t("dash.nothingAssigned")}
             />
             <TaskListCard
-              title="Needs attention"
+              title={t("dash.needsAttention")}
               tasks={attention}
-              empty="No overdue tasks."
+              empty={t("dash.noOverdue")}
             />
           </div>
 
@@ -206,20 +210,17 @@ function taskHref(task: { project_id: string | null }) {
   return task.project_id ? `/projects/${task.project_id}` : "/general";
 }
 
-function NoProjects({ canCreate }: { canCreate: boolean }) {
+async function NoProjects({ canCreate }: { canCreate: boolean }) {
+  const { t } = await getI18n();
   return (
     <EmptyState
       icon={<FolderOpen />}
-      title="Nothing here yet"
-      description={
-        canCreate
-          ? "Create a project from the sidebar to start tracking work, or add a general task for anything that does not belong to one."
-          : "Once you are added to a project, or a task is assigned to you, it will appear here."
-      }
+      title={t("dash.empty.title")}
+      description={canCreate ? t("dash.empty.create") : t("dash.empty.wait")}
       action={
         canCreate ? (
           <Button variant="outline" size="sm" asChild>
-            <Link href="/general">Go to general tasks</Link>
+            <Link href="/general">{t("dash.empty.goGeneral")}</Link>
           </Button>
         ) : undefined
       }

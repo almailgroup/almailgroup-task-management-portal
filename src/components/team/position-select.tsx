@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { updateMemberPosition } from "@/lib/data/profile-actions";
 import { POSITION_PRESETS } from "@/lib/positions";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * Admin control for a member's job position.
@@ -33,6 +34,7 @@ export function PositionSelect({
   jobTitle: string | null;
 }) {
   const router = useRouter();
+  const { t, tm } = useI18n();
   const [value, setValue] = React.useState(jobTitle ?? "");
   const [custom, setCustom] = React.useState("");
   const [editing, setEditing] = React.useState(false);
@@ -50,11 +52,11 @@ export function PositionSelect({
 
     if (!outcome.ok) {
       setValue(previous); // Roll back to the server's truth.
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
-    toast.success(next ? "Position updated" : "Position cleared");
+    toast.success(next ? t("position.updated") : t("position.cleared"));
     setEditing(false);
     setCustom("");
     router.refresh();
@@ -72,15 +74,15 @@ export function PositionSelect({
         <Input
           value={custom}
           onChange={(event) => setCustom(event.target.value)}
-          placeholder="Type a position"
+          placeholder={t("position.typePlaceholder")}
           maxLength={60}
           autoFocus
           className="h-8 w-[11rem] text-xs"
-          aria-label="Custom position"
+          aria-label={t("position.custom")}
         />
         <Button type="submit" size="sm" disabled={pending}>
           {pending && <Loader2 className="animate-spin" />}
-          Save
+          {t("common.save")}
         </Button>
         <Button
           type="button"
@@ -91,7 +93,7 @@ export function PositionSelect({
             setCustom("");
           }}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
       </form>
     );
@@ -108,13 +110,13 @@ export function PositionSelect({
         >
           {pending && <Loader2 className="animate-spin" />}
           <span className={cn("truncate", !value && "text-muted-foreground")}>
-            {value || "No position"}
+            {value || t("position.none")}
           </span>
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Position</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("position.label")}</DropdownMenuLabel>
 
         {POSITION_PRESETS.map((preset) => (
           <DropdownMenuItem key={preset} onSelect={() => save(preset)}>
@@ -135,12 +137,12 @@ export function PositionSelect({
           }}
         >
           <Pencil />
-          Type a custom position
+          {t("position.typeCustom")}
         </DropdownMenuItem>
 
         {value && (
           <DropdownMenuItem onSelect={() => save("")}>
-            Clear position
+            {t("position.clear")}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

@@ -15,7 +15,6 @@ import {
 } from "@/components/tasks/task-meta";
 import { isOverdue } from "@/lib/dates";
 import {
-  WEEKDAYS,
   addMonths,
   dayKey,
   isSameDay,
@@ -24,7 +23,9 @@ import {
   parseMonthParam,
   startOfDay,
   startOfMonth,
+  weekdayLabels,
 } from "@/lib/calendar";
+import { useI18n } from "@/lib/i18n/client";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 import type {
@@ -59,6 +60,8 @@ export function CalendarView({
   const router = useRouter();
   const params = useSearchParams();
   const nowMs = useNow();
+  const { t, tag } = useI18n();
+  const weekdays = React.useMemo(() => weekdayLabels(tag, "short"), [tag]);
 
   const [month, setMonth] = React.useState<Date>(
     () => parseMonthParam(params.get("month")) ?? startOfMonth(new Date()),
@@ -79,8 +82,9 @@ export function CalendarView({
 
   const projectName = React.useMemo(() => {
     const map = new Map(projects.map((p) => [p.id, p.name]));
-    return (id: string | null) => (id ? (map.get(id) ?? "Project") : "General");
-  }, [projects]);
+    return (id: string | null) =>
+      id ? (map.get(id) ?? t("common.project")) : t("common.general");
+  }, [projects, t]);
 
   // Grouped by local day; undated ones set aside rather than lost.
   const { byDay, undated } = React.useMemo(() => {
@@ -118,12 +122,12 @@ export function CalendarView({
   return (
     <PageShell>
       <PageHeader
-        title="Calendar"
+        title={t("nav.calendar")}
         icon={<CalendarDays />}
         description={
           <>
-            {dueThisMonth} due this month
-            {undated > 0 && ` · ${undated} with no date`}
+            {t("cal.dueThisMonth", { n: dueThisMonth })}
+            {undated > 0 && ` · ${t("cal.noDate", { n: undated })}`}
           </>
         }
         actions={
@@ -132,7 +136,7 @@ export function CalendarView({
               variant="outline"
               size="icon-sm"
               onClick={() => goTo(addMonths(month, -1))}
-              aria-label="Previous month"
+              aria-label={t("cal.prevMonth")}
             >
               <ChevronLeft className="rtl:-scale-x-100" />
             </Button>
@@ -141,13 +145,13 @@ export function CalendarView({
               size="sm"
               onClick={() => goTo(startOfMonth(new Date()))}
             >
-              Today
+              {t("nav.today")}
             </Button>
             <Button
               variant="outline"
               size="icon-sm"
               onClick={() => goTo(addMonths(month, 1))}
-              aria-label="Next month"
+              aria-label={t("cal.nextMonth")}
             >
               <ChevronRight className="rtl:-scale-x-100" />
             </Button>
@@ -156,19 +160,19 @@ export function CalendarView({
       />
 
       <h2 className="-mt-1 text-lg font-semibold tracking-tight" aria-live="polite">
-        {month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+        {month.toLocaleDateString(tag, { month: "long", year: "numeric" })}
       </h2>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-sm)]">
         <div className="grid grid-cols-7 border-b border-border bg-muted/60 text-center text-[0.6875rem] font-medium text-muted-foreground sm:text-xs">
-          {WEEKDAYS.map((day) => (
+          {weekdays.map((day) => (
             <div key={day} className="py-2">
               {day}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7" role="grid" aria-label="Tasks by due date">
+        <div className="grid grid-cols-7" role="grid" aria-label={t("cal.gridLabel")}>
           {days.map((day) => {
             const key = dayKey(day);
             const list = byDay.get(key) ?? [];
@@ -194,7 +198,10 @@ export function CalendarView({
                 <button
                   type="button"
                   onClick={() => setSelectedDay(selected ? null : day)}
-                  aria-label={`${day.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}, ${list.length} due`}
+                  aria-label={t("cal.dayLabel", {
+                    date: day.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long" }),
+                    n: list.length,
+                  })}
                   className="flex flex-1 flex-col items-start rounded-lg text-start md:pointer-events-none"
                 >
                   <span
@@ -243,7 +250,7 @@ export function CalendarView({
                         onClick={() => setSelectedDay(day)}
                         className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
                       >
-                        +{list.length - 3} more
+                        {t("cal.more", { n: list.length - 3 })}
                       </button>
                     </li>
                   )}
@@ -255,13 +262,13 @@ export function CalendarView({
       </div>
 
       {selectedDay && (
-        <section aria-label="Tasks on the selected day" className="flex flex-col gap-2">
+        <section aria-label={t("cal.selectedSection")} className="flex flex-col gap-2">
           <h3 className="text-sm font-medium">
-            {selectedDay.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+            {selectedDay.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long" })}
             <span className="ms-1.5 text-muted-foreground">{selectedTasks.length}</span>
           </h3>
           {selectedTasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing due that day.</p>
+            <p className="text-sm text-muted-foreground">{t("cal.nothingThatDay")}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {selectedTasks.map((task) => (

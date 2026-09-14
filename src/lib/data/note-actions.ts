@@ -42,11 +42,11 @@ export async function createNote(
   title = "",
 ): Promise<ActionResult<PersonalNote>> {
   const parsed = titleSchema.safeParse(title);
-  if (!parsed.success) return fail("That title is too long.");
+  if (!parsed.success) return fail("action.titleTooLong");
 
   const supabase = await createClient();
   const userId = await currentUserId(supabase);
-  if (!userId) return fail("Your session expired. Please sign in again.");
+  if (!userId) return fail("action.sessionExpired");
 
   const { data, error } = await supabase
     .from("personal_notes")
@@ -65,12 +65,12 @@ export async function saveNote(
   noteId: string,
   input: { title: string; body: string },
 ): Promise<ActionResult<{ updatedAt: string }>> {
-  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
+  if (!uuid.safeParse(noteId).success) return fail("action.unknownNote");
 
   const title = titleSchema.safeParse(input.title);
   const body = bodySchema.safeParse(input.body);
-  if (!title.success) return fail("Keep the title under 200 characters.");
-  if (!body.success) return fail("That note is too long to save.");
+  if (!title.success) return fail("action.titleUnder200");
+  if (!body.success) return fail("action.noteTooLong");
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -81,7 +81,7 @@ export async function saveNote(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("That note no longer exists.");
+  if (!data) return fail("action.noteGone");
 
   revalidatePath("/my-list");
   return ok({ updatedAt: data.updated_at });
@@ -91,7 +91,7 @@ export async function setNotePinned(
   noteId: string,
   pinned: boolean,
 ): Promise<ActionResult<void>> {
-  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
+  if (!uuid.safeParse(noteId).success) return fail("action.unknownNote");
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -102,7 +102,7 @@ export async function setNotePinned(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("That note no longer exists.");
+  if (!data) return fail("action.noteGone");
 
   revalidatePath("/my-list");
   return ok(undefined);
@@ -111,7 +111,7 @@ export async function setNotePinned(
 export async function deleteNote(
   noteId: string,
 ): Promise<ActionResult<void>> {
-  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
+  if (!uuid.safeParse(noteId).success) return fail("action.unknownNote");
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -122,7 +122,7 @@ export async function deleteNote(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("That note no longer exists.");
+  if (!data) return fail("action.noteGone");
 
   revalidatePath("/my-list");
   return ok(undefined);
@@ -138,13 +138,13 @@ export async function addNoteItem(
   noteId: string,
   content = "",
 ): Promise<ActionResult<PersonalNoteItem>> {
-  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
+  if (!uuid.safeParse(noteId).success) return fail("action.unknownNote");
   const parsed = contentSchema.safeParse(content);
-  if (!parsed.success) return fail("That line is too long.");
+  if (!parsed.success) return fail("action.lineTooLong");
 
   const supabase = await createClient();
   const userId = await currentUserId(supabase);
-  if (!userId) return fail("Your session expired. Please sign in again.");
+  if (!userId) return fail("action.sessionExpired");
 
   const { data: last } = await supabase
     .from("personal_note_items")
@@ -175,13 +175,13 @@ export async function updateNoteItem(
   itemId: string,
   input: { content?: string; done?: boolean },
 ): Promise<ActionResult<void>> {
-  if (!uuid.safeParse(itemId).success) return fail("Unknown item.");
+  if (!uuid.safeParse(itemId).success) return fail("action.unknownItem");
 
   const patch: { content?: string; done?: boolean } = {};
 
   if (input.content !== undefined) {
     const parsed = contentSchema.safeParse(input.content);
-    if (!parsed.success) return fail("That line is too long.");
+    if (!parsed.success) return fail("action.lineTooLong");
     patch.content = parsed.data;
   }
   if (input.done !== undefined) patch.done = input.done;
@@ -196,7 +196,7 @@ export async function updateNoteItem(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("That line no longer exists.");
+  if (!data) return fail("action.lineGone");
 
   revalidatePath("/my-list");
   return ok(undefined);
@@ -205,7 +205,7 @@ export async function updateNoteItem(
 export async function deleteNoteItem(
   itemId: string,
 ): Promise<ActionResult<void>> {
-  if (!uuid.safeParse(itemId).success) return fail("Unknown item.");
+  if (!uuid.safeParse(itemId).success) return fail("action.unknownItem");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -223,7 +223,7 @@ export async function deleteNoteItem(
 export async function clearDoneItems(
   noteId: string,
 ): Promise<ActionResult<void>> {
-  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
+  if (!uuid.safeParse(noteId).success) return fail("action.unknownNote");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -251,13 +251,13 @@ export async function shareNote(
   noteId: string,
   userId: string,
 ): Promise<ActionResult<void>> {
-  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
-  if (!uuid.safeParse(userId).success) return fail("Unknown person.");
+  if (!uuid.safeParse(noteId).success) return fail("action.unknownNote");
+  if (!uuid.safeParse(userId).success) return fail("action.unknownPerson");
 
   const supabase = await createClient();
   const currentId = await currentUserId(supabase);
-  if (!currentId) return fail("Your session expired. Please sign in again.");
-  if (currentId === userId) return fail("This list is already yours.");
+  if (!currentId) return fail("action.sessionExpired");
+  if (currentId === userId) return fail("action.listAlreadyYours");
 
   const { error } = await supabase
     .from("personal_note_shares")
@@ -266,13 +266,13 @@ export async function shareNote(
   // Already shared: nothing to do, and not worth an error.
   if (error && error.code !== "23505") {
     if (error.code === "42501") {
-      return fail("Only the owner of a list can share it.");
+      return fail("action.onlyOwnerShares");
     }
     // The table arrives with migration 0019. Until it is applied, say which
     // step is missing rather than reporting a relation nobody has heard of.
     if (error.code === "42P01" || error.code === "PGRST205") {
       return fail(
-        "Sharing is not set up on this workspace yet — an admin needs to run the latest supabase/setup.sql.",
+        "action.sharingNotSetUp",
       );
     }
     return fail(describeDatabaseError(error));
@@ -287,8 +287,8 @@ export async function unshareNote(
   noteId: string,
   userId: string,
 ): Promise<ActionResult<void>> {
-  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
-  if (!uuid.safeParse(userId).success) return fail("Unknown person.");
+  if (!uuid.safeParse(noteId).success) return fail("action.unknownNote");
+  if (!uuid.safeParse(userId).success) return fail("action.unknownPerson");
 
   const supabase = await createClient();
 
@@ -312,7 +312,7 @@ export async function unshareNote(
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (still) return fail("Only the owner of a list can remove someone else.");
+    if (still) return fail("action.onlyOwnerRemoves");
   }
 
   revalidatePath("/my-list");

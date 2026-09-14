@@ -20,6 +20,7 @@ import {
   avatarPath,
 } from "@/lib/positions";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/client";
 import type { Profile } from "@/lib/supabase/database.types";
 
 /**
@@ -33,6 +34,7 @@ import type { Profile } from "@/lib/supabase/database.types";
  */
 export function AvatarUpload({ profile }: { profile: Profile }) {
   const router = useRouter();
+  const { t, tm } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const input = React.useRef<HTMLInputElement>(null);
 
@@ -45,11 +47,11 @@ export function AvatarUpload({ profile }: { profile: Profile }) {
     if (!file) return;
 
     if (!AVATAR_MIME_TYPES.includes(file.type)) {
-      toast.error("Choose a PNG, JPEG, WebP or GIF image.");
+      toast.error(t("avatar.badType"));
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      toast.error("That image is over 2 MB. Choose a smaller one.");
+      toast.error(t("avatar.tooBig"));
       return;
     }
 
@@ -62,7 +64,7 @@ export function AvatarUpload({ profile }: { profile: Profile }) {
 
     if (uploadError) {
       setBusy(false);
-      toast.error("Could not upload that image.");
+      toast.error(t("avatar.uploadFailed"));
       return;
     }
 
@@ -74,12 +76,12 @@ export function AvatarUpload({ profile }: { profile: Profile }) {
     setBusy(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
     setUrl(publicUrl);
-    toast.success("Profile picture updated");
+    toast.success(t("avatar.updated"));
     router.refresh();
   }
 
@@ -89,12 +91,12 @@ export function AvatarUpload({ profile }: { profile: Profile }) {
     setBusy(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
     setUrl(null);
-    toast.success("Profile picture removed");
+    toast.success(t("avatar.removed"));
     router.refresh();
   }
 
@@ -124,7 +126,7 @@ export function AvatarUpload({ profile }: { profile: Profile }) {
             disabled={busy}
           >
             {busy ? <Loader2 className="animate-spin" /> : <Camera />}
-            {url ? "Change picture" : "Upload picture"}
+            {url ? t("avatar.change") : t("avatar.upload")}
           </Button>
 
           {url && (
@@ -136,12 +138,12 @@ export function AvatarUpload({ profile }: { profile: Profile }) {
               disabled={busy}
             >
               <Trash2 />
-              Remove
+              {t("avatar.remove")}
             </Button>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          PNG, JPEG, WebP or GIF, up to 2 MB.
+          {t("avatar.hint")}
         </p>
       </div>
     </div>

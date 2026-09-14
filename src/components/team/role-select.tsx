@@ -27,7 +27,7 @@ export function RoleSelect({
   disabled?: boolean;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, tm } = useI18n();
   const [pending, setPending] = React.useState(false);
   const [value, setValue] = React.useState<UserRole>(role);
 
@@ -42,11 +42,11 @@ export function RoleSelect({
 
     if (!outcome.ok) {
       setValue(previous); // Roll the control back to the server's truth.
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
-    toast.success("Role updated");
+    toast.success(t("team.roleUpdated"));
     router.refresh();
   }
 

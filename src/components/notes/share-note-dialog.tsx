@@ -24,6 +24,7 @@ import {
 import { initialsFrom } from "@/lib/initials";
 import { shareNote, unshareNote } from "@/lib/data/note-actions";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { NoteWithItems, Profile } from "@/lib/supabase/database.types";
 
 /**
@@ -50,6 +51,7 @@ export function ShareNoteDialog({
   onLeft: () => void;
 }) {
   const router = useRouter();
+  const { t, tn, tm } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState<string | null>(null);
 
@@ -63,10 +65,10 @@ export function ShareNoteDialog({
     setPending(null);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
-    toast.success(`${person.full_name ?? person.email} can see this list`);
+    toast.success(t("share.canSee", { name: person.full_name ?? person.email }));
     router.refresh();
   }
 
@@ -76,16 +78,16 @@ export function ShareNoteDialog({
     setPending(null);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
     if (person.id === profile.id) {
       setOpen(false);
       onLeft();
-      toast.success("You left this list");
+      toast.success(t("share.left"));
     } else {
-      toast.success(`${person.full_name ?? person.email} was removed`);
+      toast.success(t("share.removed", { name: person.full_name ?? person.email }));
     }
     router.refresh();
   }
@@ -98,12 +100,8 @@ export function ShareNoteDialog({
         variant="ghost"
         size="icon-sm"
         onClick={() => setOpen(true)}
-        aria-label={
-          count === 0
-            ? "Share this list"
-            : `Shared with ${count} ${count === 1 ? "person" : "people"}`
-        }
-        title={count === 0 ? "Share" : `Shared with ${count}`}
+        aria-label={count === 0 ? t("share.this") : tn("share.sharedWith", count)}
+        title={count === 0 ? t("share.short") : t("notes.sharedWith", { n: count })}
         className={cn(count > 0 && "text-foreground")}
       >
         <Users />
@@ -112,11 +110,13 @@ export function ShareNoteDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Share this list</DialogTitle>
+            <DialogTitle>{t("share.this")}</DialogTitle>
             <DialogDescription>
               {note.mine
-                ? "Anyone you add can write in this list, tick lines off and add their own. Only you can delete it."
-                : `${note.owner?.full_name ?? note.owner?.email ?? "Someone"} shared this list with you. You can write in it; only they can delete it or add anyone else.`}
+                ? t("share.ownerDesc")
+                : t("share.guestDesc", {
+                    name: note.owner?.full_name ?? note.owner?.email ?? t("common.someone"),
+                  })}
             </DialogDescription>
           </DialogHeader>
 
@@ -124,7 +124,7 @@ export function ShareNoteDialog({
             <Person
               person={note.owner}
               you={note.owner?.id === profile.id}
-              badge="Owner"
+              badge={t("share.owner")}
             />
             {collaborators.map((person) => (
               <Person
@@ -141,8 +141,8 @@ export function ShareNoteDialog({
                       disabled={pending === person.id}
                       aria-label={
                         person.id === profile.id
-                          ? "Leave this list"
-                          : `Remove ${person.full_name ?? person.email}`
+                          ? t("share.leave")
+                          : t("assign.remove", { name: person.full_name ?? person.email })
                       }
                     >
                       {pending === person.id ? (
@@ -168,14 +168,14 @@ export function ShareNoteDialog({
                   disabled={candidates.length === 0}
                 >
                   <UserPlus />
-                  {candidates.length === 0 ? "Everyone is on it" : "Add someone"}
+                  {candidates.length === 0 ? t("share.everyoneOn") : t("members.addSomeone")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
                 className="max-h-64 w-64 overflow-y-auto"
               >
-                <DropdownMenuLabel>Share with</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("share.with")}</DropdownMenuLabel>
                 {candidates.map((person) => (
                   <DropdownMenuItem
                     key={person.id}
@@ -218,6 +218,7 @@ function Person({
   badge?: string;
   action?: React.ReactNode;
 }) {
+  const { t } = useI18n();
   if (!person) return null;
 
   return (
@@ -234,7 +235,7 @@ function Person({
           {person.full_name ?? person.email}
           {you && (
             <span className="ms-1.5 text-xs font-normal text-muted-foreground">
-              you
+              {t("common.you")}
             </span>
           )}
         </span>

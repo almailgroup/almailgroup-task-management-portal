@@ -11,6 +11,7 @@ import {
 import { compactAge, formatElapsed } from "@/lib/dates";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**
@@ -75,6 +76,8 @@ export const TaskCard = React.forwardRef<
  */
 function ElapsedSinceCreated({ createdAt }: { createdAt: string }) {
   const now = useNow();
+  const i18n = useI18n();
+  const { t, tag } = i18n;
 
   return (
     <span
@@ -83,22 +86,25 @@ function ElapsedSinceCreated({ createdAt }: { createdAt: string }) {
       title={
         now === null
           ? undefined
-          : `Open ${formatElapsed(createdAt, now)} · created ${new Date(createdAt).toLocaleString()}`
+          : t("card.openFor", {
+              elapsed: formatElapsed(createdAt, now),
+              created: new Date(createdAt).toLocaleString(tag),
+            })
       }
     >
       <Timer className="size-3 shrink-0" />
-      {now === null ? "—" : compactAge(createdAt, now)}
-      <span className="sr-only">since this task was created</span>
+      {now === null ? "—" : compactAge(createdAt, now, i18n)}
+      <span className="sr-only">{t("card.sinceCreated")}</span>
     </span>
   );
 }
 
 /** Screen-reader hint describing how to move a card with the keyboard. */
 export function DragInstructions() {
+  const { t } = useI18n();
   return (
     <p className="sr-only" id="kanban-drag-instructions">
-      Press space or enter to pick up a task, use the arrow keys to move it
-      between columns, then press space or enter again to drop it.
+      {t("kanban.dragInstructions")}
     </p>
   );
 }

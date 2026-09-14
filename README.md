@@ -306,6 +306,43 @@ use the arrow keys (<kbd>Shift</kbd> for larger steps, <kbd>Home</kbd> and
 reset. The width is remembered per browser between 208px and 440px, and is
 applied before first paint so it never snaps into place on load.
 
+## Languages
+
+The portal reads in English or Arabic. The selector sits in the header —
+of the app, and of the sign-in screens — and the choice is kept in a `lang`
+cookie, so it holds across sessions and devices that share a browser.
+
+Choosing Arabic mirrors the whole interface rather than only swapping the
+words: `<html dir="rtl">`, the sidebar on the right, the drawer sliding in
+from the right, chevrons and arrows flipped, tables and forms reading
+right-to-left. Every layout utility names its logical side (`ps-`, `me-`,
+`text-start`, `border-e`) rather than a physical one, which is what lets one
+set of components serve both directions. Arabic text is set in Noto Sans
+Arabic, with Latin words inside a sentence — a container number, an email
+address — still falling through to Geist. Dates are formatted for `ar-AE`
+with Western digits, since that is how the company's own documents read.
+
+The dictionaries live in `src/lib/i18n/`: flat, namespaced keys
+(`"nav.dashboard"`, `"task.saveChanges"`) with English as the source of truth
+and Arabic typed against it, so a key missing from either fails the build.
+Server Components call `getI18n()`; client components call `useI18n()`.
+Both hand back:
+
+- `t(key, vars)` for a phrase, with `{name}` placeholders;
+- `tn(key, count)` for anything counted — Arabic has six plural categories
+  to English's two, and the dictionary carries each form it needs;
+- `tm(message)` for a message that may be a key. Server Actions, validation
+  and the database helpers return their messages as keys, so one action
+  serves every language and the client shows it in the reader's.
+
+MAHAM AI answers in the language it is asked in, and understands the
+tracking questions in both.
+
+To add a language: add its code to `LOCALES`, a dictionary file typed as
+`Dictionary`, its label to `LOCALE_LABELS`, and — if it reads right-to-left
+— its direction in `directionFor`. The unit test in `tests/unit/i18n.test.ts`
+checks every key, placeholder and plural form is present.
+
 ## Project structure
 
 ```
@@ -329,6 +366,7 @@ src/
 ├── lib/
 │   ├── action-result.ts        # typed Server Action results
 │   ├── constants.ts            # status, priority, role vocabulary
+│   ├── i18n/                   # English and Arabic dictionaries, translator
 │   ├── mentions.tsx            # @mention parsing and rendering
 │   ├── metrics.ts              # dashboard aggregation
 │   ├── validation.ts           # zod schemas
@@ -706,6 +744,9 @@ actually had, not towards a coverage number:
   and that a `javascript:` URL cannot be stored as a link.
 - **`metrics` / `task-filters` / `sidebar`** — the arithmetic behind the
   dashboard, the filters and the resizable rail.
+- **`i18n` / `server-messages`** — that the Arabic dictionary has every key,
+  placeholder and plural form the English one has, and that no Server Action
+  returns an English sentence where the client expects a key.
 
 The end-to-end tests cover the pages reachable without a session, plus two
 rules that apply everywhere and keep getting broken by accident: no page may

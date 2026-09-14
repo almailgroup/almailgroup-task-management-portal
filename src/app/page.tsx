@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LanguageSelector } from "@/components/layout/language-selector";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
@@ -39,17 +40,18 @@ export default async function Home() {
               A
             </div>
             <span className="text-sm font-medium tracking-tight">
-              Almailgroup
+              {t("shell.brand")}
             </span>
             <Badge variant="muted" className="hidden sm:inline-flex">
-              Task Portal
+              {t("shell.tagline")}
             </Badge>
           </div>
           <div className="flex items-center gap-1">
+            <LanguageSelector />
             <ThemeToggle />
             <Button size="sm" variant="outline" asChild>
               <Link href="/login">
-                Sign in
+                {t("auth.signIn")}
                 <ArrowRight className="rtl:-scale-x-100" />
               </Link>
             </Button>
@@ -60,21 +62,20 @@ export default async function Home() {
       <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
         <div className="max-w-2xl">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Task Management Portal
+            {t("landing.title")}
           </h1>
           <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-            Projects, tasks and real-time collaboration for Almailgroup teams —
-            built on Next.js, Supabase and a deliberately monochrome interface.
+            {t("landing.blurb")}
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Button asChild>
               <Link href="/login">
-                Sign in
+                {t("auth.signIn")}
                 <ArrowRight className="rtl:-scale-x-100" />
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/register">Create an account</Link>
+              <Link href="/register">{t("landing.createAccount")}</Link>
             </Button>
           </div>
         </div>
@@ -84,7 +85,7 @@ export default async function Home() {
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Task status</CardTitle>
+              <CardTitle>{t("landing.taskStatus")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-1.5">
               {TASK_STATUSES.map((status) => (
@@ -97,7 +98,7 @@ export default async function Home() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Priority scale</CardTitle>
+              <CardTitle>{t("landing.priorityScale")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {TASK_PRIORITIES.map((priority) => (
@@ -128,13 +129,13 @@ export default async function Home() {
           <section className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Setup</CardTitle>
+                <CardTitle>{t("landing.setup")}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-2 text-sm">
-                <SetupRow done label="Next.js, TypeScript and Tailwind CSS" />
-                <SetupRow done label="Geist typography and monochrome tokens" />
-                <SetupRow done label="UI primitives and theme switching" />
-                <SetupRow label="Add Supabase credentials to .env.local" />
+                <SetupRow done label={t("landing.setup.stack")} />
+                <SetupRow done label={t("landing.setup.type")} />
+                <SetupRow done label={t("landing.setup.ui")} />
+                <SetupRow label={t("landing.setup.env")} />
               </CardContent>
             </Card>
           </section>

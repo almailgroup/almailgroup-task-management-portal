@@ -27,9 +27,13 @@ describe("dictionaries", () => {
     }
   });
 
+  /** Read the same in both languages: an address, a product name. */
+  const SAME_IN_BOTH = new Set(["auth.emailPlaceholder", "team.emailPlaceholder"]);
+
   it("nothing is left empty or untranslated", () => {
     for (const [key, value] of Object.entries(ar) as [string, string][]) {
       expect(value.trim(), key).not.toBe("");
+      if (SAME_IN_BOTH.has(key)) continue;
       // A key copied over verbatim is a placeholder someone forgot — unless the
       // English is itself a proper noun or symbol that reads the same in both.
       if (/[A-Za-z]{3,}/.test(value) && !/[؀-ۿ]/.test(value)) {

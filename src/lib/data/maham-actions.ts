@@ -3,6 +3,7 @@
 import { buildSnapshot } from "@/lib/maham/snapshot";
 import { answerLocally } from "@/lib/maham/local-brain";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { getI18n } from "@/lib/i18n/server";
 import type { MahamAnswer, MahamMessage } from "@/lib/maham/types";
 
 /**
@@ -21,14 +22,14 @@ export async function askMaham(
   messages: MahamMessage[],
 ): Promise<ActionResult<MahamAnswer>> {
   const question = [...messages].reverse().find((m) => m.role === "user")?.text;
-  if (!question?.trim()) return fail("Ask me something about your tasks.");
-  if (question.length > 2000) return fail("That question is too long.");
+  if (!question?.trim()) return fail("action.askSomething");
+  if (question.length > 2000) return fail("action.questionTooLong");
 
-  const snapshot = await buildSnapshot();
+  const [snapshot, i18n] = await Promise.all([buildSnapshot(), getI18n()]);
   const endpoint = process.env.MAHAM_WORKER_URL;
 
   if (!endpoint) {
-    return ok(answerLocally(question, snapshot));
+    return ok(answerLocally(question, snapshot, i18n));
   }
 
   try {
@@ -55,6 +56,6 @@ export async function askMaham(
   } catch {
     // Deliberately silent about the cause: the person asking cannot act on a
     // Worker error, and the local answer is usually still useful.
-    return ok(answerLocally(question, snapshot));
+    return ok(answerLocally(question, snapshot, i18n));
   }
 }

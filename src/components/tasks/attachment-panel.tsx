@@ -30,6 +30,7 @@ import {
   linkHost,
 } from "@/lib/attachments";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/client";
 import type { Profile, TaskAttachment } from "@/lib/supabase/database.types";
 
 /**
@@ -47,6 +48,7 @@ export function AttachmentPanel({
   currentProfile: Profile;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
+  const { t, tm } = useI18n();
   const fileInput = React.useRef<HTMLInputElement>(null);
 
   const [items, setItems] = React.useState<TaskAttachment[] | null>(null);
@@ -63,12 +65,12 @@ export function AttachmentPanel({
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast.error("Could not load attachments.");
+      toast.error(t("attach.loadFailed"));
       setItems([]);
       return;
     }
     setItems(data ?? []);
-  }, [supabase, taskId]);
+  }, [supabase, taskId, t]);
 
   React.useEffect(() => {
     load();
@@ -85,7 +87,11 @@ export function AttachmentPanel({
     for (const file of files) {
       if (file.size > MAX_ATTACHMENT_BYTES) {
         toast.error(
-          `${file.name} is ${formatBytes(file.size)} — the limit is ${formatBytes(MAX_ATTACHMENT_BYTES)}.`,
+          t("attach.tooBig", {
+            name: file.name,
+            size: formatBytes(file.size),
+            limit: formatBytes(MAX_ATTACHMENT_BYTES),
+          }),
         );
         continue;
       }
@@ -97,7 +103,7 @@ export function AttachmentPanel({
         .upload(path, file, { cacheControl: "3600", upsert: false });
 
       if (uploadError) {
-        toast.error(`Could not upload ${file.name}.`);
+        toast.error(t("attach.uploadFailed", { name: file.name }));
         continue;
       }
 
@@ -109,7 +115,7 @@ export function AttachmentPanel({
       });
 
       if (!outcome.ok) {
-        toast.error(outcome.error);
+        toast.error(tm(outcome.error));
         continue;
       }
     }
@@ -127,7 +133,7 @@ export function AttachmentPanel({
     setSavingLink(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
@@ -148,7 +154,7 @@ export function AttachmentPanel({
     setOpening(null);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     window.open(outcome.data.url, "_blank", "noopener,noreferrer");
@@ -157,7 +163,7 @@ export function AttachmentPanel({
   async function remove(attachment: TaskAttachment) {
     const outcome = await deleteAttachment(attachment.id);
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     setItems((current) =>
@@ -188,7 +194,7 @@ export function AttachmentPanel({
           disabled={uploading}
         >
           {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-          {uploading ? "Uploading" : "Upload file"}
+          {uploading ? t("attach.uploading") : t("attach.upload")}
         </Button>
         <Button
           type="button"
@@ -197,10 +203,10 @@ export function AttachmentPanel({
           onClick={() => setShowLinkForm((open) => !open)}
         >
           <Link2 />
-          Add link
+          {t("attach.addLink")}
         </Button>
         <span className="text-xs text-muted-foreground">
-          Up to {formatBytes(MAX_ATTACHMENT_BYTES)} per file
+          {t("attach.limit", { limit: formatBytes(MAX_ATTACHMENT_BYTES) })}
         </span>
       </div>
 
@@ -210,17 +216,17 @@ export function AttachmentPanel({
           className="flex flex-col gap-2 rounded-md border border-border p-3"
         >
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="attachment-name">Label</Label>
+            <Label htmlFor="attachment-name">{t("attach.label")}</Label>
             <Input
               id="attachment-name"
               name="name"
-              placeholder="Design spec"
+              placeholder={t("attach.labelPlaceholder")}
               maxLength={255}
               required
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="attachment-url">URL</Label>
+            <Label htmlFor="attachment-url">{t("attach.url")}</Label>
             <Input
               id="attachment-url"
               name="url"
@@ -236,11 +242,11 @@ export function AttachmentPanel({
               size="sm"
               onClick={() => setShowLinkForm(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" size="sm" disabled={savingLink}>
               {savingLink && <Loader2 className="animate-spin" />}
-              Add link
+              {t("attach.addLink")}
             </Button>
           </div>
         </form>
@@ -254,7 +260,7 @@ export function AttachmentPanel({
       ) : items.length === 0 ? (
         <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Paperclip className="size-3.5" />
-          Nothing attached yet.
+          {t("attach.empty")}
         </p>
       ) : (
         <ul className="flex flex-col gap-1.5">
@@ -295,7 +301,7 @@ export function AttachmentPanel({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => remove(attachment)}
-                  aria-label={`Remove ${attachment.name}`}
+                  aria-label={t("assign.remove", { name: attachment.name })}
                 >
                   <Trash2 />
                 </Button>

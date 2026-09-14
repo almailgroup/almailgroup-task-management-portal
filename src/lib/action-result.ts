@@ -29,30 +29,51 @@ export function fieldErrorsFrom(
 }
 
 /**
+ * The messages the database raises itself, in the SQL under supabase/, each
+ * mapped to its dictionary key so they can be shown in the reader's language.
+ * Anything else the database says is shown as it is.
+ */
+const RAISED_BY_SQL: Record<string, string> = {
+  "Only a manager or admin can mark a task done. Move it to In Review instead.": "kanban.doneGate",
+  "Only a manager or admin can reopen a completed task.": "kanban.reopenGate",
+  "Cannot remove the last admin. Promote another member first.": "db.lastAdmin",
+  "Only an admin can change a profile role": "db.roleAdminOnly",
+  "Only an admin can change a job position": "db.positionAdminOnly",
+  "Only a manager or admin can change task details. You can update the status and add comments or files.":
+    "db.detailsManagerOnly",
+};
+
+/**
  * Turn a PostgREST error into something a user can act on.
  *
  * RLS denials surface as 42501 (insufficient privilege) or as an empty result;
  * both mean "you are not allowed to do this", not "something broke".
+ *
+ * Returns a dictionary key where one fits, so the client can show it in the
+ * reader's language; the client's `tm` passes any other text through.
  */
 export function describeDatabaseError(error: {
   code?: string;
   message?: string;
 }): string {
+  const known = error.message ? RAISED_BY_SQL[error.message] : undefined;
+  if (known) return known;
+
   switch (error.code) {
     case "42501":
       // The review gate and the task-field guard raise this with a message
       // written for the user, so prefer it over the generic line.
-      return error.message || "You do not have permission to do that.";
+      return error.message || "db.noPermission";
     case "23505":
     case "23505_unique":
-      return "That already exists.";
+      return "db.exists";
     case "23503":
-      return "That record no longer exists.";
+      return "db.gone";
     case "23514":
-      return "Some of those values are not allowed.";
+      return "db.notAllowed";
     case "PGRST116":
-      return "Not found, or you do not have access to it.";
+      return "db.notFound";
     default:
-      return error.message || "Something went wrong. Please try again.";
+      return error.message || "common.somethingWrong";
   }
 }

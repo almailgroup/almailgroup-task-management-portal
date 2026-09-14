@@ -22,6 +22,7 @@ import {
   relativeDay,
   toLocalInput,
 } from "@/lib/dates";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**
@@ -39,6 +40,8 @@ export function RescheduleMenu({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const i18n = useI18n();
+  const { t, tm, tag } = i18n;
   const [pending, setPending] = React.useState(false);
   const [picking, setPicking] = React.useState(false);
   const [custom, setCustom] = React.useState("");
@@ -49,12 +52,12 @@ export function RescheduleMenu({
     setPending(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
 
     toast.success(
-      dueAt ? `Moved to ${formatDateTime(dueAt)}` : "Due date cleared",
+      dueAt ? t("resched.movedTo", { when: formatDateTime(dueAt, tag) }) : t("resched.cleared"),
     );
     setPicking(false);
     router.refresh();
@@ -76,18 +79,18 @@ export function RescheduleMenu({
           onChange={(event) => setCustom(event.target.value)}
           className="h-8 w-[13rem] text-xs"
           autoFocus
-          aria-label="New due date and time"
+          aria-label={t("resched.newDue")}
         />
         <Button type="submit" size="sm" disabled={pending || !custom}>
           {pending && <Loader2 className="animate-spin" />}
-          Move
+          {t("resched.move")}
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
           onClick={() => setPicking(false)}
-          aria-label="Cancel"
+          aria-label={t("common.cancel")}
         >
           <X />
         </Button>
@@ -102,20 +105,20 @@ export function RescheduleMenu({
           variant="outline"
           size={compact ? "icon-sm" : "sm"}
           disabled={pending}
-          aria-label="Reschedule"
+          aria-label={t("resched.label")}
           className={compact ? undefined : "gap-1.5 font-normal"}
         >
           {pending ? <Loader2 className="animate-spin" /> : <CalendarClock />}
-          {!compact && (task.due_at ? relativeDay(task.due_at) : "No due date")}
+          {!compact && (task.due_at ? relativeDay(task.due_at, i18n) : t("resched.noDueDate"))}
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel>Move due date</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("resched.moveDueDate")}</DropdownMenuLabel>
 
-        {quickDateOptions().map((option) => (
+        {quickDateOptions(i18n).map((option) => (
           <DropdownMenuItem
-            key={option.label}
+            key={option.key}
             onSelect={() => apply(option.value())}
           >
             {option.label}
@@ -131,12 +134,12 @@ export function RescheduleMenu({
             setPicking(true);
           }}
         >
-          Pick a date and time
+          {t("resched.pick")}
         </DropdownMenuItem>
 
         {task.due_at && (
           <DropdownMenuItem onSelect={() => apply(null)}>
-            Clear due date
+            {t("resched.clear")}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

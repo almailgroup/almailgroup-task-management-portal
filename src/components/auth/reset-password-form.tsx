@@ -10,10 +10,12 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { PasswordMeter } from "@/components/auth/password-meter";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { updatePassword } from "@/lib/auth/actions";
+import { useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
 
 export function ResetPasswordForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const [password, setPassword] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [done, setDone] = React.useState(false);
@@ -46,8 +48,8 @@ export function ResetPasswordForm() {
         <span className="flex size-11 items-center justify-center rounded-full border border-border bg-muted">
           <CheckCircle2 className="size-5" />
         </span>
-        <p className="font-medium">Password changed</p>
-        <p className="text-sm text-muted-foreground">Taking you to your dashboard…</p>
+        <p className="font-medium">{t("auth.passwordChanged")}</p>
+        <p className="text-sm text-muted-foreground">{t("auth.takingYou")}</p>
       </div>
     );
   }
@@ -59,7 +61,7 @@ export function ResetPasswordForm() {
       <FormError message={result?.ok === false ? result.error : null} />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">New password</Label>
+        <Label htmlFor="password">{t("auth.newPassword")}</Label>
         <PasswordInput
           id="password"
           name="password"
@@ -75,7 +77,7 @@ export function ResetPasswordForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirm">Confirm new password</Label>
+        <Label htmlFor="confirm">{t("auth.confirmNewPassword")}</Label>
         <PasswordInput
           id="confirm"
           name="confirm"
@@ -88,7 +90,7 @@ export function ResetPasswordForm() {
 
       <Button type="submit" disabled={pending} className="mt-1">
         {pending && <Loader2 className="animate-spin" />}
-        {pending ? "Saving" : "Set new password"}
+        {pending ? t("auth.saving") : t("auth.setNewPassword")}
       </Button>
     </form>
   );

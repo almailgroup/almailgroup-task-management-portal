@@ -13,6 +13,7 @@ import { formatDateTime } from "@/lib/dates";
 import { relativeDay } from "@/lib/dates";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**
@@ -30,6 +31,7 @@ export function FollowUpList({
   canManage: boolean;
   onOpenTask: (task: TaskWithAssignees) => void;
 }) {
+  const { t } = useI18n();
   const now = Date.now();
   const due = tasks.filter(
     (t) => t.follow_up_at && new Date(t.follow_up_at).getTime() <= now,
@@ -42,12 +44,8 @@ export function FollowUpList({
     return (
       <EmptyState
         icon={<PhoneCall />}
-        title="Nothing to follow up"
-        description={
-          canManage
-            ? "Open a task and set a follow-up date to have it appear here."
-            : "Your manager has not scheduled any follow-ups on your tasks."
-        }
+        title={t("follow.emptyTitle")}
+        description={canManage ? t("follow.emptyManager") : t("follow.emptyMember")}
       />
     );
   }
@@ -56,7 +54,7 @@ export function FollowUpList({
     <div className="flex flex-col gap-4">
       {due.length > 0 && (
         <Group
-          title="Due to chase"
+          title={t("follow.dueToChase")}
           tasks={due}
           overdue
           canManage={canManage}
@@ -65,7 +63,7 @@ export function FollowUpList({
       )}
       {upcoming.length > 0 && (
         <Group
-          title="Coming up"
+          title={t("follow.comingUp")}
           tasks={upcoming}
           canManage={canManage}
           onOpenTask={onOpenTask}
@@ -88,6 +86,8 @@ function Group({
   canManage: boolean;
   onOpenTask: (task: TaskWithAssignees) => void;
 }) {
+  const i18n = useI18n();
+  const { t, tag } = i18n;
   return (
     <section className="flex flex-col gap-2">
       <h2 className="flex items-center gap-1.5 text-sm">
@@ -113,15 +113,15 @@ function Group({
                 {task.title}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
-                {task.follow_up_note ?? "No note"}
+                {task.follow_up_note ?? t("follow.noNote")}
               </span>
             </button>
 
             <Badge variant={overdue ? "default" : "subtle"}>
-              {task.follow_up_at ? relativeDay(task.follow_up_at) : ""}
+              {task.follow_up_at ? relativeDay(task.follow_up_at, i18n) : ""}
             </Badge>
             <span className="hidden text-xs text-muted-foreground sm:inline">
-              {task.follow_up_at ? formatDateTime(task.follow_up_at) : ""}
+              {task.follow_up_at ? formatDateTime(task.follow_up_at, tag) : ""}
             </span>
 
             <StatusBadge status={task.status} />

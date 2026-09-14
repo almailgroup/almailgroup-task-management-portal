@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityLog } from "@/components/tasks/activity-log";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskActivityWithActor } from "@/lib/supabase/database.types";
 
 /**
@@ -16,6 +17,7 @@ import type { TaskActivityWithActor } from "@/lib/supabase/database.types";
  */
 export function TaskActivityFeed({ taskId }: { taskId: string }) {
   const supabase = React.useMemo(() => createClient(), []);
+  const { t } = useI18n();
   const [entries, setEntries] = React.useState<TaskActivityWithActor[] | null>(
     null,
   );
@@ -33,7 +35,7 @@ export function TaskActivityFeed({ taskId }: { taskId: string }) {
 
       if (!active) return;
       if (error) {
-        toast.error("Could not load activity.");
+        toast.error(t("activity.loadFailed"));
         setEntries([]);
         return;
       }
@@ -63,7 +65,7 @@ export function TaskActivityFeed({ taskId }: { taskId: string }) {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [supabase, taskId]);
+  }, [supabase, taskId, t]);
 
   if (entries === null) {
     return (

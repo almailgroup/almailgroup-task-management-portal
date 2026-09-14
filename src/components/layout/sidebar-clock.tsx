@@ -22,43 +22,39 @@ import {
   describeDayGapDetail,
 } from "@/lib/dates";
 import {
-  WEEKDAYS,
   dayKey,
   isSameDay,
   monthGrid,
   startOfDay,
+  weekdayLabels,
 } from "@/lib/calendar";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 
+/** The formatters, built for the reader's language. */
+function formatsFor(tag: string | undefined) {
+  return {
+    time: new Intl.DateTimeFormat(tag, {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
+    /** No seconds here: the label is announced on focus, not read as a ticker. */
+    labelTime: new Intl.DateTimeFormat(tag, { hour: "2-digit", minute: "2-digit" }),
+    date: new Intl.DateTimeFormat(tag, { weekday: "short", day: "numeric", month: "short" }),
+    month: new Intl.DateTimeFormat(tag, { month: "long", year: "numeric" }),
+    fullDate: new Intl.DateTimeFormat(tag, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }),
+    weekdays: weekdayLabels(tag, "long"),
+    weekdayInitials: weekdayLabels(tag, "narrow"),
+  };
+}
 
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-});
-/** No seconds here: the label is announced on focus, not read as a ticker. */
-const labelTimeFormat = new Intl.DateTimeFormat(undefined, {
-  hour: "2-digit",
-  minute: "2-digit",
-});
-const dateFormat = new Intl.DateTimeFormat(undefined, {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-});
-const monthFormat = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  year: "numeric",
-});
-const fullDateFormat = new Intl.DateTimeFormat(undefined, {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-
-/** Midnight-local for a date, so days compare without time-of-day noise. */
 /**
  * Live clock pinned to the foot of the sidebar, ticking to the second.
  * Clicking it opens a calendar on the current month with today marked.
@@ -68,6 +64,9 @@ const fullDateFormat = new Intl.DateTimeFormat(undefined, {
  * guarantee a hydration mismatch.
  */
 export function SidebarClock() {
+  const i18n = useI18n();
+  const { t, tag } = i18n;
+  const formats = React.useMemo(() => formatsFor(tag), [tag]);
   const nowMs = useNow();
   const [open, setOpen] = React.useState(false);
   const [viewMonth, setViewMonth] = React.useState<Date | null>(null);
@@ -168,7 +167,7 @@ export function SidebarClock() {
 
   const gap =
     selected && today ? daysBetween(today, selected) : null;
-  const detail = gap === null ? null : describeDayGapDetail(gap);
+  const detail = gap === null ? null : describeDayGapDetail(gap, i18n);
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -181,17 +180,20 @@ export function SidebarClock() {
         )}
         aria-label={
           today
-            ? `${labelTimeFormat.format(today)}, ${fullDateFormat.format(today)}. Open calendar`
-            : "Open calendar"
+            ? t("clock.openCalendarWith", {
+                time: formats.labelTime.format(today),
+                date: formats.fullDate.format(today),
+              })
+            : t("clock.openCalendar")
         }
       >
         <CalendarDays className="size-4 shrink-0" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium tabular-nums leading-tight text-foreground">
-            {today ? timeFormat.format(today) : "--:--:--"}
+            {today ? formats.time.format(today) : "--:--:--"}
           </span>
           <span className="block truncate text-xs leading-tight">
-            {today ? dateFormat.format(today) : " "}
+            {today ? formats.date.format(today) : " "}
           </span>
         </span>
       </PopoverTrigger>
@@ -199,24 +201,24 @@ export function SidebarClock() {
       <PopoverContent side="top" align="start" className="w-[20rem]">
         <div className="mb-2 flex items-center justify-between gap-1">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-            {month ? monthFormat.format(month) : ""}
+            {month ? formats.month.format(month) : ""}
           </p>
           <div className="flex shrink-0 items-center">
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => shiftYear(-1)}
-              aria-label="Previous year"
-              title="Previous year"
+              aria-label={t("clock.prevYear")}
+              title={t("clock.prevYear")}
             >
-              <ChevronsLeft />
+              <ChevronsLeft className="rtl:-scale-x-100" />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => shiftMonth(-1)}
-              aria-label="Previous month"
-              title="Previous month"
+              aria-label={t("cal.prevMonth")}
+              title={t("cal.prevMonth")}
             >
               <ChevronLeft className="rtl:-scale-x-100" />
             </Button>
@@ -224,8 +226,8 @@ export function SidebarClock() {
               variant="ghost"
               size="icon-sm"
               onClick={() => shiftMonth(1)}
-              aria-label="Next month"
-              title="Next month"
+              aria-label={t("cal.nextMonth")}
+              title={t("cal.nextMonth")}
             >
               <ChevronRight className="rtl:-scale-x-100" />
             </Button>
@@ -233,10 +235,10 @@ export function SidebarClock() {
               variant="ghost"
               size="icon-sm"
               onClick={() => shiftYear(1)}
-              aria-label="Next year"
-              title="Next year"
+              aria-label={t("clock.nextYear")}
+              title={t("clock.nextYear")}
             >
-              <ChevronsRight />
+              <ChevronsRight className="rtl:-scale-x-100" />
             </Button>
           </div>
         </div>
@@ -246,18 +248,18 @@ export function SidebarClock() {
         <div
           ref={gridRef}
           role="grid"
-          aria-label="Choose a date"
+          aria-label={t("clock.chooseDate")}
           onKeyDown={onGridKeyDown}
           className="grid grid-cols-7 gap-0.5"
         >
-          {WEEKDAYS.map((day) => (
+          {formats.weekdays.map((day, index) => (
             <div
               key={day}
               role="columnheader"
               aria-label={day}
               className="pb-1 text-center text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground"
             >
-              {day.slice(0, 2)}
+              {formats.weekdayInitials[index]}
             </div>
           ))}
 
@@ -276,7 +278,7 @@ export function SidebarClock() {
                 aria-current={isToday ? "date" : undefined}
                 aria-selected={isSelected}
                 tabIndex={isFocused ? 0 : -1}
-                aria-label={fullDateFormat.format(day)}
+                aria-label={formats.fullDate.format(day)}
                 onClick={() => {
                   setSelected(isSelected ? null : day);
                   setFocusedDay(day);
@@ -311,17 +313,16 @@ export function SidebarClock() {
           {selected && gap !== null ? (
             <>
               <p className="text-lg font-bold leading-tight tracking-tight">
-                {describeDayGap(gap)}
+                {describeDayGap(gap, i18n)}
               </p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                {fullDateFormat.format(selected)}
+                {formats.fullDate.format(selected)}
                 {detail && ` · ${detail}`}
               </p>
             </>
           ) : (
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Pick any day, past or future, to count the days between it and
-              today.
+              {t("clock.pickHint")}
             </p>
           )}
         </div>
@@ -334,17 +335,17 @@ export function SidebarClock() {
             onClick={jumpToToday}
             disabled={viewingThisMonth && selected === null}
           >
-            Today
+            {t("nav.today")}
           </Button>
           {selected && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSelected(null)}
-              aria-label="Clear the selected date"
+              aria-label={t("clock.clearSelected")}
             >
               <X />
-              Clear
+              {t("common.clear")}
             </Button>
           )}
         </div>

@@ -58,3 +58,29 @@ export function useSetLocale() {
     [router],
   );
 }
+
+/**
+ * A placeholder no real value contains, for a sentence that needs one part
+ * set differently from the rest: `t("x", { name: MARK })` and then
+ * `<Emphasised sentence={…}>{name}</Emphasised>`. Splitting the translated
+ * sentence, rather than assembling it from fragments, is what lets the bold
+ * part sit wherever the grammar of the language puts it.
+ */
+export const MARK = "\u0000";
+
+export function Emphasised({
+  sentence,
+  children,
+}: {
+  sentence: string;
+  children: React.ReactNode;
+}) {
+  const [before, after] = sentence.split(MARK);
+  return (
+    <>
+      {before}
+      <span className="font-medium text-foreground">{children}</span>
+      {after}
+    </>
+  );
+}

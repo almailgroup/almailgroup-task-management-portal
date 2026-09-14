@@ -20,7 +20,7 @@ export async function postComment(
   const parsed = commentSchema.safeParse({ content: formData.get("content") });
 
   if (!parsed.success) {
-    return fail("Check the fields below.", fieldErrorsFrom(parsed.error.issues));
+    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
   }
 
   const supabase = await createClient();
@@ -28,7 +28,7 @@ export async function postComment(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return fail("Your session expired. Please sign in again.");
+  if (!user) return fail("action.sessionExpired");
 
   const { data, error } = await supabase
     .from("comments")
@@ -59,7 +59,7 @@ export async function deleteComment(
     .maybeSingle();
 
   if (error) return fail(describeDatabaseError(error));
-  if (!data) return fail("You do not have permission to delete this comment.");
+  if (!data) return fail("action.noPermissionDeleteComment");
 
   return ok({ id: data.id });
 }

@@ -2,19 +2,25 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { AuthFormShell } from "@/components/auth/auth-form-shell";
+import { getI18n } from "@/lib/i18n/server";
 import { LoginForm } from "@/components/auth/login-form";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const metadata: Metadata = { title: "Sign in" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("auth.login.title") };
+}
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const { t } = await getI18n();
+
   return (
     <AuthFormShell
-      title="Sign in"
-      subtitle="Access your Almailgroup workspace."
+      title={t("auth.login.title")}
+      subtitle={t("auth.login.subtitle")}
       footer={{
-        prompt: "No account yet?",
-        linkLabel: "Create one",
+        prompt: t("auth.login.prompt"),
+        linkLabel: t("auth.login.link"),
         href: "/register",
       }}
     >

@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { Profile } from "@/lib/supabase/database.types";
 
 /**
@@ -35,6 +36,7 @@ export function AssigneePicker({
   onChange: (next: string[]) => void;
   name?: string;
 }) {
+  const { t, tn } = useI18n();
   const selected = new Set(value);
 
   function toggle(id: string) {
@@ -62,13 +64,13 @@ export function AssigneePicker({
           >
             <UserPlus className="text-muted-foreground" />
             {chosen.length === 0
-              ? "Unassigned"
-              : `${chosen.length} assigned`}
+              ? t("filter.unassigned")
+              : tn("assign.count", chosen.length)}
           </Button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" className="max-h-64 w-60 overflow-y-auto">
-          <DropdownMenuLabel>Assign to</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("assign.to")}</DropdownMenuLabel>
           {team.map((person) => (
             <DropdownMenuItem
               key={person.id}
@@ -110,7 +112,7 @@ export function AssigneePicker({
               // A chip is a tap target on a phone: tall enough for a thumb
               // there, and no larger than it needs to be under a mouse.
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-1.5 py-0.5 text-xs transition-colors hover:bg-accent pointer-coarse:min-h-9 pointer-coarse:px-2.5"
-              aria-label={`Remove ${person.full_name ?? person.email}`}
+              aria-label={t("assign.remove", { name: person.full_name ?? person.email })}
             >
               <Avatar className="size-4">
                 {person.avatar_url && (

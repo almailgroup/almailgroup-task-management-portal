@@ -35,6 +35,21 @@ export function weekdayIndex(date: Date): number {
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 /**
+ * Monday-first weekday names in the reader's language, from Intl rather than
+ * a dictionary — abbreviations are a per-language matter, and Arabic has none.
+ * 2024-01-01 was a Monday.
+ */
+export function weekdayLabels(
+  tag: string | undefined,
+  style: "long" | "short" | "narrow" = "short",
+): string[] {
+  const format = new Intl.DateTimeFormat(tag, { weekday: style });
+  return Array.from({ length: 7 }, (_, index) =>
+    format.format(new Date(2024, 0, 1 + index)),
+  );
+}
+
+/**
  * The six-week grid for a month, Monday-first, padded with the adjacent
  * months' days so every row is full and the grid never changes height.
  */

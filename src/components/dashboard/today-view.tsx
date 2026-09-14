@@ -32,6 +32,7 @@ import { initialsFrom } from "@/lib/initials";
 import { relativeDay } from "@/lib/dates";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type {
   Profile,
   Project,
@@ -59,6 +60,8 @@ export function TodayView({
   team: Profile[];
   profile: Profile;
 }) {
+  const i18n = useI18n();
+  const { t, tn, tag } = i18n;
   const [active, setActive] = React.useState<TaskWithAssignees | null>(null);
   const [open, setOpen] = React.useState(false);
 
@@ -66,8 +69,9 @@ export function TodayView({
 
   const projectName = React.useMemo(() => {
     const map = new Map(projects.map((p) => [p.id, p.name]));
-    return (id: string | null) => (id ? (map.get(id) ?? "Project") : "General");
-  }, [projects]);
+    return (id: string | null) =>
+      id ? (map.get(id) ?? t("common.project")) : t("common.general");
+  }, [projects, t]);
 
   const overdue = tasks.filter((t) => isOverdue(t.due_at, t.status));
   const dueToday = tasks.filter(
@@ -111,7 +115,7 @@ export function TodayView({
     setOpen(true);
   }
 
-  const today = new Date().toLocaleDateString(undefined, {
+  const today = new Date().toLocaleDateString(tag, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -120,21 +124,25 @@ export function TodayView({
   return (
     <PageShell>
       <PageHeader
-        title="Today"
+        title={t("nav.today")}
         icon={<Sunrise />}
         description={
           <>
-            {today} · {overdue.length} overdue, {dueToday.length} due today,{" "}
-            {inProgress.length} in progress
+            {today} ·{" "}
+            {t("today.summary", {
+              overdue: overdue.length,
+              due: dueToday.length,
+              active: inProgress.length,
+            })}
           </>
         }
       />
 
       <Section
-        title="Overdue"
+        title={t("meta.overdue")}
         icon={<CircleAlert />}
         tasks={overdue}
-        empty="Nothing is late."
+        empty={t("today.nothingLate")}
         emphasis
         projectName={projectName}
         onOpen={openTask}
@@ -142,20 +150,20 @@ export function TodayView({
       />
 
       <Section
-        title="Due today"
+        title={t("today.dueToday")}
         icon={<CalendarClock />}
         tasks={dueToday}
-        empty="Nothing due today."
+        empty={t("today.nothingDue")}
         projectName={projectName}
         onOpen={openTask}
         canReschedule={isManager}
       />
 
       <Section
-        title="In progress"
+        title={t("status.in_progress")}
         icon={<Loader />}
         tasks={inProgress}
-        empty="Nothing is being worked on."
+        empty={t("today.nothingActive")}
         projectName={projectName}
         onOpen={openTask}
         canReschedule={isManager}
@@ -163,7 +171,7 @@ export function TodayView({
 
       {inReview.length > 0 && (
         <Section
-          title="Waiting on review"
+          title={t("today.waitingReview")}
           icon={<CalendarCheck />}
           tasks={inReview}
           empty=""
@@ -178,7 +186,7 @@ export function TodayView({
           <CardHeader>
             <CardTitle className="flex items-center gap-1.5">
               <PhoneCall className="size-3.5" />
-              Follow up now
+              {t("today.followUpNow")}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
@@ -200,7 +208,7 @@ export function TodayView({
                   )}
                 </span>
                 <Badge variant="subtle">
-                  {task.follow_up_at ? relativeDay(task.follow_up_at) : ""}
+                  {task.follow_up_at ? relativeDay(task.follow_up_at, i18n) : ""}
                 </Badge>
               </button>
             ))}
@@ -211,10 +219,10 @@ export function TodayView({
       {isManager && workload.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Who is busy today</CardTitle>
+            <CardTitle>{t("today.whoIsBusy")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5">
-            {workload.map(({ profile: person, today: t, late, active: a }) => (
+            {workload.map(({ profile: person, today: due, late, active: a }) => (
               <div key={person.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Avatar className="size-7">
                   {person.avatar_url && (
@@ -235,11 +243,11 @@ export function TodayView({
                 <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
                   {late > 0 && (
                     <span className="font-medium text-foreground">
-                      {late} late
+                      {t("today.late", { n: late })}
                     </span>
                   )}
-                  <span>{t} today</span>
-                  <span>{a} active</span>
+                  <span>{t("today.todayCount", { n: due })}</span>
+                  <span>{t("today.active", { n: a })}</span>
                 </span>
               </div>
             ))}
@@ -249,8 +257,7 @@ export function TodayView({
 
       {completedToday.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {completedToday.length}{" "}
-          {completedToday.length === 1 ? "task" : "tasks"} completed today.
+          {t("today.completedToday", { tasks: tn("count.tasks", completedToday.length) })}
         </p>
       )}
 
@@ -287,6 +294,7 @@ function Section({
   onOpen: (task: TaskWithAssignees) => void;
   canReschedule: boolean;
 }) {
+  const { tag } = useI18n();
   return (
     <Card
       className={cn(
@@ -334,7 +342,7 @@ function Section({
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {projectName(task.project_id)}
-                    {task.due_at && ` · ${formatDateTime(task.due_at)}`}
+                    {task.due_at && ` · ${formatDateTime(task.due_at, tag)}`}
                   </span>
                 </button>
               </div>

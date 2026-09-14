@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { updateProfile } from "@/lib/data/profile-actions";
+import { useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
 import type { Profile } from "@/lib/supabase/database.types";
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [pending, setPending] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<void> | null>(null);
   const [fullName, setFullName] = React.useState(profile.full_name ?? "");
@@ -33,7 +35,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       return;
     }
 
-    toast.success("Profile updated");
+    toast.success(t("profile.updated"));
     router.refresh();
   }
 
@@ -49,12 +51,11 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <AvatarUpload profile={profile} />
 
       <p className="text-sm text-muted-foreground">
-        {profile.email} — your email comes from your sign-in and cannot be
-        changed here.
+        {t("profile.emailNote", { email: profile.email })}
       </p>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="fullName">Full name</Label>
+        <Label htmlFor="fullName">{t("auth.fullName")}</Label>
         <Input
           id="fullName"
           name="fullName"
@@ -70,7 +71,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <div>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="animate-spin" />}
-          Save changes
+          {t("task.saveChanges")}
         </Button>
       </div>
     </form>

@@ -15,6 +15,8 @@ import {
   setNotePinned,
 } from "@/lib/data/note-actions";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
+import type { Translator } from "@/lib/i18n";
 import type { NoteWithItems, Profile } from "@/lib/supabase/database.types";
 
 /**
@@ -37,6 +39,7 @@ export function MyList({
   /** The directory the share picker offers. */
   team: Profile[];
 }) {
+  const { t, tm, tag } = useI18n();
   const [notes, setNotes] = React.useState(initialNotes);
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState("");
@@ -97,7 +100,7 @@ export function MyList({
     setCreating(false);
 
     if (!outcome.ok) {
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
       return;
     }
     const note: NoteWithItems = {
@@ -119,7 +122,7 @@ export function MyList({
     const outcome = await deleteNote(noteId);
     if (!outcome.ok) {
       setNotes(previous);
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
     }
   }
 
@@ -130,7 +133,7 @@ export function MyList({
     const outcome = await setNotePinned(note.id, pinned);
     if (!outcome.ok) {
       patchNote(note.id, { pinned: !pinned });
-      toast.error(outcome.error);
+      toast.error(tm(outcome.error));
     }
   }
 
@@ -140,7 +143,7 @@ export function MyList({
     <div className="flex h-[calc(100svh-3.5rem)] flex-col lg:flex-row">
       {/* ---- List ---------------------------------------------------- */}
       <section
-        aria-label="Your notes"
+        aria-label={t("notes.yours")}
         className={cn(
           "flex min-h-0 flex-col border-border lg:w-80 lg:shrink-0 lg:border-e xl:w-96",
           // One screen at a time on a phone.
@@ -149,10 +152,10 @@ export function MyList({
       >
         <header className="flex flex-col gap-3 border-b border-border px-4 py-3.5">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-lg font-semibold tracking-tight">My List</h1>
+            <h1 className="text-lg font-semibold tracking-tight">{t("nav.myList")}</h1>
             <Button size="sm" onClick={onCreate} disabled={creating}>
               <Plus />
-              New note
+              {t("notes.new")}
             </Button>
           </div>
 
@@ -161,8 +164,8 @@ export function MyList({
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search your notes"
-              aria-label="Search your notes"
+              placeholder={t("notes.search")}
+              aria-label={t("notes.search")}
               className="ps-9"
             />
           </div>
@@ -174,17 +177,17 @@ export function MyList({
               <EmptyState
                 compact
                 icon={notes.length === 0 ? <ListChecks /> : <Search />}
-                title={notes.length === 0 ? "No notes yet" : "No matches"}
+                title={notes.length === 0 ? t("notes.none") : t("browser.noMatches")}
                 description={
                   notes.length === 0
-                    ? "Start one for what you need to get through today."
-                    : `Nothing matches “${query.trim()}”.`
+                    ? t("notes.startOne")
+                    : t("palette.noMatch", { query: query.trim() })
                 }
                 action={
                   notes.length === 0 ? (
                     <Button size="sm" onClick={onCreate} disabled={creating}>
                       <Plus />
-                      New note
+                      {t("notes.new")}
                     </Button>
                   ) : undefined
                 }
@@ -210,25 +213,25 @@ export function MyList({
                         <Pin className="size-3 shrink-0 text-muted-foreground" />
                       )}
                       <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium">
-                        {note.title.trim() || "New note"}
+                        {note.title.trim() || t("notes.new")}
                       </span>
                       {(!note.mine || note.collaborators.length > 0) && (
                         <Users
                           className="size-3 shrink-0 text-muted-foreground"
                           aria-label={
                             note.mine
-                              ? `Shared with ${note.collaborators.length}`
-                              : `Shared by ${note.owner?.full_name ?? "someone"}`
+                              ? t("notes.sharedWith", { n: note.collaborators.length })
+                              : t("notes.sharedBy", { name: note.owner?.full_name ?? t("activity.someone") })
                           }
                         />
                       )}
                     </span>
                     <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="shrink-0">{dayLabel(note.updated_at)}</span>
+                      <span className="shrink-0">{dayLabel(note.updated_at, t, tag)}</span>
                       <span className="min-w-0 flex-1 truncate">
                         {note.mine
-                          ? previewOf(note)
-                          : `${note.owner?.full_name ?? "Shared"} · ${previewOf(note)}`}
+                          ? previewOf(note, t)
+                          : `${note.owner?.full_name ?? t("notes.shared")} · ${previewOf(note, t)}`}
                       </span>
                     </span>
                   </button>
@@ -241,7 +244,7 @@ export function MyList({
 
       {/* ---- Note ---------------------------------------------------- */}
       <section
-        aria-label="Note"
+        aria-label={t("notes.note")}
         className={cn(
           "min-h-0 flex-1 flex-col",
           active ? "flex" : "hidden lg:flex",
@@ -268,7 +271,7 @@ export function MyList({
           <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
             <ListChecks className="size-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Pick a note, or start a new one.
+              {t("notes.pickOne")}
             </p>
           </div>
         )}
@@ -277,13 +280,13 @@ export function MyList({
       <ConfirmDialog
         open={confirmDelete !== null}
         onOpenChange={(open) => !open && setConfirmDelete(null)}
-        title="Delete this note?"
+        title={t("notes.deleteTitle")}
         description={
           pending
-            ? `“${pending.title.trim() || "New note"}” and everything on it will be gone. This cannot be undone.`
+            ? t("notes.deleteBody", { title: pending.title.trim() || t("notes.new") })
             : ""
         }
-        confirmLabel="Delete"
+        confirmLabel={t("common.delete")}
         onConfirm={() => {
           if (confirmDelete) void onDelete(confirmDelete);
           setConfirmDelete(null);
@@ -294,7 +297,7 @@ export function MyList({
 }
 
 /** "Today", "Yesterday", or a short date — the Notes app's own shorthand. */
-function dayLabel(iso: string): string {
+function dayLabel(iso: string, t: Translator["t"], tag: Translator["tag"]): string {
   const then = new Date(iso);
   const startOfDay = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -303,23 +306,23 @@ function dayLabel(iso: string): string {
   );
 
   if (days === 0) {
-    return then.toLocaleTimeString(undefined, {
+    return then.toLocaleTimeString(tag, {
       hour: "numeric",
       minute: "2-digit",
     });
   }
-  if (days === 1) return "Yesterday";
-  return then.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  if (days === 1) return t("gap.yesterday");
+  return then.toLocaleDateString(tag, { day: "numeric", month: "short" });
 }
 
 /** The line under the title: what is left to do, or the note's own text. */
-function previewOf(note: NoteWithItems): string {
+function previewOf(note: NoteWithItems, t: Translator["t"]): string {
   const open = note.items.filter((item) => !item.done);
   if (note.items.length > 0) {
     const done = note.items.length - open.length;
     const next = open[0]?.content.trim();
     const progress = `${done}/${note.items.length}`;
-    return next ? `${progress} · ${next}` : `${progress} · all done`;
+    return next ? `${progress} · ${next}` : `${progress} · ${t("notes.allDone")}`;
   }
-  return note.body.trim().split("\n")[0] || "No additional text";
+  return note.body.trim().split("\n")[0] || t("notes.noText");
 }
