@@ -29,7 +29,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { TaskProvenance } from "@/components/tasks/task-meta";
-import { isoFromLocalInput, toLocalInput } from "@/lib/dates";
+import { isoFromLocalInput, quickDateOptions, toLocalInput } from "@/lib/dates";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
 import { FollowUpPanel } from "@/components/tasks/follow-up-panel";
 import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
@@ -82,6 +82,13 @@ export function TaskDialog({
     id: string;
   }> | null>(null);
   const [assigneeIds, setAssigneeIds] = React.useState<string[]>([]);
+
+  // The date field is uncontrolled — its own picker manages it — so a preset
+  // writes straight into it, in the viewer's own wall-clock time.
+  const dueRef = React.useRef<HTMLInputElement>(null);
+  const setDue = (iso: string | null) => {
+    if (dueRef.current) dueRef.current.value = toLocalInput(iso);
+  };
 
   // Re-seed local state each time the dialog opens or switches task.
   React.useEffect(() => {
@@ -246,6 +253,7 @@ export function TaskDialog({
               <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
                 <Label htmlFor="dueAt">Due date &amp; time</Label>
                 <Input
+                  ref={dueRef}
                   id="dueAt"
                   name="dueAt"
                   type="datetime-local"
@@ -254,6 +262,30 @@ export function TaskDialog({
                   defaultValue={toLocalInput(task?.due_at ?? null)}
                   aria-invalid={Boolean(errors?.dueAt)}
                 />
+                {/* The dates people actually pick, one tap each. The native
+                    picker is still there for anything else — but "tomorrow
+                    evening" should not take five taps through a calendar. */}
+                {canEditDetails && (
+                  <div className="flex flex-wrap gap-1.5" aria-label="Quick due dates">
+                    {quickDateOptions().map((option) => (
+                      <button
+                        key={option.label}
+                        type="button"
+                        onClick={() => setDue(option.value())}
+                        className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground pointer-coarse:min-h-9"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setDue(null)}
+                      className="rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-9"
+                    >
+                      No date
+                    </button>
+                  </div>
+                )}
                 <FieldError message={errors?.dueAt} />
               </div>
             </div>

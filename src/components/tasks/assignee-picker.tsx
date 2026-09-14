@@ -107,7 +107,9 @@ export function AssigneePicker({
               key={person.id}
               type="button"
               onClick={() => toggle(person.id)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-1.5 py-0.5 text-xs transition-colors hover:bg-accent"
+              // A chip is a tap target on a phone: tall enough for a thumb
+              // there, and no larger than it needs to be under a mouse.
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-1.5 py-0.5 text-xs transition-colors hover:bg-accent pointer-coarse:min-h-9 pointer-coarse:px-2.5"
               aria-label={`Remove ${person.full_name ?? person.email}`}
             >
               <Avatar className="size-4">

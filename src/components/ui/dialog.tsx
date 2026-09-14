@@ -54,10 +54,13 @@ function DialogContent({
         {...props}
       >
         {children}
+        {/* The glyph stays small; the target does not. A 20px close button
+            is the first thing a thumb misses on a phone, and the second tap
+            lands on whatever is underneath it. */}
         {showCloseButton && (
           <DialogPrimitive.Close
             className={cn(
-              "absolute right-4 top-4 rounded-sm p-0.5 text-muted-foreground transition-colors",
+              "absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors",
               "hover:bg-accent hover:text-foreground focus-visible:outline-none",
               "disabled:pointer-events-none",
             )}
