@@ -25,7 +25,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { TaskProvenance } from "@/components/tasks/task-meta";
@@ -35,7 +34,12 @@ import { FollowUpPanel } from "@/components/tasks/follow-up-panel";
 import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
 import { CommentThread } from "@/components/tasks/comment-thread";
 import { TaskActivityFeed } from "@/components/tasks/task-activity-feed";
-import { createTask, deleteTask, updateTask } from "@/lib/data/task-actions";
+import {
+  createTask,
+  deleteTask,
+  restoreTask,
+  updateTask,
+} from "@/lib/data/task-actions";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import type { ActionResult } from "@/lib/action-result";
 import type {
@@ -77,7 +81,6 @@ export function TaskDialog({
 
   const [pending, setPending] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
-  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<{
     id: string;
   }> | null>(null);
@@ -136,7 +139,25 @@ export function TaskDialog({
       return;
     }
 
-    toast.success("Task deleted");
+    // Immediate, and undoable for ten seconds — rather than a question first.
+    // A confirmation nobody reads protects nothing; a bin does.
+    const { id, title } = task;
+    toast.success("Task deleted", {
+      description: title,
+      duration: 10_000,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          const restored = await restoreTask(id, projectId);
+          if (!restored.ok) {
+            toast.error(restored.error);
+            return;
+          }
+          toast.success("Task restored");
+          router.refresh();
+        },
+      },
+    });
     onOpenChange(false);
     router.refresh();
   }
@@ -374,25 +395,6 @@ export function TaskDialog({
         )}
       </DialogContent>
 
-      {task && (
-        <ConfirmDialog
-          open={confirmDelete}
-          onOpenChange={setConfirmDelete}
-          title="Delete this task?"
-          description={
-            <>
-              <span className="font-medium text-foreground">{task.title}</span>{" "}
-              will be permanently deleted, along with its comments, attachments
-              and history. This cannot be undone.
-            </>
-          }
-          confirmLabel="Delete task"
-          onConfirm={async () => {
-            await onDelete();
-            setConfirmDelete(false);
-          }}
-        />
-      )}
     </Dialog>
   );
 }

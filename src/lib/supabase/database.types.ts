@@ -52,7 +52,9 @@ export type TaskActivityAction =
   | "follow_up_cleared"
   | "assignee_added"
   | "assignee_removed"
-  | "commented";
+  | "commented"
+  | "deleted"
+  | "restored";
 
 export type Database = {
   public: {
@@ -133,6 +135,8 @@ export type Database = {
           follow_up_note: string | null;
           position: number;
           created_by: string | null;
+          /** Set when trashed; cleared on restore. Hidden from every read. */
+          deleted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -600,6 +604,11 @@ export type Database = {
         Returns: Database["public"]["Tables"]["reminder_queue"]["Row"][];
       };
       /** Per-assignee open/done/overdue, counted in the database. */
+      /** Soft delete: hides the task everywhere, keeps it for 30 days. */
+      trash_task: { Args: { task: string }; Returns: boolean };
+      restore_task: { Args: { task: string }; Returns: boolean };
+      /** Hard-deletes tasks trashed longer ago than the interval. */
+      purge_trashed_tasks: { Args: { older_than?: string }; Returns: number };
       workload_counts: {
         Args: Record<never, never>;
         Returns: {

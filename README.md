@@ -31,7 +31,10 @@ monochrome interface.
 - **Kanban board** — drag and drop between and within columns, keyboard
   accessible, with order persisted.
 - **List view** — filter by search, status, priority and assignee.
-- **Audit history** — every task change recorded by database triggers.
+- **Audit history** — every task change recorded by database triggers,
+  including trips to and from the bin.
+- **Undo on delete** — a deleted task is hidden, not gone: Undo on the toast,
+  and thirty days in the bin.
 - **Realtime** — live comment threads and live task updates.
 - **@mentions** — autocomplete in the comment box.
 - **Attachments** — files (up to 25 MB, private storage, signed-URL download)
@@ -490,6 +493,22 @@ is the part that surprises people — **message templates approved by Meta**,
 which takes days. Outside a 24-hour window since the user last messaged you,
 only approved templates are delivered; free-text messages are rejected. Set
 `TWILIO_WHATSAPP_TEMPLATE_SID` once you have one approved.
+
+## Deleting a task
+
+A deleted task goes to a bin, not out of existence. It disappears from every
+list, count, search and board at once — that is done by the read policy, so
+there is no query that can forget to exclude it — and the toast offers **Undo**
+for ten seconds. The database keeps it for thirty days, with its comments,
+files, history and assignees untouched, and the daily reminder run purges
+whatever has sat there longer. Who may bin or restore is exactly who could
+delete before: managers and admins.
+
+There is no confirmation dialog any more. A question nobody reads protects
+nothing; a bin does. `supabase/tests/trash-tasks.sql` checks the rules in a
+real PostgreSQL — a member cannot bin a task, an admin's bin hides it from its
+assignee, restore brings the comments back, and a ten-day-old task survives a
+thirty-day purge while a month-old one does not.
 
 ## Calendar
 

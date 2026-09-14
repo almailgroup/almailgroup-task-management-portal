@@ -80,6 +80,9 @@ jobs:
       - name: My List privacy rules
         run: psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/tests/shared-notes.sql
 
+      - name: Deleting and restoring tasks
+        run: psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/tests/trash-tasks.sql
+
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest

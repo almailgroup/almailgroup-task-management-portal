@@ -4,7 +4,6 @@ import * as React from "react";
 import { Loader2, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +36,6 @@ export function BulkActionBar({
   onClear: () => void;
 }) {
   const [busy, setBusy] = React.useState(false);
-  const [confirming, setConfirming] = React.useState(false);
 
   if (count === 0) return null;
 
@@ -87,7 +85,7 @@ export function BulkActionBar({
             variant="outline"
             size="sm"
             disabled={busy}
-            onClick={() => setConfirming(true)}
+            onClick={() => void run(onDelete)}
           >
             <Trash2 />
             Delete
@@ -104,17 +102,6 @@ export function BulkActionBar({
         </div>
       </div>
 
-      <ConfirmDialog
-        open={confirming}
-        onOpenChange={setConfirming}
-        title={`Delete ${count} ${count === 1 ? "task" : "tasks"}?`}
-        description="They will be gone for everyone, along with their comments and attachments. This cannot be undone."
-        confirmLabel="Delete"
-        onConfirm={() => {
-          setConfirming(false);
-          void run(onDelete);
-        }}
-      />
     </>
   );
 }

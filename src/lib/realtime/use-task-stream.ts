@@ -58,6 +58,14 @@ export function useTaskStream({
         { event: "UPDATE", schema: "public", table: "tasks", ...scope },
         (payload) => {
           const row = payload.new as TaskWithAssignees;
+
+          // Trashed, not moved: a soft delete arrives as an update with
+          // deleted_at set. It leaves the board the way a hard delete would.
+          if (row.deleted_at) {
+            setTasks((current) => current.filter((task) => task.id !== row.id));
+            return;
+          }
+
           if (!belongsHere(row)) {
             // A task moved into or out of this list; only a refetch can say
             // which, and it needs its assignees resolved anyway.

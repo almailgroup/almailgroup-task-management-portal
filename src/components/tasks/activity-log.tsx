@@ -32,6 +32,10 @@ function describe(entry: TaskActivityWithActor): string {
       return `unassigned ${entry.old_value ?? "someone"}`;
     case "commented":
       return "commented";
+    case "deleted":
+      return "moved it to the bin";
+    case "restored":
+      return "restored it from the bin";
     case "updated":
       return entry.field === "description"
         ? "updated the description"

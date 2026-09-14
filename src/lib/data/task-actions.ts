@@ -241,21 +241,41 @@ export async function moveTask(
   return ok({ id: taskId });
 }
 
+/**
+ * Delete a task — into the bin, not out of existence.
+ *
+ * The task is hidden from every read at once and kept for thirty days, so
+ * "I deleted the wrong one" has an answer: restoreTask, offered on the toast
+ * for ten seconds and available in the database for a month. Who may do it
+ * is decided inside trash_task, in the database, exactly as it was for the
+ * hard delete this replaces.
+ */
 export async function deleteTask(
   taskId: string,
   projectId: string | null,
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("tasks")
-    .delete()
-    .eq("id", taskId)
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("trash_task", { task: taskId });
 
   if (error) return fail(describeDatabaseError(error));
   if (!data) return fail("You do not have permission to delete this task.");
+
+  revalidateTaskViews(projectId);
+  return ok({ id: taskId });
+}
+
+/** Bring a deleted task back, with everything that was on it. */
+export async function restoreTask(
+  taskId: string,
+  projectId: string | null,
+): Promise<ActionResult<{ id: string }>> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("restore_task", { task: taskId });
+
+  if (error) return fail(describeDatabaseError(error));
+  if (!data) return fail("That task could not be restored.");
 
   revalidateTaskViews(projectId);
   return ok({ id: taskId });

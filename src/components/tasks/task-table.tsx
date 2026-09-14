@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
-import { deleteTask, moveTask } from "@/lib/data/task-actions";
+import { deleteTask, moveTask, restoreTask } from "@/lib/data/task-actions";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 import {
   AssigneeStack,
@@ -131,17 +131,34 @@ export function TaskTable({
     const results = await Promise.all(
       batch.map((task) => deleteTask(task.id, task.project_id ?? projectId)),
     );
-    const failed = results.filter((r) => !r.ok).length;
-    report(batch.length - failed, failed, "Deleted");
+    const done = batch.filter((_, index) => results[index].ok);
+    const failed = batch.length - done.length;
+    report(done.length, failed, "Deleted", undefined, async () => {
+      const back = await Promise.all(
+        done.map((task) => restoreTask(task.id, task.project_id ?? projectId)),
+      );
+      const lost = back.filter((r) => !r.ok).length;
+      if (lost > 0) toast.error(`${lost} could not be restored.`);
+      else toast.success(`Restored ${done.length} ${done.length === 1 ? "task" : "tasks"}`);
+      router.refresh();
+    });
     setSelected(new Set());
     router.refresh();
   }
 
-  function report(done: number, failed: number, verb: string, status?: TaskStatus) {
+  function report(
+    done: number,
+    failed: number,
+    verb: string,
+    status?: TaskStatus,
+    undo?: () => Promise<void>,
+  ) {
     const what = `${done} ${done === 1 ? "task" : "tasks"}`;
     if (done > 0) {
       toast.success(
         status ? `${verb} ${what} to ${statusLabel(status)}` : `${verb} ${what}`,
+        // A delete is undoable for ten seconds; the bin keeps it for a month.
+        undo ? { duration: 10_000, action: { label: "Undo", onClick: () => void undo() } } : undefined,
       );
     }
     // Partial failure is the interesting case: RLS may refuse some of a

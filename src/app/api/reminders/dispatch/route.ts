@@ -66,6 +66,12 @@ async function run(request: NextRequest) {
 
   // Refresh the queue from the current state of the tasks table first, so a
   // single scheduled run both finds new work and sends it.
+  // Housekeeping on the same daily run: tasks that have sat in the bin for
+  // thirty days are gone for good. Failure here is logged, not fatal — the
+  // reminders still go out.
+  const { error: purgeError } = await supabase.rpc("purge_trashed_tasks");
+  if (purgeError) console.error(`[reminders] purge_trashed_tasks: ${purgeError.message}`);
+
   const { error: enqueueError } = await supabase.rpc("enqueue_task_reminders");
 
   // Claim the batch before touching a provider. Reading pending rows and
