@@ -507,6 +507,42 @@ export type Database = {
           },
         ];
       };
+      /** Who a personal list has been shared with. */
+      personal_note_shares: {
+        Row: {
+          note_id: string;
+          user_id: string;
+          added_by: string | null;
+          added_at: string;
+        };
+        Insert: {
+          note_id: string;
+          user_id: string;
+          added_by?: string | null;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "personal_note_shares_note_id_fkey";
+            columns: ["note_id"];
+            referencedRelation: "personal_notes";
+            referencedColumns: ["id"];
+          },
+          // Two routes to profiles, so an embed here has to name its key.
+          {
+            foreignKeyName: "personal_note_shares_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "personal_note_shares_added_by_fkey";
+            columns: ["added_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       personal_note_items: {
         Row: {
           id: string;
@@ -554,6 +590,8 @@ export type Database = {
       is_manager_or_admin: { Args: Record<never, never>; Returns: boolean };
       can_edit_task: { Args: { task: string }; Returns: boolean };
       can_view_project: { Args: { project: string }; Returns: boolean };
+      can_view_note: { Args: { note: string }; Returns: boolean };
+      owns_note: { Args: { note: string }; Returns: boolean };
       can_view_task: { Args: { task: string }; Returns: boolean };
       enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
       /** Moves a batch of due reminders to 'sending' and returns them. */
@@ -621,7 +659,19 @@ export type PersonalNoteItem =
   Database["public"]["Tables"]["personal_note_items"]["Row"];
 
 /** A note with its checklist, in display order. */
-export type NoteWithItems = PersonalNote & { items: PersonalNoteItem[] };
+export type PersonalNoteShare =
+  Database["public"]["Tables"]["personal_note_shares"]["Row"];
+
+/**
+ * A list with everything the page shows: its lines, who owns it, and who else
+ * is on it. `mine` saves every component re-deriving the same comparison.
+ */
+export type NoteWithItems = PersonalNote & {
+  items: PersonalNoteItem[];
+  owner: Profile | null;
+  collaborators: Profile[];
+  mine: boolean;
+};
 
 /** A notification joined with the person who caused it. */
 export type NotificationWithActor = Notification & { actor: Profile | null };

@@ -50,6 +50,36 @@ jobs:
           git diff --exit-code supabase/setup.sql \
             || (echo "::error::supabase/setup.sql is stale — run 'npm run db:bundle' and commit the result." && exit 1)
 
+  rls:
+    name: Row Level Security
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGURL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      # The privacy rules live entirely in the policies, where no amount of
+      # testing the UI can reach them. They are checked here against a real
+      # PostgreSQL with the whole schema applied, as three different people.
+      - name: Apply the schema
+        run: |
+          psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/tests/shim.sql
+          psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/setup.sql
+
+      - name: My List privacy rules
+        run: psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/tests/shared-notes.sql
+
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest

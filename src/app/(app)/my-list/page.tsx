@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { MyList } from "@/components/notes/my-list";
-import { getMyNotes, requireProfile } from "@/lib/data/queries";
+import { getMyNotes, getTeam, requireProfile } from "@/lib/data/queries";
 
 export const metadata: Metadata = { title: "My List" };
 
@@ -11,7 +11,11 @@ export const metadata: Metadata = { title: "My List" };
  * sitting in the centred column the task pages use.
  */
 export default async function MyListPage() {
-  const [, notes] = await Promise.all([requireProfile(), getMyNotes()]);
+  const [profile, notes, team] = await Promise.all([
+    requireProfile(),
+    getMyNotes(),
+    getTeam(),
+  ]);
 
-  return <MyList initialNotes={notes} />;
+  return <MyList initialNotes={notes} profile={profile} team={team} />;
 }

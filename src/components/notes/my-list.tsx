@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ListChecks, Pin, Plus, Search } from "lucide-react";
+import { ListChecks, Pin, Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   setNotePinned,
 } from "@/lib/data/note-actions";
 import { cn } from "@/lib/utils";
-import type { NoteWithItems } from "@/lib/supabase/database.types";
+import type { NoteWithItems, Profile } from "@/lib/supabase/database.types";
 
 /**
  * My List — a private daily list, shaped like the Notes app on a phone.
@@ -26,7 +26,17 @@ import type { NoteWithItems } from "@/lib/supabase/database.types";
  * with, and re-syncing from the server mid-keystroke is what makes this kind
  * of page feel unreliable.
  */
-export function MyList({ initialNotes }: { initialNotes: NoteWithItems[] }) {
+export function MyList({
+  initialNotes,
+  profile,
+  team,
+}: {
+  initialNotes: NoteWithItems[];
+  /** Who is reading, so a list can say whether it is theirs. */
+  profile: Profile;
+  /** The directory the share picker offers. */
+  team: Profile[];
+}) {
   const [notes, setNotes] = React.useState(initialNotes);
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState("");
@@ -44,6 +54,18 @@ export function MyList({ initialNotes }: { initialNotes: NoteWithItems[] }) {
   React.useEffect(() => {
     if (!window.matchMedia("(min-width: 1024px)").matches) return;
     setActiveId((current) => current ?? initialNotes[0]?.id ?? null);
+  }, [initialNotes]);
+
+  // Sharing changes who a list belongs to and who else is on it, and that is
+  // the server's answer, not this component's. Text being typed is still the
+  // local copy's business — the editor holds that until it saves.
+  React.useEffect(() => {
+    setNotes((current) =>
+      initialNotes.map((fresh) => {
+        const local = current.find((note) => note.id === fresh.id);
+        return local ? { ...local, ...fresh, items: local.items } : fresh;
+      }),
+    );
   }, [initialNotes]);
 
   const visible = React.useMemo(() => {
@@ -78,7 +100,13 @@ export function MyList({ initialNotes }: { initialNotes: NoteWithItems[] }) {
       toast.error(outcome.error);
       return;
     }
-    const note: NoteWithItems = { ...outcome.data, items: [] };
+    const note: NoteWithItems = {
+      ...outcome.data,
+      items: [],
+      owner: profile,
+      collaborators: [],
+      mine: true,
+    };
     setNotes((current) => [note, ...current]);
     setActiveId(note.id);
   }
@@ -184,11 +212,23 @@ export function MyList({ initialNotes }: { initialNotes: NoteWithItems[] }) {
                       <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium">
                         {note.title.trim() || "New note"}
                       </span>
+                      {(!note.mine || note.collaborators.length > 0) && (
+                        <Users
+                          className="size-3 shrink-0 text-muted-foreground"
+                          aria-label={
+                            note.mine
+                              ? `Shared with ${note.collaborators.length}`
+                              : `Shared by ${note.owner?.full_name ?? "someone"}`
+                          }
+                        />
+                      )}
                     </span>
                     <span className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span className="shrink-0">{dayLabel(note.updated_at)}</span>
                       <span className="min-w-0 flex-1 truncate">
-                        {previewOf(note)}
+                        {note.mine
+                          ? previewOf(note)
+                          : `${note.owner?.full_name ?? "Shared"} · ${previewOf(note)}`}
                       </span>
                     </span>
                   </button>
@@ -211,12 +251,18 @@ export function MyList({ initialNotes }: { initialNotes: NoteWithItems[] }) {
           <NoteEditor
             key={active.id}
             note={active}
+            profile={profile}
+            team={team}
             onBack={() => setActiveId(null)}
             onPatch={(patch: Partial<NoteWithItems>) =>
               patchNote(active.id, patch)
             }
             onTogglePin={() => onTogglePin(active)}
             onRequestDelete={() => setConfirmDelete(active.id)}
+            onLeft={() => {
+              setNotes((current) => current.filter((n) => n.id !== active.id));
+              setActiveId(null);
+            }}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">

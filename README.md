@@ -502,14 +502,44 @@ immediately and optimistically; the title and text save themselves on a
 700ms debounce rather than behind a Save button. Enter adds the next line,
 Backspace on an empty line removes it.
 
-### It is genuinely private
+### Sharing a list
 
-`personal_notes` and `personal_note_items` are the only tables in this schema
-with no manager or admin override. Every policy is `user_id = auth.uid()`, and
-inserting an item additionally requires the note to be yours, so a forged
-`note_id` cannot park a line on someone else's list. Verified against a real
-Postgres: a second account sees zero rows, its updates and deletes affect zero
-rows, and both forgery attempts are refused outright.
+A list is private until its owner invites somebody, one list and one person at
+a time, from the **people icon** in the note's header. A shared list shows up
+in the other person's My List with the owner's name under the title.
+
+| | owner | collaborator | anyone else |
+|---|---|---|---|
+| read it | yes | yes | no |
+| write its text, add, tick and remove lines | yes | yes | no |
+| invite and remove people | yes | no | no |
+| leave it | — | yes | — |
+| delete it | yes | no | no |
+
+Lines keep the name of whoever added them, and stay on the list when that
+person leaves it.
+
+A shared list updates live. Lines are separate rows, so two people ticking
+different things never collide; the free-text area is one column saved on a
+debounce, so a remote edit to it is applied only when the reader has nothing
+unsaved — somebody mid-sentence keeps what they are writing.
+
+### It is still genuinely private
+
+`personal_notes` and `personal_note_items` remain the only tables in this
+schema with no manager or admin override: there is no role that can read a
+list it was not invited to, and an admin is nobody special here. Sharing did
+not loosen that — it added one table of explicit invitations, and every policy
+now resolves through it.
+
+Because the whole thing rests on policies, it is tested where it lives:
+`supabase/tests/shared-notes.sql` applies the entire schema to a plain
+PostgreSQL and plays three people through it — the owner, somebody invited,
+and somebody not. It asserts that an uninvited account sees zero rows, that a
+collaborator can tick and write but cannot delete the list, take it over, or
+invite anybody, that inviting yourself is refused, and that leaving takes
+access away while leaving the lines you added behind. CI runs it on every
+push; loosening a policy fails the build with the rule that moved.
 
 Ticking an item bumps the parent note's `updated_at` through a trigger, so a
 list you are working through floats to the top of the sidebar.

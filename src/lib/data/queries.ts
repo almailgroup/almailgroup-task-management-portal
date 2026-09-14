@@ -442,17 +442,34 @@ export const getNotificationPreferences = cache(
  */
 export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
   const supabase = await createClient();
+  const user = await getAuthUser();
+
+  // RLS returns the caller's own lists and the ones shared with them, so this
+  // is both at once — which is why each note has to say whose it is.
   const result = await supabase
     .from("personal_notes")
-    .select("*, items:personal_note_items(*)")
+    .select(
+      "*, items:personal_note_items(*), owner:profiles(*), shares:personal_note_shares(user:profiles!personal_note_shares_user_id_fkey(*))",
+    )
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false });
 
   const notes = orFail(result, "your list") ?? [];
 
-  return (notes as unknown as NoteWithItems[]).map((note) => ({
+  type Row = NoteWithItems & {
+    shares: { user: Profile | null }[] | null;
+  };
+
+  return (notes as unknown as Row[]).map(({ shares, ...note }) => ({
     ...note,
     items: [...(note.items ?? [])].sort((a, b) => a.position - b.position),
+    collaborators: (shares ?? [])
+      .map((share) => share.user)
+      .filter((profile): profile is Profile => profile !== null)
+      .sort((a, b) =>
+        (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email),
+      ),
+    mine: note.user_id === user?.id,
   }));
 });
 

@@ -237,3 +237,78 @@ export async function clearDoneItems(
   revalidatePath("/my-list");
   return ok(undefined);
 }
+
+/**
+ * Sharing a list.
+ *
+ * Who may do what is decided by the policies in migration 0019, not here: the
+ * owner invites and removes, a collaborator may remove only themselves, and a
+ * write that is not allowed comes back as zero rows rather than an error. Each
+ * of these reports that as a permission failure.
+ */
+
+export async function shareNote(
+  noteId: string,
+  userId: string,
+): Promise<ActionResult<void>> {
+  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
+  if (!uuid.safeParse(userId).success) return fail("Unknown person.");
+
+  const supabase = await createClient();
+  const currentId = await currentUserId(supabase);
+  if (!currentId) return fail("Your session expired. Please sign in again.");
+  if (currentId === userId) return fail("This list is already yours.");
+
+  const { error } = await supabase
+    .from("personal_note_shares")
+    .insert({ note_id: noteId, user_id: userId, added_by: currentId });
+
+  // Already shared: nothing to do, and not worth an error.
+  if (error && error.code !== "23505") {
+    return fail(
+      error.code === "42501"
+        ? "Only the owner of a list can share it."
+        : describeDatabaseError(error),
+    );
+  }
+
+  revalidatePath("/my-list");
+  return ok(undefined);
+}
+
+/** Remove somebody from a list. Passing your own id is how you leave one. */
+export async function unshareNote(
+  noteId: string,
+  userId: string,
+): Promise<ActionResult<void>> {
+  if (!uuid.safeParse(noteId).success) return fail("Unknown note.");
+  if (!uuid.safeParse(userId).success) return fail("Unknown person.");
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("personal_note_shares")
+    .delete()
+    .eq("note_id", noteId)
+    .eq("user_id", userId)
+    .select("user_id")
+    .maybeSingle();
+
+  if (error) return fail(describeDatabaseError(error));
+
+  // Nothing came back: either the policy refused, or they were already off the
+  // list. Look before blaming the caller.
+  if (!data) {
+    const { data: still } = await supabase
+      .from("personal_note_shares")
+      .select("user_id")
+      .eq("note_id", noteId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (still) return fail("Only the owner of a list can remove someone else.");
+  }
+
+  revalidatePath("/my-list");
+  return ok(undefined);
+}

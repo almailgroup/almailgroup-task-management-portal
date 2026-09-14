@@ -27,10 +27,13 @@ import {
   saveNote,
   updateNoteItem,
 } from "@/lib/data/note-actions";
+import { ShareNoteDialog } from "@/components/notes/share-note-dialog";
+import { useNoteStream } from "@/lib/realtime/use-note-stream";
 import { cn } from "@/lib/utils";
 import type {
   NoteWithItems,
   PersonalNoteItem,
+  Profile,
 } from "@/lib/supabase/database.types";
 
 /** How long to wait after the last keystroke before writing. */
@@ -46,16 +49,23 @@ const SAVE_DELAY = 700;
  */
 export function NoteEditor({
   note,
+  profile,
+  team,
   onBack,
   onPatch,
   onTogglePin,
   onRequestDelete,
+  onLeft,
 }: {
   note: NoteWithItems;
+  profile: Profile;
+  team: Profile[];
   onBack: () => void;
   onPatch: (patch: Partial<NoteWithItems>) => void;
   onTogglePin: () => void;
   onRequestDelete: () => void;
+  /** After leaving a list shared with you, it is no longer on your page. */
+  onLeft: () => void;
 }) {
   const [title, setTitle] = React.useState(note.title);
   const [body, setBody] = React.useState(note.body);
@@ -69,6 +79,9 @@ export function NoteEditor({
   const items = note.items;
   const remaining = items.filter((item) => !item.done).length;
 
+  const itemsRef = React.useRef(items);
+  itemsRef.current = items;
+
   React.useEffect(() => {
     const id = focusNext.current;
     if (!id) return;
@@ -81,6 +94,8 @@ export function NoteEditor({
 
   // --- Title and body: debounced auto-save ---------------------------------
   const dirty = title !== note.title || body !== note.body;
+  const dirtyRef = React.useRef(dirty);
+  dirtyRef.current = dirty;
 
   React.useEffect(() => {
     if (!dirty) return;
@@ -115,6 +130,69 @@ export function NoteEditor({
   function patchItems(next: PersonalNoteItem[]) {
     onPatch({ items: next });
   }
+
+  // --- What the other people on this list are doing -------------------------
+  const shared = note.mine ? note.collaborators.length > 0 : true;
+
+  const applyItem = React.useCallback(
+    ({
+      type,
+      item,
+    }: {
+      type: "INSERT" | "UPDATE" | "DELETE";
+      item: PersonalNoteItem;
+    }) => {
+      onPatch({
+        items: (() => {
+          const current = itemsRef.current;
+
+          if (type === "DELETE") {
+            return current.filter((row) => row.id !== item.id);
+          }
+
+          // The line being typed in right now belongs to whoever is typing.
+          // Their own save will land in a moment; overwriting it mid-word
+          // would eat the characters between the two.
+          if (document.activeElement === itemRefs.current.get(item.id)) {
+            return current;
+          }
+
+          const known = current.some((row) => row.id === item.id);
+          const next = known
+            ? current.map((row) => (row.id === item.id ? item : row))
+            : [...current, item];
+
+          return next.sort((a, b) => a.position - b.position);
+        })(),
+      });
+    },
+    [onPatch],
+  );
+
+  const applyNote = React.useCallback(
+    (remote: { title: string; body: string; pinned: boolean; updated_at: string }) => {
+      // Only when there is nothing of ours to lose. Someone mid-sentence keeps
+      // what they are writing; their save will win, and the other side will
+      // get it through this same channel.
+      if (dirtyRef.current) return;
+      setTitle(remote.title);
+      setBody(remote.body);
+      onPatch({
+        title: remote.title,
+        body: remote.body,
+        pinned: remote.pinned,
+        updated_at: remote.updated_at,
+      });
+    },
+    [onPatch],
+  );
+
+  useNoteStream({
+    noteId: note.id,
+    enabled: shared,
+    onItem: applyItem,
+    onNote: applyNote,
+  });
 
   async function toggleItem(item: PersonalNoteItem) {
     const done = !item.done;
@@ -208,6 +286,13 @@ export function NoteEditor({
                 : ""}
         </span>
 
+        <ShareNoteDialog
+          note={note}
+          team={team}
+          profile={profile}
+          onLeft={onLeft}
+        />
+
         <Button
           variant="ghost"
           size="icon-sm"
@@ -233,9 +318,11 @@ export function NoteEditor({
               Clear ticked lines
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onRequestDelete}>
+            {/* Deleting somebody else's list is not collaboration — the
+                database refuses it too. Leaving is in the share dialog. */}
+            <DropdownMenuItem onSelect={onRequestDelete} disabled={!note.mine}>
               <Trash2 />
-              Delete note
+              {note.mine ? "Delete note" : "Only the owner can delete"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
