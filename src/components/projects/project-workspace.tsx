@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Columns3,
   Hash,
@@ -136,6 +136,15 @@ export function ProjectWorkspace({
     setNewTaskStatus(columnStatus);
     setTaskDialogOpen(true);
   }
+
+  // ?new=1 opens the New task dialog. Gives the command palette and the `n`
+  // shortcut a target that is also a plain, shareable link.
+  const searchParams = useSearchParams();
+  React.useEffect(() => {
+    if (searchParams.get("new") === "1") createTask("todo");
+    // Keyed on the params only: re-running when createTask changes identity
+    // would reopen the dialog every render after it had been closed.
+  }, [searchParams]);
 
   async function onDeleteProject() {
     const outcome = await deleteProject(project.id);
@@ -301,7 +310,13 @@ export function ProjectWorkspace({
           onCreateTask={createTask}
         />
       ) : (
-        <TaskTable tasks={filtered} onOpenTask={openTask} />
+        <TaskTable
+          tasks={filtered}
+          onOpenTask={openTask}
+          projectId={project.id}
+          canComplete={canComplete}
+          canDelete={canComplete}
+        />
       )}
 
       <TaskDialog

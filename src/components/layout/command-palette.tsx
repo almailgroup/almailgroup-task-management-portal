@@ -7,11 +7,20 @@ import {
   CornerDownLeft,
   Hash,
   LayoutDashboard,
+  ListChecks,
+  LogOut,
+  Moon,
+  Plus,
   Search,
+  StickyNote,
   Sunrise,
   User,
   Users,
 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
+
+import { createNote } from "@/lib/data/note-actions";
 
 import {
   Dialog,
@@ -26,7 +35,9 @@ type Entry = {
   id: string;
   label: string;
   hint?: string;
-  href: string;
+  /** Where it goes, or `run` for something it does on the spot. */
+  href?: string;
+  run?: () => void | Promise<void>;
   icon: React.ComponentType<{ className?: string }>;
   group: string;
 };
@@ -44,13 +55,38 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
   const listRef = React.useRef<HTMLUListElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const { resolvedTheme, setTheme } = useTheme();
+
+  const newNote = React.useCallback(async () => {
+    const outcome = await createNote();
+    if (!outcome.ok) {
+      toast.error(outcome.error);
+      return;
+    }
+    router.push("/my-list");
+    router.refresh();
+  }, [router]);
 
   const entries = React.useMemo<Entry[]>(
     () => [
+      // Actions first: someone who opened this with a verb in mind should not
+      // have to scroll past every page in the app to find it.
+      { id: "new-task", label: "New task", href: "/general?new=1", icon: Plus, group: "Actions", hint: "n" },
+      { id: "new-note", label: "New note in My List", run: newNote, icon: StickyNote, group: "Actions" },
+      {
+        id: "theme",
+        label: resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme",
+        run: () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
+        icon: Moon,
+        group: "Actions",
+      },
+      { id: "signout", label: "Sign out", href: "/auth/signout", icon: LogOut, group: "Actions" },
       { id: "today", label: "Today", href: "/today", icon: Sunrise, group: "Go to" },
       { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Go to" },
       { id: "general", label: "General tasks", href: "/general", icon: ClipboardList, group: "Go to" },
-      { id: "my-list", label: "My List", href: "/my-list", icon: Search, group: "Go to" },
+      { id: "my-list", label: "My List", href: "/my-list", icon: ListChecks, group: "Go to" },
       { id: "tasks", label: "All tasks", href: "/tasks?filter=all", icon: Search, group: "Go to" },
       { id: "team", label: "Team", href: "/team", icon: Users, group: "Go to" },
       { id: "profile", label: "Profile", href: "/profile", icon: User, group: "Go to" },
@@ -66,7 +102,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         group: "Projects",
       })),
     ],
-    [projects],
+    [projects, resolvedTheme, setTheme, newNote],
   );
 
   const results = React.useMemo(() => {
@@ -83,17 +119,48 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         setOpen((current) => !current);
+        return;
+      }
+
+      // Bare-letter shortcuts must never fire while someone is writing, or
+      // typing "note" into a comment would open a dialog mid-sentence.
+      const el = document.activeElement as HTMLElement | null;
+      const typing =
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el?.isContentEditable === true;
+      if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
+
+      if (event.key === "n") {
+        event.preventDefault();
+        router.push("/general?new=1");
+      } else if (event.key === "/") {
+        // Focus whatever this page calls its search box.
+        const search = document.querySelector<HTMLInputElement>(
+          'input[type="search"], input[aria-label^="Search"]',
+        );
+        if (search) {
+          event.preventDefault();
+          search.focus();
+          search.select();
+        }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [router]);
 
   React.useEffect(() => {
     if (open) {
       setQuery("");
       setActive(0);
+      return;
     }
+    // Radix keeps the dialog mounted through its exit animation, so without
+    // this the palette's own input holds focus for the best part of a second
+    // after it looks closed — long enough to swallow the next keystroke, and
+    // the bare-letter shortcuts refuse to fire while a field has focus.
+    inputRef.current?.blur();
   }, [open]);
 
   React.useEffect(() => setActive(0), [query]);
@@ -107,7 +174,8 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
 
   function go(entry: Entry) {
     setOpen(false);
-    router.push(entry.href);
+    if (entry.run) void entry.run();
+    else if (entry.href) router.push(entry.href);
   }
 
   function onKeyDown(event: React.KeyboardEvent) {
@@ -135,16 +203,17 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       >
         <DialogTitle className="sr-only">Search and navigate</DialogTitle>
         <DialogDescription className="sr-only">
-          Type to filter pages and projects. Arrow keys to move, Enter to open.
+          Type to filter actions, pages and projects. Arrow keys to move, Enter to run.
         </DialogDescription>
 
         <div className="flex items-center gap-2 border-b border-border px-3">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
+            ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search pages and projects..."
+            placeholder="Search or run a command..."
             className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             autoFocus
             aria-label="Search"

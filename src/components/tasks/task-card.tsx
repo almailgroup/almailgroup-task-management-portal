@@ -22,10 +22,12 @@ export const TaskCard = React.forwardRef<
   {
     task: TaskWithAssignees;
     onOpen?: () => void;
+    /** Status control, so a card can be moved without dragging it. */
+    move?: React.ReactNode;
     dragging?: boolean;
     className?: string;
   } & React.HTMLAttributes<HTMLDivElement>
->(function TaskCard({ task, onOpen, dragging, className, ...props }, ref) {
+>(function TaskCard({ task, onOpen, move, dragging, className, ...props }, ref) {
   return (
     <div
       ref={ref}
@@ -55,6 +57,8 @@ export const TaskCard = React.forwardRef<
           <AssigneeStack assignees={task.assignees} max={2} />
         </span>
       </div>
+
+      {move && <div className="mt-3">{move}</div>}
     </div>
   );
 });

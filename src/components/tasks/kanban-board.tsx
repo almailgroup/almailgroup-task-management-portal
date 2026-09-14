@@ -28,6 +28,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { DragInstructions, TaskCard } from "@/components/tasks/task-card";
+import { StatusMoveMenu } from "@/components/tasks/status-move-menu";
 import { moveTask } from "@/lib/data/task-actions";
 import { TASK_STATUSES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -98,6 +99,47 @@ export function KanbanBoard({
   }, [items]);
 
   const activeTask = items.find((task) => task.id === activeId) ?? null;
+
+  /**
+   * Send a task to the end of another column.
+   *
+   * Shares the optimistic-update-then-persist path with a drop, including the
+   * revert, so a tap and a drag cannot disagree about what happened.
+   */
+  async function moveToColumn(task: TaskWithAssignees, targetStatus: TaskStatus) {
+    if (task.status === targetStatus) return;
+
+    if (!canComplete && (targetStatus === "done" || task.status === "done")) {
+      toast.error(
+        targetStatus === "done"
+          ? "Only a manager or admin can mark a task done. Move it to In Review instead."
+          : "Only a manager or admin can reopen a completed task.",
+      );
+      return;
+    }
+
+    const column = (columns.get(targetStatus) ?? []).filter(
+      (entry) => entry.id !== task.id,
+    );
+    const position = midpoint(column[column.length - 1]?.position, undefined);
+
+    const previous = items;
+    setItems((current) =>
+      current.map((entry) =>
+        entry.id === task.id
+          ? { ...entry, status: targetStatus, position }
+          : entry,
+      ),
+    );
+
+    const outcome = await moveTask(task.id, projectId, targetStatus, position);
+    if (!outcome.ok) {
+      setItems(previous);
+      toast.error(outcome.error);
+      return;
+    }
+    router.refresh();
+  }
 
   function onDragStart(event: DragStartEvent) {
     setActiveId(String(event.active.id));
@@ -212,6 +254,13 @@ export function KanbanBoard({
                     key={task.id}
                     task={task}
                     onOpen={() => onOpenTask(task)}
+                    move={
+                      <StatusMoveMenu
+                        status={task.status}
+                        canComplete={canComplete}
+                        onMove={(next) => void moveToColumn(task, next)}
+                      />
+                    }
                   />
                 ))}
               </SortableContext>
@@ -312,9 +361,11 @@ function Column({
 function SortableCard({
   task,
   onOpen,
+  move,
 }: {
   task: TaskWithAssignees;
   onOpen: () => void;
+  move?: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id });
@@ -324,6 +375,7 @@ function SortableCard({
       ref={setNodeRef}
       task={task}
       onOpen={onOpen}
+      move={move}
       dragging={isDragging}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       // Once a press has become a drag the browser must stop treating the

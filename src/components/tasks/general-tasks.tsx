@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ClipboardList,
   Columns3,
@@ -101,6 +102,15 @@ export function GeneralTasks({
     setNewStatus(columnStatus);
     setDialogOpen(true);
   }
+
+  // ?new=1 opens the New task dialog. Gives the command palette and the `n`
+  // shortcut a target that is also a plain, shareable link.
+  const searchParams = useSearchParams();
+  React.useEffect(() => {
+    if (searchParams.get("new") === "1") createTask("todo");
+    // Keyed on the params only: re-running when createTask changes identity
+    // would reopen the dialog every render after it had been closed.
+  }, [searchParams]);
 
   return (
     <PageShell>

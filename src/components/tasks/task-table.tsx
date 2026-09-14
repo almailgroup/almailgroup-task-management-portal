@@ -1,15 +1,23 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { ListFilter } from "lucide-react";
+import { toast } from "sonner";
 
+import { BulkActionBar } from "@/components/tasks/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
+import { deleteTask, moveTask } from "@/lib/data/task-actions";
+import type { TaskStatus } from "@/lib/supabase/database.types";
 import {
   AssigneeStack,
   DueDate,
   PriorityIndicator,
 } from "@/components/tasks/task-meta";
 import { StatusBadge } from "@/components/tasks/task-meta";
+import { statusMeta } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**
@@ -21,10 +29,87 @@ import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 export function TaskTable({
   tasks,
   onOpenTask,
+  projectId = null,
+  canComplete = false,
+  canDelete = false,
 }: {
   tasks: TaskWithAssignees[];
   onOpenTask: (task: TaskWithAssignees) => void;
+  projectId?: string | null;
+  /** Whether the viewer may move tasks into Done. */
+  canComplete?: boolean;
+  /** Whether the viewer may delete tasks. Members may not. */
+  canDelete?: boolean;
 }) {
+  const router = useRouter();
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+
+  // Selecting is only offered to people who can act on a selection.
+  const selectable = canComplete || canDelete;
+  const visibleIds = React.useMemo(() => tasks.map((t) => t.id), [tasks]);
+
+  // Drop anything that has filtered out from under the selection, so the
+  // count never claims more than is on screen.
+  React.useEffect(() => {
+    setSelected((current) => {
+      const next = new Set([...current].filter((id) => visibleIds.includes(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [visibleIds]);
+
+  const allSelected = tasks.length > 0 && selected.size === tasks.length;
+
+  const toggle = (id: string) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const chosen = () => tasks.filter((task) => selected.has(task.id));
+
+  async function bulkMove(status: TaskStatus) {
+    const batch = chosen();
+    // Positions are spaced so the moved tasks keep their relative order at
+    // the end of the target column.
+    const results = await Promise.all(
+      batch.map((task, index) =>
+        moveTask(task.id, task.project_id ?? projectId, status, Date.now() + index),
+      ),
+    );
+    const failed = results.filter((r) => !r.ok).length;
+    report(batch.length - failed, failed, `Moved`, status);
+    setSelected(new Set());
+    router.refresh();
+  }
+
+  async function bulkDelete() {
+    const batch = chosen();
+    const results = await Promise.all(
+      batch.map((task) => deleteTask(task.id, task.project_id ?? projectId)),
+    );
+    const failed = results.filter((r) => !r.ok).length;
+    report(batch.length - failed, failed, "Deleted");
+    setSelected(new Set());
+    router.refresh();
+  }
+
+  function report(done: number, failed: number, verb: string, status?: TaskStatus) {
+    const what = `${done} ${done === 1 ? "task" : "tasks"}`;
+    if (done > 0) {
+      toast.success(
+        status ? `${verb} ${what} to ${statusLabel(status)}` : `${verb} ${what}`,
+      );
+    }
+    // Partial failure is the interesting case: RLS may refuse some of a
+    // selection and allow the rest, and silence there would be a lie.
+    if (failed > 0) {
+      toast.error(
+        `${failed} ${failed === 1 ? "task" : "tasks"} could not be changed — you may not have permission.`,
+      );
+    }
+  }
   if (tasks.length === 0) {
     return (
       <EmptyState
@@ -42,6 +127,17 @@ export function TaskTable({
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/60 text-left">
+              {selectable && (
+                <Th className="w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={() =>
+                      setSelected(allSelected ? new Set() : new Set(visibleIds))
+                    }
+                    aria-label={allSelected ? "Clear selection" : "Select all tasks"}
+                  />
+                </Th>
+              )}
               <Th className="w-[45%]">Task</Th>
               <Th>Status</Th>
               <Th>Priority</Th>
@@ -54,8 +150,20 @@ export function TaskTable({
               <tr
                 key={task.id}
                 onClick={() => onOpenTask(task)}
-                className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-accent/50"
+                className={cn(
+                  "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-accent/50",
+                  selected.has(task.id) && "bg-accent/60",
+                )}
               >
+                {selectable && (
+                  <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selected.has(task.id)}
+                      onCheckedChange={() => toggle(task.id)}
+                      aria-label={`Select ${task.title}`}
+                    />
+                  </td>
+                )}
                 <td className="px-4 py-3.5">
                   <button
                     type="button"
@@ -91,11 +199,23 @@ export function TaskTable({
       {/* Mobile */}
       <ul className="flex flex-col gap-2 md:hidden">
         {tasks.map((task) => (
-          <li key={task.id}>
+          <li key={task.id} className="flex items-start gap-2.5">
+            {selectable && (
+              <span className="mt-4 shrink-0">
+                <Checkbox
+                  checked={selected.has(task.id)}
+                  onCheckedChange={() => toggle(task.id)}
+                  aria-label={`Select ${task.title}`}
+                />
+              </span>
+            )}
             <button
               type="button"
               onClick={() => onOpenTask(task)}
-              className="lift w-full rounded-xl border border-border bg-card p-4 text-left shadow-[var(--shadow-sm)] hover:border-foreground/30"
+              className={cn(
+                "lift w-full min-w-0 rounded-xl border border-border bg-card p-4 text-left shadow-[var(--shadow-sm)] hover:border-foreground/30",
+                selected.has(task.id) && "border-foreground/40 bg-accent/50",
+              )}
             >
               <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -110,8 +230,22 @@ export function TaskTable({
           </li>
         ))}
       </ul>
+
+      {selectable && (
+        <BulkActionBar
+          count={selected.size}
+          canComplete={canComplete}
+          onMove={bulkMove}
+          onDelete={bulkDelete}
+          onClear={() => setSelected(new Set())}
+        />
+      )}
     </>
   );
+}
+
+function statusLabel(status: TaskStatus): string {
+  return statusMeta(status).label;
 }
 
 function Th({
