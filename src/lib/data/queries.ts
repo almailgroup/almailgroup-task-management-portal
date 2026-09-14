@@ -39,13 +39,36 @@ function reportQueryError(where: string, error: { message: string; code?: string
   console.error(`[query:${where}] ${error.code ?? "error"}: ${error.message}`);
 }
 
-/** The signed-in user's profile, or redirect to login. */
-export const requireProfile = cache(async (): Promise<Profile> => {
+/**
+ * The signed-in auth user, or null.
+ *
+ * Cached because `getUser()` is a round trip to the auth server and more than
+ * one thing per request wants it — the profile, and the check below.
+ */
+const getAuthUser = cache(async () => {
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return user;
+});
+
+/**
+ * Whether this account is still on the one-time password an admin issued.
+ *
+ * Set when the account is created and cleared the moment a password is chosen.
+ * It lives in the user's own metadata, so it is a nudge rather than a lock —
+ * the account is already theirs either way.
+ */
+export const needsOwnPassword = cache(async (): Promise<boolean> => {
+  const user = await getAuthUser();
+  return user?.user_metadata?.must_change_password === true;
+});
+
+/** The signed-in user's profile, or redirect to login. */
+export const requireProfile = cache(async (): Promise<Profile> => {
+  const supabase = await createClient();
+  const user = await getAuthUser();
 
   if (!user) redirect("/login");
 

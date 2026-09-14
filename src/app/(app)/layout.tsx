@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { AppShell } from "@/components/layout/app-shell";
 import { TimeZoneCookie } from "@/components/layout/timezone-cookie";
 import {
@@ -10,6 +12,7 @@ import {
   getNotifications,
   getProjects,
   getUnreadNotificationCount,
+  needsOwnPassword,
   requireProfile,
 } from "@/lib/data/queries";
 
@@ -22,6 +25,10 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Nobody works out of an account whose password was handed to them. The
+  // page this leads to is outside this layout, so there is nothing to loop on.
+  if (await needsOwnPassword()) redirect("/set-password");
+
   const [profile, projects, notifications, unreadCount] = await Promise.all([
     requireProfile(),
     getProjects(),

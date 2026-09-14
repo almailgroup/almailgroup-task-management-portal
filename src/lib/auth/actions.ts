@@ -194,7 +194,84 @@ export async function updatePassword(
     );
   }
 
-  const { error } = await supabase.auth.updateUser({ password: password.data });
+  const { error } = await supabase.auth.updateUser({
+    password: password.data,
+    // Clears the "this is a one-time password" flag an admin-created account
+    // starts with, so the app stops asking.
+    data: { must_change_password: false },
+  });
+  if (error) return fail(describeAuthError(error));
+
+  revalidatePath("/", "layout");
+  return ok(undefined);
+}
+
+/**
+ * Change your own password from the profile page.
+ *
+ * Unlike the reset flow, nothing here proves who is asking except the session
+ * itself — so the current password is required. Supabase does not ask for it,
+ * but an unlocked laptop should not be enough to take somebody's account over,
+ * and it is the difference between "signed in as" and "is".
+ */
+export async function changeOwnPassword(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<void>> {
+  const currentPassword = String(formData.get("currentPassword") ?? "");
+  const password = passwordSchema.safeParse(formData.get("password"));
+
+  if (!currentPassword) {
+    return fail("Enter your current password.", {
+      currentPassword: "Enter your current password.",
+    });
+  }
+
+  if (!password.success) {
+    return fail("Check the fields below.", {
+      password: password.error.issues[0].message,
+    });
+  }
+
+  if (formData.get("password") !== formData.get("confirm")) {
+    return fail("Those passwords do not match.", {
+      confirm: "Those passwords do not match.",
+    });
+  }
+
+  if (currentPassword === password.data) {
+    return fail("That is already your password.", {
+      password: "Choose something different from your current password.",
+    });
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return fail("Your session expired. Please sign in again.");
+  }
+
+  // Verified by signing in again as the same person. A failure leaves the
+  // existing session untouched; a success simply refreshes it.
+  const { error: wrongPassword } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+
+  if (wrongPassword) {
+    return fail("That is not your current password.", {
+      currentPassword: "That is not your current password.",
+    });
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: password.data,
+    data: { must_change_password: false },
+  });
+
   if (error) return fail(describeAuthError(error));
 
   revalidatePath("/", "layout");

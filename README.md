@@ -136,9 +136,15 @@ a Team Member; an admin can change roles on `/team`.
 
 **Team → Add teammate.** An admin fills in a name, an email and a role, and the
 account exists immediately with a one-time password to hand over. Nothing is
-emailed, and the person changes the password from their profile once they are
-in. This is the intended route for a workspace: access is granted by whoever is
-responsible for it, rather than claimed.
+emailed. This is the intended route for a workspace: access is granted by
+whoever is responsible for it, rather than claimed.
+
+A password somebody else chose and wrote down is only as private as wherever it
+was written, so **the first sign-in lands on "Choose your password"** and the
+app stays there until they have. The prompt is a flag on the account, cleared
+the moment a password is set. Afterwards — and for anyone who simply wants a
+new one — **Profile → Password → Change password** asks for the current
+password and then the new one, without going anywhere near an email.
 
 Self-registration at `/register` still works, but it depends on a confirmation
 email, and that is where a new Supabase project has a sharp edge — see below.

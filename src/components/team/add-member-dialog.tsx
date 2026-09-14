@@ -114,9 +114,9 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
               <DialogHeader>
                 <DialogTitle>Account ready</DialogTitle>
                 <DialogDescription>
-                  Nothing was emailed. Pass these on however you normally would,
-                  and ask them to change the password from their profile once
-                  they are in.
+                  Nothing was emailed. Pass these on however you normally would
+                  — the first time they sign in, the app asks them to choose a
+                  password of their own.
                 </DialogDescription>
               </DialogHeader>
 

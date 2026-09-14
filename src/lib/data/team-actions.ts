@@ -109,7 +109,13 @@ export async function addTeamMember(
     // Confirmed on creation: nothing is emailed, so nothing can be missed and
     // no send quota is spent.
     email_confirm: true,
-    user_metadata: { full_name: parsed.data.fullName },
+    user_metadata: {
+      full_name: parsed.data.fullName,
+      // The app asks them to choose their own on first sign-in, and clears
+      // this when they do. A nudge, not a lock: the account is already theirs,
+      // and they could clear the flag themselves if they went looking.
+      must_change_password: true,
+    },
   });
 
   if (error) return fail(describeAuthError(error));

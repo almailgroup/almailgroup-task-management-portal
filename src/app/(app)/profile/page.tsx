@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCog } from "lucide-react";
 
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
+import { ChangePassword } from "@/components/profile/change-password";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ReminderSettings } from "@/components/profile/reminder-settings";
 import { roleMeta } from "@/lib/constants";
@@ -47,6 +48,15 @@ export default async function ProfilePage() {
       <Card>
         <CardContent className="pt-4">
           <ProfileForm profile={profile} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Password</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChangePassword />
         </CardContent>
       </Card>
 
