@@ -86,6 +86,7 @@ export function TaskBrowser({
               aria-current={active ? "page" : undefined}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
+                "pointer-coarse:min-h-10 pointer-coarse:px-3",
                 active
                   ? "border-transparent bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -130,29 +131,36 @@ export function TaskBrowser({
         <ul className="flex flex-col gap-2">
           {visible.map((task) => (
             <li key={task.id}>
-              <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-xs)] transition-colors hover:border-foreground/25">
-                <PriorityIndicator priority={task.priority} />
+              <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-xs)] transition-colors hover:border-foreground/25">
+                {/* Four trailing controls against one title: on a phone they
+                    left it 29px wide. The title owns the first row and they
+                    wrap beneath it until there is room for one line. */}
+                <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:flex-1">
+                  <PriorityIndicator priority={task.priority} />
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTask(task);
-                    setDialogOpen(true);
-                  }}
-                  className="min-w-0 flex-1 text-left focus-visible:outline-none"
-                >
-                  <span className="block truncate text-[0.9375rem] font-medium">
-                    {task.title}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {projectName(task.project_id)}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTask(task);
+                      setDialogOpen(true);
+                    }}
+                    className="min-w-0 flex-1 text-left focus-visible:outline-none"
+                  >
+                    <span className="block truncate text-[0.9375rem] font-medium">
+                      {task.title}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {projectName(task.project_id)}
+                    </span>
+                  </button>
+                </div>
 
-                <DueDate dueAt={task.due_at} status={task.status} />
-                <StatusBadge status={task.status} />
-                <AssigneeStack assignees={task.assignees} max={3} />
-                {canManage && <RescheduleMenu task={task} compact />}
+                <div className="flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 sm:w-auto">
+                  <DueDate dueAt={task.due_at} status={task.status} />
+                  <StatusBadge status={task.status} />
+                  <AssigneeStack assignees={task.assignees} max={3} />
+                  {canManage && <RescheduleMenu task={task} compact />}
+                </div>
               </div>
             </li>
           ))}

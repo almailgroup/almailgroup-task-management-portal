@@ -7,7 +7,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useDroppable,
   useSensor,
@@ -73,7 +74,15 @@ export function KanbanBoard({
   const sensors = useSensors(
     // A small distance threshold keeps a click on the card title from
     // registering as a drag.
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    // Touch is deliberately a different gesture. A distance threshold cannot
+    // work here: on a phone a swipe across a card is how you scroll the board,
+    // and a pointer sensor claims that swipe (or the browser cancels the drag
+    // mid-way, which is worse). A short press picks the card up instead, and
+    // `tolerance` lets a thumb wobble during that press without cancelling it.
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 220, tolerance: 8 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -317,6 +326,9 @@ function SortableCard({
       onOpen={onOpen}
       dragging={isDragging}
       style={{ transform: CSS.Transform.toString(transform), transition }}
+      // Once a press has become a drag the browser must stop treating the
+      // gesture as a scroll, or it cancels the pointer stream underneath us.
+      className={isDragging ? "touch-none" : undefined}
       {...attributes}
       {...listeners}
     />

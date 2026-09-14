@@ -26,7 +26,7 @@ export function UserMenu({ profile }: { profile: Profile }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none"
+        className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none pointer-coarse:size-10"
         aria-label="Account menu"
       >
         <Avatar>

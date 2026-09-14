@@ -50,7 +50,10 @@ export function PageHeader({
 }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-      <div className="min-w-0 flex-1">
+      {/* basis-full below sm: the actions are shrink-0, so on a phone they won
+          the row outright and truncated the page title to a couple of letters.
+          They now wrap onto their own line and the title gets the full width. */}
+      <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
         <div className="flex items-center gap-2">
           {icon && (
             <span className="text-muted-foreground [&_svg]:size-5">{icon}</span>
@@ -66,9 +69,7 @@ export function PageHeader({
       </div>
 
       {actions && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {actions}
-        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
       )}
     </header>
   );

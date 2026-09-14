@@ -41,7 +41,9 @@ export const TaskCard = React.forwardRef<
       <button
         type="button"
         onClick={onOpen}
-        className="w-full text-left focus-visible:outline-none"
+        // Negative margin cancels the padding, so the tappable area grows to a
+        // thumb-friendly height on touch without changing the card's layout.
+        className="w-full text-left focus-visible:outline-none pointer-coarse:-my-2 pointer-coarse:py-2"
       >
         <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
       </button>

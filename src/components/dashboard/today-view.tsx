@@ -216,7 +216,7 @@ export function TodayView({
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5">
             {workload.map(({ profile: person, today: t, late, active: a }) => (
-              <div key={person.id} className="flex items-center gap-3">
+              <div key={person.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Avatar className="size-7">
                   {person.avatar_url && (
                     <AvatarImage src={person.avatar_url} alt="" />
@@ -225,7 +225,7 @@ export function TodayView({
                     {initialsFrom(person.full_name, person.email)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="min-w-0 flex-1 truncate text-sm">
+                <span className="min-w-0 flex-1 basis-40 truncate text-sm">
                   {person.full_name ?? person.email}
                   {person.job_title && (
                     <span className="ml-1.5 text-xs text-muted-foreground">
@@ -304,27 +304,34 @@ function Section({
           tasks.map((task) => (
             <div
               key={task.id}
-              className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-3.5 py-3 shadow-[var(--shadow-xs)]"
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border bg-card px-3.5 py-3 shadow-[var(--shadow-xs)]"
             >
-              <PriorityIndicator priority={task.priority} />
+              {/* On a phone the badge, avatars and reschedule button between
+                  them left the title about 100px and it read "Photogra…".
+                  The title takes the row to itself and they drop below it. */}
+              <div className="flex w-full min-w-0 items-center gap-2.5 sm:w-auto sm:flex-1">
+                <PriorityIndicator priority={task.priority} />
 
-              <button
-                type="button"
-                onClick={() => onOpen(task)}
-                className="min-w-0 flex-1 text-left focus-visible:outline-none"
-              >
-                <span className="block truncate text-[0.9375rem] font-medium">
-                  {task.title}
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {projectName(task.project_id)}
-                  {task.due_at && ` · ${formatDateTime(task.due_at)}`}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => onOpen(task)}
+                  className="min-w-0 flex-1 text-left focus-visible:outline-none"
+                >
+                  <span className="block truncate text-[0.9375rem] font-medium">
+                    {task.title}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {projectName(task.project_id)}
+                    {task.due_at && ` · ${formatDateTime(task.due_at)}`}
+                  </span>
+                </button>
+              </div>
 
-              <StatusBadge status={task.status} />
-              <AssigneeStack assignees={task.assignees} max={2} />
-              {canReschedule && <RescheduleMenu task={task} compact />}
+              <div className="flex w-full items-center justify-end gap-2.5 sm:w-auto">
+                <StatusBadge status={task.status} />
+                <AssigneeStack assignees={task.assignees} max={2} />
+                {canReschedule && <RescheduleMenu task={task} compact />}
+              </div>
             </div>
           ))
         )}
