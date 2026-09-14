@@ -7,6 +7,7 @@ import {
   ClipboardList,
   CornerDownLeft,
   Hash,
+  Keyboard,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -32,6 +33,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ShortcutsDialog } from "@/components/layout/shortcuts-dialog";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/supabase/database.types";
 
@@ -56,6 +58,7 @@ type Entry = {
 export function CommandPalette({ projects }: { projects: Project[] }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
   const listRef = React.useRef<HTMLUListElement>(null);
@@ -121,6 +124,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         icon: Moon,
         group: "Actions",
       },
+      { id: "shortcuts", label: "Keyboard shortcuts", run: () => setShortcutsOpen(true), icon: Keyboard, group: "Actions", hint: "?" },
       { id: "signout", label: "Sign out", href: "/auth/signout", icon: LogOut, group: "Actions" },
       { id: "today", label: "Today", href: "/today", icon: Sunrise, group: "Go to" },
       { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Go to" },
@@ -199,6 +203,9 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       if (event.key === "n") {
         event.preventDefault();
         router.push("/general?new=1");
+      } else if (event.key === "?") {
+        event.preventDefault();
+        setShortcutsOpen(true);
       } else if (event.key === "/") {
         // Focus whatever this page calls its search box.
         const search = document.querySelector<HTMLInputElement>(
@@ -261,6 +268,8 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
   let lastGroup = "";
 
   return (
+    <>
+    <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         className="max-w-lg gap-0 overflow-hidden p-0"
@@ -351,6 +360,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 

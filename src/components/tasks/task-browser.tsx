@@ -3,14 +3,17 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FolderOpen, ListFilter, Search } from "lucide-react";
+import { Download, FolderOpen, ListFilter, Search } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TaskTable } from "@/components/tasks/task-table";
 import { TaskDialog } from "@/components/tasks/task-dialog";
-import { TASK_FILTERS, type TaskFilter } from "@/lib/task-filters";
+import { csvFilename, tasksToCsv } from "@/lib/csv";
+import { downloadText } from "@/lib/download";
+import { TASK_FILTERS, filterLabel, type TaskFilter } from "@/lib/task-filters";
 import { cn } from "@/lib/utils";
 import type {
   Profile,
@@ -130,15 +133,39 @@ export function TaskBrowser({
         })}
       </nav>
 
-      <div className="relative max-w-xs">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search these tasks"
-          className="h-9 pl-8"
-          aria-label="Search tasks"
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search these tasks"
+            className="h-9 pl-8"
+            aria-label="Search tasks"
+          />
+        </div>
+        <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="tabular-nums">
+            {visible.length} of {tasks.length}
+          </span>
+          {visible.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                downloadText(
+                  csvFilename(`${filterLabel(filter)} tasks`),
+                  tasksToCsv(visible, projectName),
+                )
+              }
+              aria-label="Export these tasks as CSV"
+              title="Export as CSV"
+            >
+              <Download />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          )}
+        </span>
       </div>
 
       {/* One row implementation for every task list in the app. The browser

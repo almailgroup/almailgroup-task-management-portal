@@ -8,30 +8,24 @@ import {
   List,
   PhoneCall,
   Plus,
-  Search,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { TaskDialog } from "@/components/tasks/task-dialog";
+import { TaskFilterBar } from "@/components/tasks/task-filter-bar";
 import { TaskTable } from "@/components/tasks/task-table";
 import { FollowUpList } from "@/components/tasks/follow-up-list";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { csvFilename, tasksToCsv } from "@/lib/csv";
+import { downloadText } from "@/lib/download";
+import { matchesFilters } from "@/lib/task-filters";
+import { useTaskFilters } from "@/lib/use-task-filters";
 import type {
   Profile,
-  TaskPriority,
   TaskStatus,
   TaskWithAssignees,
 } from "@/lib/supabase/database.types";
@@ -58,10 +52,7 @@ export function GeneralTasks({
   const [view, setView] = React.useState<"board" | "list" | "followups">(
     "board",
   );
-  const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState<TaskStatus | "all">("all");
-  const [priority, setPriority] = React.useState<TaskPriority | "all">("all");
-  const [assignee, setAssignee] = React.useState("all");
+  const { filters, update: updateFilters, clear: clearFilters } = useTaskFilters();
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(
@@ -71,27 +62,10 @@ export function GeneralTasks({
 
   const canManage = profile.role === "admin" || profile.role === "manager";
 
-  const filtered = React.useMemo(() => {
-    const needle = query.trim().toLowerCase();
-
-    return liveTasks.filter((task) => {
-      if (status !== "all" && task.status !== status) return false;
-      if (priority !== "all" && task.priority !== priority) return false;
-
-      if (assignee === "unassigned") {
-        if (task.assignees.length > 0) return false;
-      } else if (assignee !== "all") {
-        if (!task.assignees.some((p) => p.id === assignee)) return false;
-      }
-
-      if (needle) {
-        const haystack = `${task.title} ${task.description ?? ""}`.toLowerCase();
-        if (!haystack.includes(needle)) return false;
-      }
-
-      return true;
-    });
-  }, [liveTasks, query, status, priority, assignee]);
+  const filtered = React.useMemo(
+    () => liveTasks.filter((task) => matchesFilters(task, filters)),
+    [liveTasks, filters],
+  );
 
   function openTask(task: TaskWithAssignees) {
     setActiveTask(task);
@@ -133,7 +107,18 @@ export function GeneralTasks({
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <TaskFilterBar
+        filters={filters}
+        onChange={updateFilters}
+        onClear={clearFilters}
+        team={team}
+        shown={filtered.length}
+        total={liveTasks.length}
+        searchLabel="Search general tasks"
+        onExport={() =>
+          downloadText(csvFilename("general tasks"), tasksToCsv(filtered))
+        }
+      >
         <Tabs
           value={view}
           onValueChange={(value) =>
@@ -160,71 +145,7 @@ export function GeneralTasks({
             </TabsTrigger>
           </TabsList>
         </Tabs>
-
-        <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search tasks"
-            className="h-9 pl-8"
-            aria-label="Search general tasks"
-          />
-        </div>
-
-        <Select
-          value={status}
-          onValueChange={(value) => setStatus(value as TaskStatus | "all")}
-        >
-          <SelectTrigger size="sm" className="w-[8.5rem]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {TASK_STATUSES.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={priority}
-          onValueChange={(value) => setPriority(value as TaskPriority | "all")}
-        >
-          <SelectTrigger size="sm" className="w-[8.5rem]">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All priorities</SelectItem>
-            {TASK_PRIORITIES.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={assignee} onValueChange={setAssignee}>
-          <SelectTrigger size="sm" className="w-[9.5rem]">
-            <SelectValue placeholder="Assignee" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Anyone</SelectItem>
-            <SelectItem value="unassigned">Unassigned</SelectItem>
-            {team.map((person) => (
-              <SelectItem key={person.id} value={person.id}>
-                {person.full_name ?? person.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <span className="ml-auto text-xs text-muted-foreground">
-          {filtered.length} of {liveTasks.length}
-        </span>
-      </div>
+      </TaskFilterBar>
 
       {view === "followups" ? (
         <FollowUpList
@@ -244,7 +165,16 @@ export function GeneralTasks({
       ) : (
         <div className="flex flex-col gap-2">
           {canManage && <QuickAddTask projectId={null} />}
-          <TaskTable tasks={filtered} onOpenTask={openTask} />
+          {/* The same powers as the project list: without these, a manager
+              on the general list had no selection, no bulk moves and no
+              reschedule menu — for no reason but that they were never passed. */}
+          <TaskTable
+            tasks={filtered}
+            onOpenTask={openTask}
+            canComplete={canManage}
+            canDelete={canManage}
+            canReschedule={canManage}
+          />
         </div>
       )}
 

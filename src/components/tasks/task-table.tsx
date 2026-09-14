@@ -2,12 +2,19 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ListFilter } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter } from "lucide-react";
 import { toast } from "sonner";
 
 import { BulkActionBar } from "@/components/tasks/bulk-action-bar";
 import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteTask, moveTask } from "@/lib/data/task-actions";
 import type { TaskStatus } from "@/lib/supabase/database.types";
@@ -18,6 +25,12 @@ import {
 } from "@/components/tasks/task-meta";
 import { StatusBadge } from "@/components/tasks/task-meta";
 import { statusMeta } from "@/lib/constants";
+import {
+  TASK_SORT_LABELS,
+  sortTasks,
+  type TaskSort,
+  type TaskSortKey,
+} from "@/lib/task-filters";
 import { cn } from "@/lib/utils";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
@@ -57,6 +70,21 @@ export function TaskTable({
 }) {
   const router = useRouter();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+
+  // No sort is a state: the list then keeps the board's own order.
+  const [sort, setSort] = React.useState<TaskSort | null>(null);
+  const rows = React.useMemo(
+    () => sortTasks(tasks, sort, projectName),
+    [tasks, sort, projectName],
+  );
+
+  /** Click a column: sort by it, click again to flip, a third time to clear. */
+  const toggleSort = (key: TaskSortKey) =>
+    setSort((current) => {
+      if (current?.key !== key) return { key, direction: "asc" };
+      if (current.direction === "asc") return { key, direction: "desc" };
+      return null;
+    });
 
   // Selecting is only offered to people who can act on a selection.
   const selectable = canComplete || canDelete;
@@ -154,17 +182,29 @@ export function TaskTable({
                   />
                 </Th>
               )}
-              <Th className={projectName ? "w-[34%]" : "w-[45%]"}>Task</Th>
-              {projectName && <Th>Project</Th>}
-              <Th>Status</Th>
-              <Th>Priority</Th>
-              <Th>Due</Th>
+              <SortTh column="title" sort={sort} onSort={toggleSort} className={projectName ? "w-[34%]" : "w-[45%]"}>
+                Task
+              </SortTh>
+              {projectName && (
+                <SortTh column="project" sort={sort} onSort={toggleSort}>
+                  Project
+                </SortTh>
+              )}
+              <SortTh column="status" sort={sort} onSort={toggleSort}>
+                Status
+              </SortTh>
+              <SortTh column="priority" sort={sort} onSort={toggleSort}>
+                Priority
+              </SortTh>
+              <SortTh column="due" sort={sort} onSort={toggleSort}>
+                Due
+              </SortTh>
               <Th className="text-right">Assignees</Th>
               {canReschedule && <Th className="w-10 text-right sr-only">Move date</Th>}
             </tr>
           </thead>
           <tbody>
-            {tasks.map((task) => (
+            {rows.map((task) => (
               <tr
                 key={task.id}
                 onClick={() => onOpenTask(task)}
@@ -233,8 +273,38 @@ export function TaskTable({
        * is the tap target — a full-size overlay rather than a wrapper, since
        * a <button> may not contain other controls.
        */}
+      <div className="flex justify-end md:hidden">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <ArrowUpDown />
+              {sort ? `${TASK_SORT_LABELS[sort.key]} ${sort.direction === "asc" ? "↑" : "↓"}` : "Sort"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {(Object.keys(TASK_SORT_LABELS) as TaskSortKey[])
+              .filter((key) => key !== "project" || projectName)
+              .map((key) => (
+                <DropdownMenuItem key={key} onSelect={() => toggleSort(key)}>
+                  {TASK_SORT_LABELS[key]}
+                  {sort?.key === key && (
+                    <span className="ml-auto text-muted-foreground">
+                      {sort.direction === "asc" ? "↑" : "↓"}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            {sort && (
+              <DropdownMenuItem onSelect={() => setSort(null)}>
+                Board order
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <ul className="flex flex-col gap-2 md:hidden">
-        {tasks.map((task) => {
+        {rows.map((task) => {
           const isSelected = selected.has(task.id);
 
           return (
@@ -309,6 +379,49 @@ export function TaskTable({
 
 function statusLabel(status: TaskStatus): string {
   return statusMeta(status).label;
+}
+
+/**
+ * A column heading that sorts its column. The arrow only appears on the
+ * active column; a resting heading looks like a heading, not like a button.
+ */
+function SortTh({
+  column,
+  sort,
+  onSort,
+  className,
+  children,
+}: {
+  column: TaskSortKey;
+  sort: TaskSort | null;
+  onSort: (key: TaskSortKey) => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const active = sort?.key === column;
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
+      className={cn("px-4 py-2.5 text-xs font-medium text-muted-foreground", className)}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "-mx-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors hover:text-foreground",
+          active && "text-foreground",
+        )}
+      >
+        {children}
+        {active ? (
+          sort.direction === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
+        ) : (
+          <ArrowUpDown className="size-3 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+        )}
+      </button>
+    </th>
+  );
 }
 
 function Th({

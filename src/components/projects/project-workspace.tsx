@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,30 +21,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { ProjectMembers } from "@/components/projects/project-members";
+import { ProjectPulse } from "@/components/projects/project-pulse";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { QuickAddTask } from "@/components/tasks/quick-add-task";
+import { TaskFilterBar } from "@/components/tasks/task-filter-bar";
 import { TaskTable } from "@/components/tasks/task-table";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
 import { deleteProject } from "@/lib/data/project-actions";
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { csvFilename, tasksToCsv } from "@/lib/csv";
+import { downloadText } from "@/lib/download";
+import { matchesFilters } from "@/lib/task-filters";
+import { useTaskFilters } from "@/lib/use-task-filters";
 import type {
   Profile,
   Project,
-  TaskPriority,
   TaskStatus,
   TaskWithAssignees,
 } from "@/lib/supabase/database.types";
@@ -78,10 +73,7 @@ export function ProjectWorkspace({
   const liveTasks = useTaskStream({ projectId: project.id, initial: tasks });
 
   const [view, setView] = React.useState<View>("board");
-  const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState<TaskStatus | "all">("all");
-  const [priority, setPriority] = React.useState<TaskPriority | "all">("all");
-  const [assignee, setAssignee] = React.useState<string>("all");
+  const { filters, update: updateFilters, clear: clearFilters } = useTaskFilters();
 
   const [taskDialogOpen, setTaskDialogOpen] = React.useState(false);
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(
@@ -99,33 +91,10 @@ export function ProjectWorkspace({
   // them. Hiding the control states that instead of letting the save fail.
   const canCreate = canComplete;
 
-  const filtered = React.useMemo(() => {
-    const needle = query.trim().toLowerCase();
-
-    return liveTasks.filter((task) => {
-      if (status !== "all" && task.status !== status) return false;
-      if (priority !== "all" && task.priority !== priority) return false;
-
-      if (assignee === "unassigned") {
-        if (task.assignees.length > 0) return false;
-      } else if (assignee !== "all") {
-        if (!task.assignees.some((person) => person.id === assignee)) return false;
-      }
-
-      if (needle) {
-        const haystack = `${task.title} ${task.description ?? ""}`.toLowerCase();
-        if (!haystack.includes(needle)) return false;
-      }
-
-      return true;
-    });
-  }, [liveTasks, query, status, priority, assignee]);
-
-  const filtersActive =
-    query.trim() !== "" ||
-    status !== "all" ||
-    priority !== "all" ||
-    assignee !== "all";
+  const filtered = React.useMemo(
+    () => liveTasks.filter((task) => matchesFilters(task, filters)),
+    [liveTasks, filters],
+  );
 
   function openTask(task: TaskWithAssignees) {
     setActiveTask(task);
@@ -207,7 +176,19 @@ export function ProjectWorkspace({
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <ProjectPulse tasks={liveTasks} />
+
+      <TaskFilterBar
+        filters={filters}
+        onChange={updateFilters}
+        onClear={clearFilters}
+        team={team}
+        shown={filtered.length}
+        total={liveTasks.length}
+        onExport={() =>
+          downloadText(csvFilename(project.name), tasksToCsv(filtered))
+        }
+      >
         <Tabs value={view} onValueChange={(value) => setView(value as View)}>
           <TabsList>
             <TabsTrigger value="board">
@@ -220,86 +201,7 @@ export function ProjectWorkspace({
             </TabsTrigger>
           </TabsList>
         </Tabs>
-
-        <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search tasks"
-            className="h-9 pl-8"
-            aria-label="Search tasks"
-          />
-        </div>
-
-        <Select
-          value={status}
-          onValueChange={(value) => setStatus(value as TaskStatus | "all")}
-        >
-          <SelectTrigger size="sm" className="w-[8.5rem]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {TASK_STATUSES.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={priority}
-          onValueChange={(value) => setPriority(value as TaskPriority | "all")}
-        >
-          <SelectTrigger size="sm" className="w-[8.5rem]">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All priorities</SelectItem>
-            {TASK_PRIORITIES.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={assignee} onValueChange={setAssignee}>
-          <SelectTrigger size="sm" className="w-[9.5rem]">
-            <SelectValue placeholder="Assignee" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Anyone</SelectItem>
-            <SelectItem value="unassigned">Unassigned</SelectItem>
-            {team.map((person) => (
-              <SelectItem key={person.id} value={person.id}>
-                {person.full_name ?? person.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {filtersActive && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setQuery("");
-              setStatus("all");
-              setPriority("all");
-              setAssignee("all");
-            }}
-          >
-            Clear
-          </Button>
-        )}
-
-        <span className="ml-auto text-xs text-muted-foreground">
-          {filtered.length} of {liveTasks.length}
-        </span>
-      </div>
+      </TaskFilterBar>
 
       {view === "board" ? (
         <KanbanBoard
