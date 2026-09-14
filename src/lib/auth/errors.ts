@@ -83,6 +83,15 @@ export function describeAuthError(error: AuthErrorLike): string {
     return "Could not reach the server. Check your connection and try again.";
   }
 
+  /**
+   * The sign-in service itself failed — a 500 from the auth server, or a 502
+   * or 504 from in front of it. Nothing the person typed is wrong, and telling
+   * them otherwise sends them round retyping a password that was right.
+   */
+  if (typeof error.status === "number" && error.status >= 500) {
+    return `The sign-in service is not responding right now (error ${error.status}). Nothing is wrong with your details — wait a moment and try again.`;
+  }
+
   // Anything unrecognised: show it, but as a sentence rather than a fragment.
   const raw = (error.message ?? "").trim();
   if (!raw) return "Something went wrong. Please try again.";

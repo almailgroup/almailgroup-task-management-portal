@@ -76,3 +76,20 @@ describe("isWrongCredentials", () => {
     );
   });
 });
+
+describe("when the auth service itself fails", () => {
+  /**
+   * Taken from a real outage: the token endpoint returned 500, 502 and 504 in
+   * turn while the database was unreachable, and every one of them reached the
+   * sign-in form as "Incorrect email or password."
+   */
+  it.each([500, 502, 503, 504])("names a %i rather than blaming the password", (status) => {
+    const text = describeAuthError({ status, message: "Internal Server Error" });
+    expect(text).toContain(String(status));
+    expect(text).toContain("Nothing is wrong with your details");
+  });
+
+  it("still treats those as something other than bad credentials", () => {
+    expect(isWrongCredentials({ status: 502, message: "Bad Gateway" })).toBe(false);
+  });
+});

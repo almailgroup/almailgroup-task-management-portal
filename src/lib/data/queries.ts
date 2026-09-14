@@ -40,6 +40,29 @@ function reportQueryError(where: string, error: { message: string; code?: string
 }
 
 /**
+ * A failed read is not an empty one.
+ *
+ * Discarding the error and falling back to `[]` renders a confident lie: when
+ * the database timed out, the dashboard said "0 projects" and offered to help
+ * create the first one, while the workspace was sitting there unreachable.
+ * Throwing hands the page to the error boundary, which says so and offers to
+ * try again.
+ *
+ * Used for the reads a page is *about*. Peripheral ones — the notification
+ * bell, say — still degrade quietly rather than taking a working page down.
+ */
+function orFail<T>(
+  result: { data: T | null; error: { message: string; code?: string } | null },
+  where: string,
+): T | null {
+  if (result.error) {
+    reportQueryError(where, result.error);
+    throw new Error(`Could not load ${where}.`);
+  }
+  return result.data;
+}
+
+/**
  * The signed-in auth user, or null.
  *
  * Cached because `getUser()` is a round trip to the auth server and more than
@@ -98,12 +121,12 @@ export const requireProfile = cache(async (): Promise<Profile> => {
 
 export const getProjects = cache(async (): Promise<Project[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const result = await supabase
     .from("projects")
     .select("*")
     .order("created_at", { ascending: false });
 
-  return data ?? [];
+  return orFail(result, "projects") ?? [];
 });
 
 export const getProject = cache(
@@ -121,12 +144,12 @@ export const getProject = cache(
 
 export const getTeam = cache(async (): Promise<Profile[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const result = await supabase
     .from("profiles")
     .select("*")
     .order("full_name", { ascending: true, nullsFirst: false });
 
-  return data ?? [];
+  return orFail(result, "the team") ?? [];
 });
 
 /** Shape returned by the assignee embed below. */
@@ -171,14 +194,14 @@ function withAssignees<T extends Task & { assignments: AssignmentEmbed }>(
 export const getProjectTasks = cache(
   async (projectId: string): Promise<TaskWithAssignees[]> => {
     const supabase = await createClient();
-    const { data } = await supabase
+    const result = await supabase
       .from("tasks")
       .select(TASK_WITH_ASSIGNEES)
       .eq("project_id", projectId)
       .order("position", { ascending: true })
       .order("created_at", { ascending: false });
 
-    return toTasks(data);
+    return toTasks(orFail(result, "this project's tasks"));
   },
 );
 
@@ -228,25 +251,25 @@ export const getTaskActivity = cache(
 /** Every task across every visible project — powers the dashboard metrics. */
 export const getAllTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const result = await supabase
     .from("tasks")
     .select(TASK_WITH_ASSIGNEES)
     .order("created_at", { ascending: false });
 
-  return toTasks(data);
+  return toTasks(orFail(result, "tasks"));
 });
 
 /** Tasks belonging to no project — the General Tasks list. */
 export const getGeneralTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const result = await supabase
     .from("tasks")
     .select(TASK_WITH_ASSIGNEES)
     .is("project_id", null)
     .order("position", { ascending: true })
     .order("created_at", { ascending: false });
 
-  return toTasks(data);
+  return toTasks(orFail(result, "general tasks"));
 });
 
 export const getTaskAttachments = cache(
@@ -390,8 +413,7 @@ export const getFollowUps = cache(
 
     if (opts.generalOnly) query = query.is("project_id", null);
 
-    const { data } = await query;
-    return toTasks(data);
+    return toTasks(orFail(await query, "follow-ups"));
   },
 );
 
@@ -420,13 +442,15 @@ export const getNotificationPreferences = cache(
  */
 export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const result = await supabase
     .from("personal_notes")
     .select("*, items:personal_note_items(*)")
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false });
 
-  return ((data ?? []) as unknown as NoteWithItems[]).map((note) => ({
+  const notes = orFail(result, "your list") ?? [];
+
+  return (notes as unknown as NoteWithItems[]).map((note) => ({
     ...note,
     items: [...(note.items ?? [])].sort((a, b) => a.position - b.position),
   }));
@@ -448,9 +472,11 @@ export const getTaskCounts = cache(async (): Promise<Metrics> => {
   // inside the function rather than failing the whole dashboard.
   const timeZone = (await cookies()).get("tz")?.value || "UTC";
 
-  const { data, error } = await supabase.rpc("task_counts", { tz: timeZone });
-  if (error) reportQueryError("getTaskCounts", error);
-  const row = data?.[0];
+  const counts = orFail(
+    await supabase.rpc("task_counts", { tz: timeZone }),
+    "your figures",
+  );
+  const row = counts?.[0];
 
   const total = Number(row?.total ?? 0);
   const done = Number(row?.done ?? 0);
@@ -471,12 +497,12 @@ export const getTaskCounts = cache(async (): Promise<Metrics> => {
 /** Per-person open/done/overdue, busiest first. Counted in Postgres too. */
 export const getWorkload = cache(async (): Promise<Workload[]> => {
   const supabase = await createClient();
-  const [{ data }, team] = await Promise.all([
-    supabase.rpc("workload_counts"),
+  const [counts, team] = await Promise.all([
+    supabase.rpc("workload_counts").then((result) => orFail(result, "the workload")),
     getTeam(),
   ]);
 
-  const byUser = new Map((data ?? []).map((row) => [row.user_id, row]));
+  const byUser = new Map((counts ?? []).map((row) => [row.user_id, row]));
 
   return team
     .map((profile) => {
@@ -501,7 +527,7 @@ export const getMyOpenTasks = cache(
     } = await supabase.auth.getUser();
     if (!user) return [];
 
-    const { data } = await supabase
+    const result = await supabase
       .from("tasks")
       .select(TASK_ASSIGNED_TO_SOMEONE)
       .eq("assignments.user_id", user.id)
@@ -509,7 +535,7 @@ export const getMyOpenTasks = cache(
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(limit);
 
-    return toTasks(data);
+    return toTasks(orFail(result, "your tasks"));
   },
 );
 
@@ -517,7 +543,7 @@ export const getMyOpenTasks = cache(
 export const getOverdueTasks = cache(
   async (limit = 6): Promise<TaskWithAssignees[]> => {
     const supabase = await createClient();
-    const { data } = await supabase
+    const result = await supabase
       .from("tasks")
       .select(TASK_WITH_ASSIGNEES)
       .neq("status", "done")
@@ -525,6 +551,6 @@ export const getOverdueTasks = cache(
       .order("due_at", { ascending: true })
       .limit(limit);
 
-    return toTasks(data);
+    return toTasks(orFail(result, "overdue tasks"));
   },
 );
