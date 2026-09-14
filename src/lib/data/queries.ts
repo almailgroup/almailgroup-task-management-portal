@@ -446,13 +446,31 @@ export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
 
   // RLS returns the caller's own lists and the ones shared with them, so this
   // is both at once — which is why each note has to say whose it is.
-  const result = await supabase
+  const withShares = await supabase
     .from("personal_notes")
     .select(
       "*, items:personal_note_items(*), owner:profiles(*), shares:personal_note_shares(user:profiles!personal_note_shares_user_id_fkey(*))",
     )
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false });
+
+  /**
+   * Sharing arrived in migration 0019, and app code deploys before anybody
+   * runs SQL. Asking for a table that is not there yet would otherwise take
+   * the whole page down — for a feature nobody has used yet — so the lists
+   * themselves are fetched again without it. Sharing stays unavailable until
+   * the migration lands; reading your own list does not wait for it.
+   */
+  const result = withShares.error
+    ? await (() => {
+        reportQueryError("getMyNotes:shares", withShares.error);
+        return supabase
+          .from("personal_notes")
+          .select("*, items:personal_note_items(*), owner:profiles(*)")
+          .order("pinned", { ascending: false })
+          .order("updated_at", { ascending: false });
+      })()
+    : withShares;
 
   const notes = orFail(result, "your list") ?? [];
 

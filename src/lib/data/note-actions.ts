@@ -265,11 +265,17 @@ export async function shareNote(
 
   // Already shared: nothing to do, and not worth an error.
   if (error && error.code !== "23505") {
-    return fail(
-      error.code === "42501"
-        ? "Only the owner of a list can share it."
-        : describeDatabaseError(error),
-    );
+    if (error.code === "42501") {
+      return fail("Only the owner of a list can share it.");
+    }
+    // The table arrives with migration 0019. Until it is applied, say which
+    // step is missing rather than reporting a relation nobody has heard of.
+    if (error.code === "42P01" || error.code === "PGRST205") {
+      return fail(
+        "Sharing is not set up on this workspace yet — an admin needs to run the latest supabase/setup.sql.",
+      );
+    }
+    return fail(describeDatabaseError(error));
   }
 
   revalidatePath("/my-list");
