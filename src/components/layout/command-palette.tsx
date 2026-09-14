@@ -50,6 +50,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       { id: "today", label: "Today", href: "/today", icon: Sunrise, group: "Go to" },
       { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Go to" },
       { id: "general", label: "General tasks", href: "/general", icon: ClipboardList, group: "Go to" },
+      { id: "my-list", label: "My List", href: "/my-list", icon: Search, group: "Go to" },
       { id: "tasks", label: "All tasks", href: "/tasks?filter=all", icon: Search, group: "Go to" },
       { id: "team", label: "Team", href: "/team", icon: Users, group: "Go to" },
       { id: "profile", label: "Profile", href: "/profile", icon: User, group: "Go to" },

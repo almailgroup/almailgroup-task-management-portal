@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type {
   CommentWithAuthor,
+  NoteWithItems,
   NotificationWithActor,
   Profile,
   Project,
@@ -308,3 +309,27 @@ export const getNotificationPreferences = cache(
     return data;
   },
 );
+
+/**
+ * The signed-in user's personal notes, with their checklists.
+ *
+ * RLS restricts both tables to the caller's own rows, so there is no user
+ * filter here — and no way for one to leak into someone else's list.
+ *
+ * Pinned first, then most recently touched, which matches the order the list
+ * renders in. Ticking an item bumps the note (a trigger does it), so a list
+ * you are working through floats to the top.
+ */
+export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("personal_notes")
+    .select("*, items:personal_note_items(*)")
+    .order("pinned", { ascending: false })
+    .order("updated_at", { ascending: false });
+
+  return ((data ?? []) as unknown as NoteWithItems[]).map((note) => ({
+    ...note,
+    items: [...(note.items ?? [])].sort((a, b) => a.position - b.position),
+  }));
+});

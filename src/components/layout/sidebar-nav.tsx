@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Hash,
   LayoutDashboard,
+  ListChecks,
   Plus,
   Sparkles,
   Sunrise,
@@ -71,6 +72,13 @@ export function SidebarNav({
             icon={<Sunrise />}
             label="Today"
             active={pathname === "/today"}
+            onNavigate={onNavigate}
+          />
+          <NavLink
+            href="/my-list"
+            icon={<ListChecks />}
+            label="My List"
+            active={pathname === "/my-list"}
             onNavigate={onNavigate}
           />
           <NavLink

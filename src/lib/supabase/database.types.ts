@@ -429,6 +429,63 @@ export type Database = {
           },
         ];
       };
+      personal_notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          body: string;
+          pinned: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+          body?: string;
+          pinned?: boolean;
+        };
+        Update: {
+          title?: string;
+          body?: string;
+          pinned?: boolean;
+        };
+        Relationships: [];
+      };
+      personal_note_items: {
+        Row: {
+          id: string;
+          note_id: string;
+          user_id: string;
+          content: string;
+          done: boolean;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          note_id: string;
+          user_id: string;
+          content?: string;
+          done?: boolean;
+          position?: number;
+        };
+        Update: {
+          content?: string;
+          done?: boolean;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "personal_note_items_note_id_fkey";
+            columns: ["note_id"];
+            referencedRelation: "personal_notes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -466,6 +523,14 @@ export type NotificationPreferences =
   Database["public"]["Tables"]["notification_preferences"]["Row"];
 export type ReminderQueueRow =
   Database["public"]["Tables"]["reminder_queue"]["Row"];
+
+export type PersonalNote =
+  Database["public"]["Tables"]["personal_notes"]["Row"];
+export type PersonalNoteItem =
+  Database["public"]["Tables"]["personal_note_items"]["Row"];
+
+/** A note with its checklist, in display order. */
+export type NoteWithItems = PersonalNote & { items: PersonalNoteItem[] };
 
 /** A notification joined with the person who caused it. */
 export type NotificationWithActor = Notification & { actor: Profile | null };

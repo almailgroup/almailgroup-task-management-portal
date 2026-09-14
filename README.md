@@ -440,6 +440,29 @@ which takes days. Outside a 24-hour window since the user last messaged you,
 only approved templates are delivered; free-text messages are rejected. Set
 `TWILIO_WHATSAPP_TEMPLATE_SID` once you have one approved.
 
+## My List
+
+A private daily list, reached from **My List** in the sidebar. It is shaped
+like the Notes app on a phone: a list of notes on one side, the note on the
+other, one screen at a time below `lg` with a back button.
+
+Each note holds a checklist and a free-text area. Ticking a line writes
+immediately and optimistically; the title and text save themselves on a
+700ms debounce rather than behind a Save button. Enter adds the next line,
+Backspace on an empty line removes it.
+
+### It is genuinely private
+
+`personal_notes` and `personal_note_items` are the only tables in this schema
+with no manager or admin override. Every policy is `user_id = auth.uid()`, and
+inserting an item additionally requires the note to be yours, so a forged
+`note_id` cannot park a line on someone else's list. Verified against a real
+Postgres: a second account sees zero rows, its updates and deletes affect zero
+rows, and both forgery attempts are refused outright.
+
+Ticking an item bumps the parent note's `updated_at` through a trigger, so a
+list you are working through floats to the top of the sidebar.
+
 ## MAHAM AI
 
 The in-app assistant, reached from the button above the clock at the foot of
