@@ -25,7 +25,7 @@ export function MetricCard({
   href?: string;
 }) {
   const className = cn(
-    "group block rounded-2xl border bg-card p-5 shadow-[var(--shadow-sm)]",
+    "group block rounded-2xl border bg-card p-3.5 shadow-[var(--shadow-sm)] sm:p-5",
     emphasis
       ? "border-warning-border bg-warning-surface"
       : "border-border",
@@ -37,7 +37,7 @@ export function MetricCard({
       <div className="flex items-center justify-between gap-2">
         <span
           className={cn(
-            "text-[0.8125rem] font-medium",
+            "text-xs font-medium sm:text-[0.8125rem]",
             emphasis ? "text-warning" : "text-muted-foreground",
           )}
         >
@@ -55,12 +55,12 @@ export function MetricCard({
         )}
       </div>
 
-      <p className="mt-3 text-[2rem] font-bold tabular-nums leading-none tracking-[-0.02em]">
+      <p className="mt-2 text-[1.75rem] font-bold tabular-nums leading-none tracking-[-0.02em] sm:mt-3 sm:text-[2rem]">
         {value}
       </p>
 
       {hint && (
-        <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+        <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground sm:mt-2">
           {hint}
           {href && (
             <ArrowRight

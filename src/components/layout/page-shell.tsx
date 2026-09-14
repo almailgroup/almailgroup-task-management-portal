@@ -20,7 +20,7 @@ export function PageShell({
   return (
     <div
       className={cn(
-        "animate-rise mx-auto flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:py-8",
+        "animate-rise mx-auto flex w-full flex-col gap-4 px-4 py-5 sm:gap-5 sm:px-6 sm:py-6 lg:py-8",
         width === "narrow" && "max-w-2xl",
         width === "wide" && "max-w-6xl",
         className,
@@ -62,7 +62,7 @@ export function PageHeader({
           {meta}
         </div>
         {description && (
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-1 max-w-2xl text-[0.8125rem] leading-relaxed text-muted-foreground sm:mt-1.5 sm:text-sm">
             {description}
           </p>
         )}

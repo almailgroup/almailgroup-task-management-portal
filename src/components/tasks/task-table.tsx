@@ -226,49 +226,72 @@ export function TaskTable({
         </table>
       </div>
 
-      {/* Mobile */}
+      {/*
+       * Mobile. The checkbox and the reschedule menu used to flank the card,
+       * which cost a quarter of a phone's width and left every title wrapping
+       * early. They now sit inside it, on a footer line, and the card itself
+       * is the tap target — a full-size overlay rather than a wrapper, since
+       * a <button> may not contain other controls.
+       */}
       <ul className="flex flex-col gap-2 md:hidden">
-        {tasks.map((task) => (
-          <li key={task.id} className="flex items-start gap-2.5">
-            {selectable && (
-              <span className="mt-4 shrink-0">
-                <Checkbox
-                  checked={selected.has(task.id)}
-                  onCheckedChange={() => toggle(task.id)}
-                  aria-label={`Select ${task.title}`}
-                />
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => onOpenTask(task)}
+        {tasks.map((task) => {
+          const isSelected = selected.has(task.id);
+
+          return (
+            <li
+              key={task.id}
               className={cn(
-                "lift w-full min-w-0 rounded-xl border border-border bg-card p-4 text-left shadow-[var(--shadow-sm)] hover:border-foreground/30",
-                selected.has(task.id) && "border-foreground/40 bg-accent/50",
+                "lift relative rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-sm)]",
+                isSelected && "border-foreground/40 bg-accent/50",
               )}
             >
-              <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
-              {projectName && (
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {projectName(task.project_id)}
+              <button
+                type="button"
+                onClick={() => onOpenTask(task)}
+                aria-label={`Open ${task.title}`}
+                className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              />
+
+              {/* Passes taps through to the overlay behind it. */}
+              <div className="pointer-events-none relative">
+                <p className="text-[0.9375rem] font-medium leading-snug">
+                  {task.title}
                 </p>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <StatusBadge status={task.status} />
-                <PriorityIndicator priority={task.priority} showLabel />
-                <DueDate dueAt={task.due_at} status={task.status} />
-                <span className="ml-auto">
-                  <AssigneeStack assignees={task.assignees} max={3} />
-                </span>
+                {projectName && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {projectName(task.project_id)}
+                  </p>
+                )}
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                  <StatusBadge status={task.status} />
+                  <PriorityIndicator priority={task.priority} showLabel />
+                  <DueDate dueAt={task.due_at} status={task.status} />
+                  <span className="ml-auto">
+                    <AssigneeStack assignees={task.assignees} max={3} />
+                  </span>
+                </div>
               </div>
-            </button>
-            {canReschedule && (
-              <span className="mt-3 shrink-0">
-                <RescheduleMenu task={task} compact />
-              </span>
-            )}
-          </li>
-        ))}
+
+              {(selectable || canReschedule) && (
+                <div className="relative mt-3 flex items-center justify-between gap-2 border-t border-border pt-2.5">
+                  {selectable ? (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggle(task.id)}
+                        aria-label={`Select ${task.title}`}
+                      />
+                      Select
+                    </label>
+                  ) : (
+                    <span />
+                  )}
+                  {canReschedule && <RescheduleMenu task={task} compact />}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       {selectable && (

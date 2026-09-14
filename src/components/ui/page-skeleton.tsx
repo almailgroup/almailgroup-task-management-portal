@@ -34,13 +34,13 @@ export function DashboardSkeleton() {
   return (
     <Shell>
       <HeaderSkeleton />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {Array.from({ length: 6 }).map((_, index) => (
           <Skeleton key={index} className="h-[6.5rem] rounded-lg" />
         ))}
       </div>
       <Skeleton className="h-24 rounded-lg" />
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <Skeleton className="h-64 rounded-lg" />
         <Skeleton className="h-64 rounded-lg" />
       </div>
@@ -58,7 +58,7 @@ export function BoardSkeleton() {
         <Skeleton className="h-9 w-48" />
         <Skeleton className="h-9 w-32" />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, column) => (
           <div key={column} className="flex flex-col gap-2 rounded-lg border border-border bg-chrome/60 p-2">
             <Skeleton className="h-4 w-24" />

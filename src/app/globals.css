@@ -190,6 +190,14 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* A phone browser reacts to a page that is wider than the screen by
+     * zooming the whole thing out until it fits, which makes every page look
+     * shrunken because of one stray element. Nothing here is meant to be read
+     * by scrolling sideways — the board and wide tables scroll inside their
+     * own containers — so anything that does escape is clipped instead.
+     * `clip` rather than `hidden`: `hidden` would make this a scroll
+     * container and break every `position: sticky` header inside it. */
+    overflow-x: clip;
     /* Typographic baseline: compact but legible, tuned for dense task lists. */
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.5;
@@ -199,8 +207,8 @@
   /* Explicit hierarchy. Headings are a step larger and a step heavier than
    * they were: the old scale topped out at 24px semibold, which left a page
    * with no clear first thing to look at. */
-  h1 { @apply text-[1.75rem] font-bold tracking-[-0.02em]; line-height: 1.15; }
-  h2 { @apply text-xl font-semibold tracking-[-0.015em]; line-height: 1.25; }
+  h1 { @apply text-[1.5rem] font-bold tracking-[-0.02em] sm:text-[1.75rem]; line-height: 1.15; }
+  h2 { @apply text-lg font-semibold tracking-[-0.015em] sm:text-xl; line-height: 1.25; }
   h3 { @apply text-[0.9375rem] font-semibold tracking-tight; line-height: 1.4; }
 
   /* Keyboard focus is always visible; pointer focus never draws a ring.
@@ -330,5 +338,24 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Touch input sizing
+ *
+ * iOS Safari zooms the page in when you focus a field whose text is smaller
+ * than 16px, and does not zoom back out afterwards — the cause of nearly every
+ * "the site zoomed in on my phone" report. The fields are `text-sm` (14px) by
+ * design on a pointer device, so the floor is applied only to coarse pointers.
+ *
+ * Deliberately outside `@layer`: unlayered rules beat layered ones, which is
+ * what lets this override the Tailwind utility on each field.
+ * ------------------------------------------------------------------------ */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
   }
 }

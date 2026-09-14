@@ -28,6 +28,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // The app is laid out for the screen it is on, so there is nothing to zoom
+  // into: pinching only ever happened because a page had overflowed sideways
+  // or because Safari zoomed in by itself when a field was focused. Both are
+  // fixed at the source — this stops the browser doing it uninvited.
+  maximumScale: 1,
+  userScalable: false,
   // Matches the page grounds, so the browser chrome on a phone blends into
   // the app instead of framing it in a colour the design never uses.
   themeColor: [

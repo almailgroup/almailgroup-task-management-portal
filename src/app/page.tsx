@@ -79,7 +79,7 @@ export default async function Home() {
 
         <Separator className="my-10" />
 
-        <section className="grid gap-4 sm:grid-cols-2">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Task status</CardTitle>

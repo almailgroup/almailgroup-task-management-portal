@@ -196,7 +196,7 @@ export function TaskDialog({
                 input needs ~210px of content box and one third of this dialog
                 gives it 197px, which pushed the native calendar button out
                 past the field's own border. */}
-            <div className="grid gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label htmlFor="status">Status</Label>
                 <Select

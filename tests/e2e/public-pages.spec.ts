@@ -43,8 +43,49 @@ for (const path of PAGES) {
       );
       expect(tooSmall).toEqual([]);
     });
+
+    /**
+     * iOS Safari zooms the page in when a field with text under 16px takes
+     * focus, and leaves it zoomed afterwards — the single most common reason
+     * a site "zooms in by itself" on a phone. The fields are deliberately
+     * 14px on a mouse-driven screen, so this only applies to touch.
+     */
+    test("fields are large enough that a phone will not zoom in", async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(!isMobile, "Only a coarse pointer triggers the focus zoom.");
+      await page.goto(path);
+
+      const small = await page.evaluate(() =>
+        [...document.querySelectorAll("input, select, textarea")]
+          .filter((el) => el.getBoundingClientRect().height > 0)
+          .map((el) => ({
+            el,
+            size: Number.parseFloat(getComputedStyle(el).fontSize),
+          }))
+          .filter(({ size }) => size < 16)
+          .map(
+            ({ el, size }) =>
+              `${el.tagName}[${el.getAttribute("type") ?? "text"}] at ${size}px`,
+          ),
+      );
+      expect(small).toEqual([]);
+    });
   });
 }
+
+test("the browser is told to render the app at its own scale", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  const content = await page
+    .locator('meta[name="viewport"]')
+    .getAttribute("content");
+  expect(content).toContain("width=device-width");
+  expect(content).toContain("initial-scale=1");
+  expect(content).toContain("maximum-scale=1");
+});
 
 test("a signed-out visitor is sent to sign in, keeping their destination", async ({ page }) => {
   await page.goto("/dashboard");

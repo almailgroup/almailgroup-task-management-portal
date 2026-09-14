@@ -68,7 +68,9 @@ export default async function DashboardPage() {
         <>
           {/* Every tile opens the matching list; counts and list share one
               set of predicates in lib/task-filters, so they cannot disagree. */}
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {/* Two up on a phone: six full-width tiles meant six screens of
+              scrolling before the first list came into view. */}
+          <section className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-6">
             <MetricCard
               label="To Do"
               value={metrics.todo}
@@ -134,7 +136,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <TaskListCard
               title="Assigned to you"
               tasks={myTasks}
@@ -176,13 +178,17 @@ function TaskListCard({
             <Link
               key={task.id}
               href={taskHref(task)}
-              className="flex items-center justify-between gap-3 rounded-md border border-border px-2.5 py-2 transition-colors hover:border-foreground/25"
+              // Title and meta share a line once there is room for both. On a
+              // phone there is not: the meta cluster used to be `shrink-0`,
+              // which pushed the card 175px past the edge of the screen and
+              // left Safari shrinking the whole page to fit.
+              className="flex flex-col gap-1.5 rounded-lg border border-border px-2.5 py-2 transition-colors hover:border-foreground/25 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
               <span className="flex min-w-0 items-center gap-2">
                 <PriorityIndicator priority={task.priority} />
                 <span className="truncate text-sm">{task.title}</span>
               </span>
-              <span className="flex shrink-0 items-center gap-2">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-5 sm:shrink-0 sm:pl-0">
                 <DueDate dueAt={task.due_at} status={task.status} />
                 <StatusBadge status={task.status} />
                 <AssigneeStack assignees={task.assignees} max={2} />

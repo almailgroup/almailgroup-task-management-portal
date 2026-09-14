@@ -88,7 +88,7 @@ export function TaskDetailReadonly({
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="member-status">Status</Label>
           <Select
