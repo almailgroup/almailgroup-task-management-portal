@@ -7,12 +7,17 @@ import { Loader2, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/auth/password-input";
+import { PasswordMeter } from "@/components/auth/password-meter";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { signUp } from "@/lib/auth/actions";
 import type { ActionResult } from "@/lib/action-result";
 
 export function RegisterForm() {
   const router = useRouter();
+  // Controlled purely so the strength meter can see what is being typed; the
+  // value is still submitted by the form like any other field.
+  const [password, setPassword] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<{
     needsConfirmation: boolean;
@@ -87,16 +92,17 @@ export function RegisterForm() {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="password">Password</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           required
-          aria-invalid={Boolean(errors?.password)}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          invalid={Boolean(errors?.password)}
         />
+        <PasswordMeter value={password} />
         <FieldError message={errors?.password ?? undefined} />
-        <p className="text-xs text-muted-foreground">At least 8 characters.</p>
       </div>
 
       <Button type="submit" disabled={pending} className="mt-1">

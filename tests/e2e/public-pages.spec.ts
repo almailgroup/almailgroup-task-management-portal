@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const PAGES = ["/", "/login", "/register"];
+const PAGES = ["/", "/login", "/register", "/forgot-password"];
 
 for (const path of PAGES) {
   test.describe(path, () => {

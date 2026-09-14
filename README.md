@@ -528,6 +528,42 @@ from the browser, and the Worker exists precisely so the key never travels.
 The shapes above are `src/lib/maham/types.ts`, which is deliberately free of
 React and Supabase imports so the Worker can share the file verbatim.
 
+## Signing in
+
+### Forgotten passwords
+
+**Sign in → Forgot password? → email → set a new one.** The link lands on
+`/auth/callback`, which exchanges it for a session and forwards to
+`/reset-password`. That page is therefore behind the middleware like any other
+signed-in route: arriving without a valid link means no session, and the
+middleware sends it to sign in, which is the correct answer.
+
+The confirmation screen says the same thing whether or not the address has an
+account — "if an account exists for …". Saying otherwise would hand anyone a
+way to test which company addresses are registered, which is the same reason
+sign-in refuses to say which half of the credentials was wrong.
+
+**One thing to set in Supabase:** Authentication → URL Configuration →
+Redirect URLs must include `https://your-domain/auth/callback`. Without it
+Supabase refuses the redirect and the link dead-ends. Set `NEXT_PUBLIC_SITE_URL`
+too — though the actions now fall back to the request's own origin rather than
+to `localhost:3000`, so a missing variable no longer sends production links to
+a machine the recipient does not have.
+
+### The password field
+
+Passwords can be shown. Typing one you cannot see is the main reason people
+fail to sign in on a phone, where a long password and a soft keyboard make a
+typo likely and invisible. The toggle sits outside the tab order, so Tab still
+runs from the password straight to the submit button, and Caps Lock is called
+out when it is on — the other half of the same problem, since a masked field
+gives no way to notice.
+
+The strength meter on sign-up rates length above cleverness. It is not a
+percentage and not a score: those imply a precision nobody has, and they
+reward `P@ssw0rd!` for containing a symbol. It never blocks anything; the
+eight-character minimum is enforced by the schema on the server.
+
 ## Tests
 
 ```bash

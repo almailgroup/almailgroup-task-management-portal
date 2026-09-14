@@ -1,8 +1,16 @@
-/** Inline validation message rendered under a form field. */
+import { CircleAlert } from "lucide-react";
+
+/**
+ * Inline validation message rendered under a form field.
+ *
+ * Weighted, not muted: it was styled the same as a hint, so the one line on
+ * the page that says something went wrong looked like the lines that do not.
+ */
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="text-xs text-muted-foreground">
+    <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-foreground">
+      <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
       {message}
     </p>
   );
@@ -14,9 +22,10 @@ export function FormError({ message }: { message?: string | null }) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-foreground/30 bg-muted px-3 py-2 text-sm text-foreground"
+      className="flex items-start gap-2 rounded-xl border border-foreground/40 bg-muted px-3 py-2.5 text-sm font-medium text-foreground"
     >
-      {message}
+      <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span>{message}</span>
     </div>
   );
 }

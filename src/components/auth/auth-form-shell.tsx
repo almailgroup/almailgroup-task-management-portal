@@ -10,10 +10,10 @@ export function AuthFormShell({
   title: string;
   subtitle: string;
   children: React.ReactNode;
-  footer: { prompt: string; linkLabel: string; href: string };
+  footer?: { prompt: string; linkLabel: string; href: string };
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-sm)]">
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-md)]">
       <div className="mb-6 flex flex-col gap-1.5">
         <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
@@ -21,6 +21,7 @@ export function AuthFormShell({
 
       {children}
 
+      {footer && (
       <p className="mt-6 text-center text-sm text-muted-foreground">
         {footer.prompt}{" "}
         <Link
@@ -32,6 +33,7 @@ export function AuthFormShell({
           {footer.linkLabel}
         </Link>
       </p>
+      )}
     </div>
   );
 }
