@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeAuthError } from "@/lib/auth/errors";
+import { describeAuthError, isWrongCredentials } from "@/lib/auth/errors";
 
 describe("describeAuthError", () => {
   /**
@@ -46,5 +46,33 @@ describe("describeAuthError", () => {
 
   it("says something useful when there is no message at all", () => {
     expect(describeAuthError({})).toBe("Something went wrong. Please try again.");
+  });
+});
+
+describe("isWrongCredentials", () => {
+  /**
+   * The one failure that has to stay vague. Everything else is named, because
+   * "incorrect email or password" sent people off retyping a password that was
+   * right — and on a rate limit, every retry made it worse.
+   */
+  it("recognises a genuine bad password, by code or by message", () => {
+    expect(isWrongCredentials({ code: "invalid_credentials" })).toBe(true);
+    expect(isWrongCredentials({ message: "Invalid login credentials" })).toBe(true);
+  });
+
+  it("does not swallow the failures that are worth naming", () => {
+    expect(isWrongCredentials({ code: "over_request_rate_limit", status: 429 })).toBe(false);
+    expect(isWrongCredentials({ message: "Email not confirmed" })).toBe(false);
+    expect(isWrongCredentials({ message: "fetch failed" })).toBe(false);
+    expect(isWrongCredentials({})).toBe(false);
+  });
+
+  it("hands those to a message that says what to do", () => {
+    expect(describeAuthError({ code: "over_request_rate_limit", status: 429 })).toContain(
+      "Wait a minute",
+    );
+    expect(describeAuthError({ message: "Email not confirmed" })).toContain(
+      "needs confirming",
+    );
   });
 });

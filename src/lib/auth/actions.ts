@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { describeAuthError } from "@/lib/auth/errors";
+import { describeAuthError, isWrongCredentials } from "@/lib/auth/errors";
 import {
   fail,
   fieldErrorsFrom,
@@ -70,9 +70,23 @@ export async function signIn(
   });
 
   if (error) {
-    // Deliberately vague: distinguishing "no such user" from "wrong password"
-    // would let anyone enumerate which emails have accounts.
-    return fail("Incorrect email or password.");
+    /**
+     * Wrong credentials stay deliberately vague: distinguishing "no such user"
+     * from "wrong password" would let anyone enumerate which company addresses
+     * have accounts.
+     *
+     * Everything else says what it is. Collapsing every failure into "incorrect
+     * email or password" meant a rate limit, an unconfirmed address or an
+     * unreachable auth server all read as "you typed it wrong" — which sends
+     * someone off retyping a password that was right all along, and each retry
+     * makes a rate limit worse. Naming the failure gives away nothing about
+     * whether the account exists.
+     */
+    return fail(
+      isWrongCredentials(error)
+        ? "Incorrect email or password."
+        : describeAuthError(error),
+    );
   }
 
   revalidatePath("/", "layout");

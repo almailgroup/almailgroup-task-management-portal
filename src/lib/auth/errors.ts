@@ -9,6 +9,21 @@
 
 type AuthErrorLike = { message?: string; status?: number; code?: string };
 
+/**
+ * Whether a failed sign-in was simply the wrong email or password.
+ *
+ * This is the one failure that must stay vague — saying which half was wrong,
+ * or that no such account exists, hands anyone a way to test which of the
+ * company's addresses are registered. Every other failure is safe to name, and
+ * far more useful named.
+ */
+export function isWrongCredentials(error: AuthErrorLike): boolean {
+  return (
+    error.code === "invalid_credentials" ||
+    (error.message ?? "").toLowerCase().includes("invalid login credentials")
+  );
+}
+
 export function describeAuthError(error: AuthErrorLike): string {
   const message = (error.message ?? "").toLowerCase();
   const code = (error.code ?? "").toLowerCase();
