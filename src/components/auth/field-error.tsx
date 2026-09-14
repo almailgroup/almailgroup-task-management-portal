@@ -1,4 +1,8 @@
+"use client";
+
 import { CircleAlert } from "lucide-react";
+
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * Inline validation message rendered under a form field.
@@ -7,17 +11,19 @@ import { CircleAlert } from "lucide-react";
  * the page that says something went wrong looked like the lines that do not.
  */
 export function FieldError({ message }: { message?: string }) {
+  const { tm } = useI18n();
   if (!message) return null;
   return (
     <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-foreground">
       <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
-      {message}
+      {tm(message)}
     </p>
   );
 }
 
 /** Form-level error banner. Monochrome: emphasis comes from the border. */
 export function FormError({ message }: { message?: string | null }) {
+  const { tm } = useI18n();
   if (!message) return null;
   return (
     <div
@@ -25,7 +31,7 @@ export function FormError({ message }: { message?: string | null }) {
       className="flex items-start gap-2 rounded-xl border border-foreground/40 bg-muted px-3 py-2.5 text-sm font-medium text-foreground"
     >
       <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{message}</span>
+      <span>{tm(message)}</span>
     </div>
   );
 }

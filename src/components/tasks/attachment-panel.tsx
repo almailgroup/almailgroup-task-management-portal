@@ -272,7 +272,7 @@ export function AttachmentPanel({
               <button
                 type="button"
                 onClick={() => open(attachment)}
-                className="min-w-0 flex-1 text-left focus-visible:outline-none"
+                className="min-w-0 flex-1 text-start focus-visible:outline-none"
               >
                 <span className="block truncate text-sm font-medium">
                   {attachment.name}

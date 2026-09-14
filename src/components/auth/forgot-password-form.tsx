@@ -45,7 +45,7 @@ export function ForgotPasswordForm() {
 
         <Button asChild variant="outline">
           <Link href="/login">
-            <ArrowLeft />
+            <ArrowLeft className="rtl:-scale-x-100" />
             Back to sign in
           </Link>
         </Button>
@@ -81,7 +81,7 @@ export function ForgotPasswordForm() {
 
       <Button asChild variant="ghost" size="sm">
         <Link href="/login">
-          <ArrowLeft />
+          <ArrowLeft className="rtl:-scale-x-100" />
           Back to sign in
         </Link>
       </Button>

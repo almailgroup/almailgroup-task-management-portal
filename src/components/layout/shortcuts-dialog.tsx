@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { useI18n } from "@/lib/i18n/client";
+
 import {
   Dialog,
   DialogContent,
@@ -16,32 +18,32 @@ import {
  * Each of these existed already and none of them was written down anywhere a
  * person would find it. A shortcut nobody knows about is decoration.
  */
-const GROUPS: { title: string; rows: { keys: string[]; does: string }[] }[] = [
+const GROUPS = [
   {
-    title: "Anywhere",
+    title: "shortcuts.anywhere",
     rows: [
-      { keys: ["⌘", "K"], does: "Search tasks, pages and commands" },
-      { keys: ["N"], does: "New task" },
-      { keys: ["/"], does: "Jump to the search box on this page" },
-      { keys: ["?"], does: "This list" },
-      { keys: ["Esc"], does: "Close whatever is open" },
+      { keys: ["⌘", "K"], does: "shortcuts.search" },
+      { keys: ["N"], does: "shortcuts.newTask" },
+      { keys: ["/"], does: "shortcuts.focusSearch" },
+      { keys: ["?"], does: "shortcuts.thisList" },
+      { keys: ["Esc"], does: "shortcuts.escape" },
     ],
   },
   {
-    title: "On the board",
+    title: "shortcuts.board",
     rows: [
-      { keys: ["Space"], does: "Pick up or drop the focused card" },
-      { keys: ["↑", "↓", "←", "→"], does: "Move a picked-up card" },
+      { keys: ["Space"], does: "shortcuts.pickUp" },
+      { keys: ["↑", "↓", "←", "→"], does: "shortcuts.moveCard" },
     ],
   },
   {
-    title: "In a note",
+    title: "shortcuts.note",
     rows: [
-      { keys: ["Enter"], does: "Next line" },
-      { keys: ["Backspace"], does: "Remove an empty line" },
+      { keys: ["Enter"], does: "shortcuts.nextLine" },
+      { keys: ["Backspace"], does: "shortcuts.removeLine" },
     ],
   },
-];
+] as const;
 
 export function ShortcutsDialog({
   open,
@@ -50,21 +52,20 @@ export function ShortcutsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
-          <DialogDescription>
-            They work anywhere you are not typing into a field.
-          </DialogDescription>
+          <DialogTitle>{t("shortcuts.title")}</DialogTitle>
+          <DialogDescription>{t("shortcuts.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
           {GROUPS.map((group) => (
             <section key={group.title}>
               <h3 className="mb-1.5 text-xs font-medium text-muted-foreground">
-                {group.title}
+                {t(group.title)}
               </h3>
               <dl className="divide-y divide-border rounded-xl border border-border">
                 {group.rows.map((row) => (
@@ -72,7 +73,7 @@ export function ShortcutsDialog({
                     key={row.does}
                     className="flex items-center justify-between gap-3 px-3 py-2"
                   >
-                    <dt className="text-sm">{row.does}</dt>
+                    <dt className="text-sm">{t(row.does)}</dt>
                     <dd className="flex shrink-0 gap-1">
                       {row.keys.map((key) => (
                         <kbd

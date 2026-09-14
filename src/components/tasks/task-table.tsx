@@ -25,6 +25,7 @@ import {
 } from "@/components/tasks/task-meta";
 import { StatusBadge } from "@/components/tasks/task-meta";
 import { statusMeta } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import {
   TASK_SORT_LABELS,
   sortTasks,
@@ -69,6 +70,7 @@ export function TaskTable({
   emptyState?: React.ReactNode;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
   // No sort is a state: the list then keeps the board's own order.
@@ -156,7 +158,7 @@ export function TaskTable({
     const what = `${done} ${done === 1 ? "task" : "tasks"}`;
     if (done > 0) {
       toast.success(
-        status ? `${verb} ${what} to ${statusLabel(status)}` : `${verb} ${what}`,
+        status ? `${verb} ${what} to ${t(statusMeta(status).label)}` : `${verb} ${what}`,
         // A delete is undoable for ten seconds; the bin keeps it for a month.
         undo ? { duration: 10_000, action: { label: "Undo", onClick: () => void undo() } } : undefined,
       );
@@ -187,7 +189,7 @@ export function TaskTable({
       <div className="hidden overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-sm)] md:block">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/60 text-left">
+            <tr className="border-b border-border bg-muted/60 text-start">
               {selectable && (
                 <Th className="w-10">
                   <Checkbox
@@ -216,8 +218,8 @@ export function TaskTable({
               <SortTh column="due" sort={sort} onSort={toggleSort}>
                 Due
               </SortTh>
-              <Th className="text-right">Assignees</Th>
-              {canReschedule && <Th className="w-10 text-right sr-only">Move date</Th>}
+              <Th className="text-end">Assignees</Th>
+              {canReschedule && <Th className="w-10 text-end sr-only">Move date</Th>}
             </tr>
           </thead>
           <tbody>
@@ -242,7 +244,7 @@ export function TaskTable({
                 <td className="px-4 py-3.5">
                   <button
                     type="button"
-                    className="text-left font-medium focus-visible:outline-none"
+                    className="text-start font-medium focus-visible:outline-none"
                     onClick={(event) => {
                       event.stopPropagation();
                       onOpenTask(task);
@@ -295,7 +297,7 @@ export function TaskTable({
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm">
               <ArrowUpDown />
-              {sort ? `${TASK_SORT_LABELS[sort.key]} ${sort.direction === "asc" ? "↑" : "↓"}` : "Sort"}
+              {sort ? `${t(TASK_SORT_LABELS[sort.key])} ${sort.direction === "asc" ? "↑" : "↓"}` : t("sort.label")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -303,9 +305,9 @@ export function TaskTable({
               .filter((key) => key !== "project" || projectName)
               .map((key) => (
                 <DropdownMenuItem key={key} onSelect={() => toggleSort(key)}>
-                  {TASK_SORT_LABELS[key]}
+                  {t(TASK_SORT_LABELS[key])}
                   {sort?.key === key && (
-                    <span className="ml-auto text-muted-foreground">
+                    <span className="ms-auto text-muted-foreground">
                       {sort.direction === "asc" ? "↑" : "↓"}
                     </span>
                   )}
@@ -353,7 +355,7 @@ export function TaskTable({
                   <StatusBadge status={task.status} />
                   <PriorityIndicator priority={task.priority} showLabel />
                   <DueDate dueAt={task.due_at} status={task.status} />
-                  <span className="ml-auto">
+                  <span className="ms-auto">
                     <AssigneeStack assignees={task.assignees} max={3} />
                   </span>
                 </div>
@@ -392,10 +394,6 @@ export function TaskTable({
       )}
     </>
   );
-}
-
-function statusLabel(status: TaskStatus): string {
-  return statusMeta(status).label;
 }
 
 /**

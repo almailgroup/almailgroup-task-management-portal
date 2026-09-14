@@ -188,7 +188,7 @@ function TaskListCard({
                 <PriorityIndicator priority={task.priority} />
                 <span className="truncate text-sm">{task.title}</span>
               </span>
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-5 sm:shrink-0 sm:pl-0">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 ps-5 sm:shrink-0 sm:ps-0">
                 <DueDate dueAt={task.due_at} status={task.status} />
                 <StatusBadge status={task.status} />
                 <AssigneeStack assignees={task.assignees} max={2} />

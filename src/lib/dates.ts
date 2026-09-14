@@ -1,4 +1,50 @@
-/** Date helpers shared by the reschedule and follow-up controls. */
+import type { TaskStatus } from "@/lib/supabase/database.types";
+
+/** Date helpers shared by the task views, the reschedule and follow-up controls. */
+
+/**
+ * A task is overdue once its due instant has passed and the work is not done.
+ *
+ * Now that due dates carry a time of day this is a plain instant comparison,
+ * which is both simpler and more accurate than the calendar-date check it
+ * replaces.
+ */
+export function isOverdue(dueAt: string | null, status: TaskStatus): boolean {
+  if (!dueAt || status === "done") return false;
+  return new Date(dueAt).getTime() < Date.now();
+}
+
+/** True when the due instant falls on the viewer's local calendar today. */
+export function isDueToday(dueAt: string | null): boolean {
+  if (!dueAt) return false;
+  const due = new Date(dueAt);
+  const now = new Date();
+  return (
+    due.getFullYear() === now.getFullYear() &&
+    due.getMonth() === now.getMonth() &&
+    due.getDate() === now.getDate()
+  );
+}
+
+/**
+ * Date and time in the viewer's own timezone. The year is shown only when it
+ * differs from the current one, to keep the board compact.
+ *
+ * `tag` is the reader's language, from the translator; left out, the browser
+ * formats in its own default.
+ */
+export function formatDateTime(value: string, tag?: string): string {
+  const date = new Date(value);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+
+  return date.toLocaleString(tag, {
+    day: "numeric",
+    month: "short",
+    year: sameYear ? undefined : "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 /** Today at a given hour, in the viewer's timezone, as an ISO instant. */
 export function atHourToday(hour: number, daysAhead = 0): string {

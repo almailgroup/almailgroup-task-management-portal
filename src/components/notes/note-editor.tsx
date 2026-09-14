@@ -272,7 +272,7 @@ export function NoteEditor({
           className="lg:hidden"
           aria-label="Back to your notes"
         >
-          <ChevronLeft />
+          <ChevronLeft className="rtl:-scale-x-100" />
           Notes
         </Button>
 
@@ -426,7 +426,7 @@ export function NoteEditor({
             onClick={addItem}
             disabled={adding}
             className={cn(
-              "-mt-1 flex items-center gap-3 rounded-md py-1.5 text-left text-[0.9375rem] text-muted-foreground transition-colors",
+              "-mt-1 flex items-center gap-3 rounded-md py-1.5 text-start text-[0.9375rem] text-muted-foreground transition-colors",
               "hover:text-foreground disabled:opacity-50",
             )}
           >

@@ -135,16 +135,16 @@ export function TaskBrowser({
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search these tasks"
-            className="h-9 pl-8"
+            className="h-9 ps-8"
             aria-label="Search tasks"
           />
         </div>
-        <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
           <span className="tabular-nums">
             {visible.length} of {tasks.length}
           </span>

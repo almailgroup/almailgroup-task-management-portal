@@ -12,8 +12,8 @@ import {
   DueDate,
   PriorityIndicator,
   StatusBadge,
-  isOverdue,
 } from "@/components/tasks/task-meta";
+import { isOverdue } from "@/lib/dates";
 import {
   WEEKDAYS,
   addMonths,
@@ -134,7 +134,7 @@ export function CalendarView({
               onClick={() => goTo(addMonths(month, -1))}
               aria-label="Previous month"
             >
-              <ChevronLeft />
+              <ChevronLeft className="rtl:-scale-x-100" />
             </Button>
             <Button
               variant="outline"
@@ -149,7 +149,7 @@ export function CalendarView({
               onClick={() => goTo(addMonths(month, 1))}
               aria-label="Next month"
             >
-              <ChevronRight />
+              <ChevronRight className="rtl:-scale-x-100" />
             </Button>
           </div>
         }
@@ -183,7 +183,7 @@ export function CalendarView({
                 role="gridcell"
                 aria-selected={selected}
                 className={cn(
-                  "flex min-h-[4.25rem] flex-col border-b border-r border-border p-1 sm:min-h-[6.5rem] sm:p-1.5 [&:nth-child(7n)]:border-r-0",
+                  "flex min-h-[4.25rem] flex-col border-b border-e border-border p-1 sm:min-h-[6.5rem] sm:p-1.5 [&:nth-child(7n)]:border-e-0",
                   !inMonth(day) && "bg-muted/30 text-muted-foreground",
                   weekend && inMonth(day) && "bg-muted/15",
                   selected && "bg-accent",
@@ -195,7 +195,7 @@ export function CalendarView({
                   type="button"
                   onClick={() => setSelectedDay(selected ? null : day)}
                   aria-label={`${day.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}, ${list.length} due`}
-                  className="flex flex-1 flex-col items-start rounded-lg text-left md:pointer-events-none"
+                  className="flex flex-1 flex-col items-start rounded-lg text-start md:pointer-events-none"
                 >
                   <span
                     className={cn(
@@ -226,7 +226,7 @@ export function CalendarView({
                         onClick={() => openTask(task)}
                         title={task.title}
                         className={cn(
-                          "w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-accent",
+                          "w-full truncate rounded-md px-1.5 py-0.5 text-start text-xs transition-colors hover:bg-accent",
                           task.status === "done" && "text-muted-foreground line-through",
                           isOverdue(task.due_at, task.status) &&
                             "border border-warning-border bg-warning-surface text-warning",
@@ -258,7 +258,7 @@ export function CalendarView({
         <section aria-label="Tasks on the selected day" className="flex flex-col gap-2">
           <h3 className="text-sm font-medium">
             {selectedDay.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
-            <span className="ml-1.5 text-muted-foreground">{selectedTasks.length}</span>
+            <span className="ms-1.5 text-muted-foreground">{selectedTasks.length}</span>
           </h3>
           {selectedTasks.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing due that day.</p>
@@ -269,7 +269,7 @@ export function CalendarView({
                   <button
                     type="button"
                     onClick={() => openTask(task)}
-                    className="lift flex w-full flex-col gap-1.5 rounded-xl border border-border bg-card p-3 text-left shadow-[var(--shadow-xs)] sm:flex-row sm:items-center sm:justify-between"
+                    className="lift flex w-full flex-col gap-1.5 rounded-xl border border-border bg-card p-3 text-start shadow-[var(--shadow-xs)] sm:flex-row sm:items-center sm:justify-between"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <PriorityIndicator priority={task.priority} />
@@ -280,7 +280,7 @@ export function CalendarView({
                         </span>
                       </span>
                     </span>
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-5 sm:shrink-0 sm:pl-0">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 ps-5 sm:shrink-0 sm:ps-0">
                       <DueDate dueAt={task.due_at} status={task.status} />
                       <StatusBadge status={task.status} />
                       <AssigneeStack assignees={task.assignees} max={2} />

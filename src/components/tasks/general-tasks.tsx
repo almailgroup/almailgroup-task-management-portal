@@ -138,7 +138,7 @@ export function GeneralTasks({
               <PhoneCall />
               Follow-ups
               {followUps.length > 0 && (
-                <span className="ml-0.5 tabular-nums opacity-70">
+                <span className="ms-0.5 tabular-nums opacity-70">
                   {followUps.length}
                 </span>
               )}

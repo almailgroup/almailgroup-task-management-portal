@@ -21,6 +21,7 @@ import { SidebarClock } from "@/components/layout/sidebar-clock";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { cn } from "@/lib/utils";
 import type { Profile, Project } from "@/lib/supabase/database.types";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * Sidebar contents, shared by the fixed desktop rail and the mobile drawer.
@@ -40,6 +41,7 @@ export function SidebarNav({
   onOpenMaham: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
   const canCreateProject = profile.role === "admin" || profile.role === "manager";
@@ -60,46 +62,46 @@ export function SidebarNav({
           onCreate={() => setDialogOpen(true)}
         />
 
-        <nav className="flex flex-col gap-0.5" aria-label="Main">
+        <nav className="flex flex-col gap-0.5" aria-label={t("nav.tasks")}>
           <NavLink
             href="/dashboard"
             icon={<LayoutDashboard />}
-            label="Dashboard"
+            label={t("nav.dashboard")}
             active={pathname === "/dashboard"}
             onNavigate={onNavigate}
           />
           <NavLink
             href="/today"
             icon={<Sunrise />}
-            label="Today"
+            label={t("nav.today")}
             active={pathname === "/today"}
             onNavigate={onNavigate}
           />
           <NavLink
             href="/calendar"
             icon={<CalendarDays />}
-            label="Calendar"
+            label={t("nav.calendar")}
             active={pathname === "/calendar"}
             onNavigate={onNavigate}
           />
           <NavLink
             href="/my-list"
             icon={<ListChecks />}
-            label="My List"
+            label={t("nav.myList")}
             active={pathname === "/my-list"}
             onNavigate={onNavigate}
           />
           <NavLink
             href="/general"
             icon={<ClipboardList />}
-            label="General tasks"
+            label={t("nav.general")}
             active={pathname === "/general"}
             onNavigate={onNavigate}
           />
           <NavLink
             href="/team"
             icon={<Users />}
-            label="Team"
+            label={t("nav.team")}
             active={pathname === "/team"}
             onNavigate={onNavigate}
           />
@@ -108,14 +110,14 @@ export function SidebarNav({
         <div className="flex min-h-0 flex-1 flex-col gap-1">
           <div className="flex items-center justify-between px-2 py-1">
             <span className="text-xs font-medium text-muted-foreground">
-              Projects
+              {t("nav.projects")}
             </span>
             {canCreateProject && (
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setDialogOpen(true)}
-                aria-label="New project"
+                aria-label={t("nav.newProject")}
               >
                 <Plus />
               </Button>
@@ -125,9 +127,7 @@ export function SidebarNav({
           <div className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
             {projects.length === 0 ? (
               <p className="px-2 py-1.5 text-sm leading-relaxed text-muted-foreground">
-                {canCreateProject
-                  ? "Create your first project to get started."
-                  : "No projects yet."}
+                {canCreateProject ? t("nav.createFirstProject") : t("nav.noProjects")}
               </p>
             ) : (
               projects.map((project) => (
@@ -150,7 +150,7 @@ export function SidebarNav({
             onClick={onOpenMaham}
             data-maham-launcher
             className={cn(
-              "group/maham lift flex items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-left shadow-[var(--shadow-xs)]",
+              "group/maham lift flex items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-start shadow-[var(--shadow-xs)]",
               "hover:border-foreground/25 hover:bg-accent",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
             )}
@@ -163,10 +163,10 @@ export function SidebarNav({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium leading-tight">
-                MAHAM AI
+                {t("nav.maham")}
               </span>
               <span className="block truncate text-xs leading-tight text-muted-foreground">
-                Ask about your tasks
+                {t("nav.mahamHint")}
               </span>
             </span>
           </button>

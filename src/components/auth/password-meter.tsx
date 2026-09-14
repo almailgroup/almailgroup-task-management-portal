@@ -58,7 +58,7 @@ export function PasswordMeter({ value }: { value: string }) {
       </span>
       <span
         className={cn(
-          "w-16 shrink-0 text-right text-xs",
+          "w-16 shrink-0 text-end text-xs",
           score === 0 ? "font-medium text-warning" : "text-muted-foreground",
         )}
       >

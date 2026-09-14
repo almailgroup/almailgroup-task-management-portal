@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TASK_STATUSES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 
 /**
@@ -35,6 +36,7 @@ export function BulkActionBar({
   onDelete: () => Promise<void>;
   onClear: () => void;
 }) {
+  const { t, tn } = useI18n();
   const [busy, setBusy] = React.useState(false);
 
   if (count === 0) return null;
@@ -55,18 +57,18 @@ export function BulkActionBar({
       >
         <div className="animate-rise pointer-events-auto flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-popover p-2 shadow-[var(--shadow-lg)]">
           <span className="px-2 text-sm font-medium tabular-nums">
-            {count} selected
+            {tn("count.selected", count)}
           </span>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={busy}>
                 {busy && <Loader2 className="animate-spin" />}
-                Move to
+                {t("task.moveTo")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" side="top">
-              <DropdownMenuLabel>Move to</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("task.moveTo")}</DropdownMenuLabel>
               {TASK_STATUSES.map((status) => (
                 <DropdownMenuItem
                   key={status.value}
@@ -75,7 +77,7 @@ export function BulkActionBar({
                   disabled={status.value === "done" && !canComplete}
                   onSelect={() => void run(() => onMove(status.value))}
                 >
-                  {status.label}
+                  {t(status.label)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -88,14 +90,14 @@ export function BulkActionBar({
             onClick={() => void run(onDelete)}
           >
             <Trash2 />
-            Delete
+            {t("common.delete")}
           </Button>
 
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={onClear}
-            aria-label="Clear selection"
+            aria-label={t("bulk.clearSelection")}
           >
             <X />
           </Button>

@@ -52,7 +52,7 @@ export function PasswordInput({
           onKeyUp={onKey}
           onKeyDown={onKey}
           onBlur={() => setCapsLock(false)}
-          className={cn("pr-11", className)}
+          className={cn("pe-11", className)}
         />
 
         <button
@@ -63,7 +63,7 @@ export function PasswordInput({
           aria-label={visible ? "Hide password" : "Show password"}
           title={visible ? "Hide password" : "Show password"}
           className={cn(
-            "absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg",
+            "absolute end-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg",
             "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "pointer-coarse:size-9",

@@ -142,7 +142,7 @@ export function MyList({
       <section
         aria-label="Your notes"
         className={cn(
-          "flex min-h-0 flex-col border-border lg:w-80 lg:shrink-0 lg:border-r xl:w-96",
+          "flex min-h-0 flex-col border-border lg:w-80 lg:shrink-0 lg:border-e xl:w-96",
           // One screen at a time on a phone.
           active ? "hidden lg:flex" : "flex",
         )}
@@ -157,13 +157,13 @@ export function MyList({
           </div>
 
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search your notes"
               aria-label="Search your notes"
-              className="pl-9"
+              className="ps-9"
             />
           </div>
         </header>
@@ -199,7 +199,7 @@ export function MyList({
                     onClick={() => setActiveId(note.id)}
                     aria-current={note.id === activeId ? "true" : undefined}
                     className={cn(
-                      "flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors",
+                      "flex w-full flex-col gap-1 px-4 py-3 text-start transition-colors",
                       note.id === activeId
                         ? "bg-accent"
                         : "hover:bg-accent/60",

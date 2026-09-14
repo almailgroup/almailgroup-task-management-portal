@@ -1,3 +1,5 @@
+"use client";
+
 import { CalendarDays, Clock3 } from "lucide-react";
 
 import {
@@ -9,6 +11,8 @@ import { initialsFrom } from "@/lib/initials";
 import { Badge } from "@/components/ui/badge";
 import { priorityMeta, statusMeta } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { formatDateTime, isOverdue } from "@/lib/dates";
+import { useI18n } from "@/lib/i18n/client";
 import type {
   Profile,
   TaskPriority,
@@ -17,8 +21,9 @@ import type {
 
 /** Status pill. Weight, not hue, carries the meaning. */
 export function StatusBadge({ status }: { status: TaskStatus }) {
+  const { t } = useI18n();
   const meta = statusMeta(status);
-  return <Badge variant={meta.variant}>{meta.label}</Badge>;
+  return <Badge variant={meta.variant}>{t(meta.label)}</Badge>;
 }
 
 /**
@@ -32,11 +37,16 @@ export function PriorityIndicator({
   priority: TaskPriority;
   showLabel?: boolean;
 }) {
+  const { t } = useI18n();
   const meta = priorityMeta(priority);
   const urgent = priority === "urgent";
+  const label = t(meta.label);
 
   return (
-    <span className="inline-flex items-center gap-1.5" title={`${meta.label} priority`}>
+    <span
+      className="inline-flex items-center gap-1.5"
+      title={t("meta.priorityTitle", { label })}
+    >
       <span className="flex items-end gap-0.5" aria-hidden>
         {[1, 2, 3, 4].map((bar) => (
           <span
@@ -63,7 +73,7 @@ export function PriorityIndicator({
             : "sr-only"
         }
       >
-        {meta.label}
+        {label}
       </span>
     </span>
   );
@@ -79,6 +89,7 @@ export function DueDate({
   status: TaskStatus;
   className?: string;
 }) {
+  const { t, tag } = useI18n();
   if (!dueAt) return null;
 
   const overdue = isOverdue(dueAt, status);
@@ -94,11 +105,11 @@ export function DueDate({
           : "text-muted-foreground",
         className,
       )}
-      title={overdue ? "Overdue" : "Due date"}
+      title={overdue ? t("meta.overdue") : t("meta.dueDate")}
     >
       <CalendarDays className="size-3" />
-      {formatDateTime(dueAt)}
-      {overdue && <span className="sr-only">(overdue)</span>}
+      {formatDateTime(dueAt, tag)}
+      {overdue && <span className="sr-only">{t("meta.overdueSr")}</span>}
     </span>
   );
 }
@@ -154,6 +165,7 @@ export function TaskProvenance({
   createdAt: string;
   creator: Profile | null;
 }) {
+  const { t, tag } = useI18n();
   const name = creator?.full_name ?? creator?.email ?? null;
 
   return (
@@ -166,11 +178,11 @@ export function TaskProvenance({
           </AvatarFallback>
         </Avatar>
         <span className="truncate">
-          Created by{" "}
+          {t("meta.createdBy")}{" "}
           {name ? (
             <span className="font-medium text-foreground">{name}</span>
           ) : (
-            <span className="italic">a removed account</span>
+            <span className="italic">{t("meta.removedAccount")}</span>
           )}
           {creator?.job_title && <> · {creator.job_title}</>}
         </span>
@@ -178,52 +190,10 @@ export function TaskProvenance({
 
       <span className="inline-flex items-center gap-1.5">
         <Clock3 className="size-3.5 shrink-0" />
-        <time dateTime={createdAt} title={new Date(createdAt).toLocaleString()}>
-          {formatDateTime(createdAt)}
+        <time dateTime={createdAt} title={new Date(createdAt).toLocaleString(tag)}>
+          {formatDateTime(createdAt, tag)}
         </time>
       </span>
     </div>
   );
 }
-
-/**
- * A task is overdue once its due instant has passed and the work is not done.
- *
- * Now that due dates carry a time of day this is a plain instant comparison,
- * which is both simpler and more accurate than the calendar-date check it
- * replaces.
- */
-export function isOverdue(dueAt: string | null, status: TaskStatus): boolean {
-  if (!dueAt || status === "done") return false;
-  return new Date(dueAt).getTime() < Date.now();
-}
-
-/** True when the due instant falls on the viewer's local calendar today. */
-export function isDueToday(dueAt: string | null): boolean {
-  if (!dueAt) return false;
-  const due = new Date(dueAt);
-  const now = new Date();
-  return (
-    due.getFullYear() === now.getFullYear() &&
-    due.getMonth() === now.getMonth() &&
-    due.getDate() === now.getDate()
-  );
-}
-
-/**
- * Date and time in the viewer's own timezone. The year is shown only when it
- * differs from the current one, to keep the board compact.
- */
-export function formatDateTime(value: string): string {
-  const date = new Date(value);
-  const sameYear = date.getFullYear() === new Date().getFullYear();
-
-  return date.toLocaleString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: sameYear ? undefined : "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-

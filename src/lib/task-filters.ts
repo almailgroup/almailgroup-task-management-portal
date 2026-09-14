@@ -1,4 +1,5 @@
-import { isDueToday, isOverdue } from "@/components/tasks/task-meta";
+import { isDueToday, isOverdue } from "@/lib/dates";
+import type { TranslationKey } from "@/lib/i18n";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import type {
   TaskPriority,
@@ -174,12 +175,13 @@ function isTaskPriority(value: string | null): value is TaskPriority {
 export type TaskSortKey = "title" | "status" | "priority" | "due" | "project";
 export type TaskSort = { key: TaskSortKey; direction: "asc" | "desc" };
 
-export const TASK_SORT_LABELS: Record<TaskSortKey, string> = {
-  title: "Title",
-  status: "Status",
-  priority: "Priority",
-  due: "Due date",
-  project: "Project",
+/** Dictionary keys — render with `t(TASK_SORT_LABELS[key])`. */
+export const TASK_SORT_LABELS: Record<TaskSortKey, TranslationKey> = {
+  title: "sort.title",
+  status: "sort.status",
+  priority: "sort.priority",
+  due: "sort.due",
+  project: "sort.project",
 };
 
 /**

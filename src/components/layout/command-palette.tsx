@@ -37,6 +37,7 @@ import {
 import { ShortcutsDialog } from "@/components/layout/shortcuts-dialog";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/supabase/database.types";
+import { useI18n } from "@/lib/i18n/client";
 
 type Entry = {
   id: string;
@@ -58,6 +59,7 @@ type Entry = {
  */
 export function CommandPalette({ projects }: { projects: Project[] }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -116,38 +118,38 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
     () => [
       // Actions first: someone who opened this with a verb in mind should not
       // have to scroll past every page in the app to find it.
-      { id: "new-task", label: "New task", href: "/general?new=1", icon: Plus, group: "Actions", hint: "n" },
-      { id: "new-note", label: "New note in My List", run: newNote, icon: StickyNote, group: "Actions" },
+      { id: "new-task", label: t("palette.newTask"), href: "/general?new=1", icon: Plus, group: t("palette.group.actions"), hint: "n" },
+      { id: "new-note", label: t("palette.newNote"), run: newNote, icon: StickyNote, group: t("palette.group.actions") },
       {
         id: "theme",
-        label: resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme",
+        label: resolvedTheme === "dark" ? t("shell.themeLight") : t("shell.themeDark"),
         run: () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
         icon: Moon,
-        group: "Actions",
+        group: t("palette.group.actions"),
       },
-      { id: "shortcuts", label: "Keyboard shortcuts", run: () => setShortcutsOpen(true), icon: Keyboard, group: "Actions", hint: "?" },
-      { id: "signout", label: "Sign out", href: "/auth/signout", icon: LogOut, group: "Actions" },
-      { id: "today", label: "Today", href: "/today", icon: Sunrise, group: "Go to" },
-      { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Go to" },
-      { id: "calendar", label: "Calendar", href: "/calendar", icon: CalendarDays, group: "Go to" },
-      { id: "general", label: "General tasks", href: "/general", icon: ClipboardList, group: "Go to" },
-      { id: "my-list", label: "My List", href: "/my-list", icon: ListChecks, group: "Go to" },
-      { id: "tasks", label: "All tasks", href: "/tasks?filter=all", icon: Search, group: "Go to" },
-      { id: "team", label: "Team", href: "/team", icon: Users, group: "Go to" },
-      { id: "profile", label: "Profile", href: "/profile", icon: User, group: "Go to" },
-      { id: "overdue", label: "Overdue tasks", href: "/tasks?filter=overdue", icon: Search, group: "Filters" },
-      { id: "due-today", label: "Due today", href: "/tasks?filter=due_today", icon: Search, group: "Filters" },
-      { id: "in-review", label: "In review", href: "/tasks?filter=in_review", icon: Search, group: "Filters" },
+      { id: "shortcuts", label: t("palette.shortcuts"), run: () => setShortcutsOpen(true), icon: Keyboard, group: t("palette.group.actions"), hint: "?" },
+      { id: "signout", label: t("shell.signOut"), href: "/auth/signout", icon: LogOut, group: t("palette.group.actions") },
+      { id: "today", label: t("nav.today"), href: "/today", icon: Sunrise, group: t("palette.group.goTo") },
+      { id: "dashboard", label: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard, group: t("palette.group.goTo") },
+      { id: "calendar", label: t("nav.calendar"), href: "/calendar", icon: CalendarDays, group: t("palette.group.goTo") },
+      { id: "general", label: t("nav.general"), href: "/general", icon: ClipboardList, group: t("palette.group.goTo") },
+      { id: "my-list", label: t("nav.myList"), href: "/my-list", icon: ListChecks, group: t("palette.group.goTo") },
+      { id: "tasks", label: t("palette.allTasks"), href: "/tasks?filter=all", icon: Search, group: t("palette.group.goTo") },
+      { id: "team", label: t("nav.team"), href: "/team", icon: Users, group: t("palette.group.goTo") },
+      { id: "profile", label: t("shell.profile"), href: "/profile", icon: User, group: t("palette.group.goTo") },
+      { id: "overdue", label: t("palette.overdue"), href: "/tasks?filter=overdue", icon: Search, group: t("palette.group.filters") },
+      { id: "due-today", label: t("palette.dueToday"), href: "/tasks?filter=due_today", icon: Search, group: t("palette.group.filters") },
+      { id: "in-review", label: t("palette.inReview"), href: "/tasks?filter=in_review", icon: Search, group: t("palette.group.filters") },
       ...projects.map((project) => ({
         id: `project-${project.id}`,
         label: project.name,
         hint: project.description ?? undefined,
         href: `/projects/${project.id}`,
         icon: Hash,
-        group: "Projects",
+        group: t("palette.group.projects"),
       })),
     ],
-    [projects, resolvedTheme, setTheme, newNote],
+    [projects, resolvedTheme, setTheme, newNote, t],
   );
 
   const results = React.useMemo(() => {
@@ -163,10 +165,10 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
     const taskEntries: Entry[] = hits.map((hit) => ({
       id: `task-${hit.id}`,
       label: hit.title,
-      hint: [hit.projectName ?? "General", statusMeta(hit.status).label].join(" · "),
+      hint: [hit.projectName ?? t("palette.general"), t(statusMeta(hit.status).label)].join(" · "),
       href: `/tasks?filter=all&task=${hit.id}`,
       icon: CheckSquare,
-      group: "Tasks",
+      group: t("palette.group.tasks"),
     }));
 
     // Eight is a list; more than that is a search, and the browser page can
@@ -174,15 +176,15 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
     if (hits.length >= 8) {
       taskEntries.push({
         id: "search-all",
-        label: `All tasks matching “${query.trim()}”`,
+        label: t("palette.allMatching", { query: query.trim() }),
         href: `/tasks?filter=all&q=${encodeURIComponent(query.trim())}`,
         icon: Search,
-        group: "Tasks",
+        group: t("palette.group.tasks"),
       });
     }
 
     return [...taskEntries, ...matches];
-  }, [entries, hits, query]);
+  }, [entries, hits, query, t]);
 
   // Cmd/Ctrl+K toggles from anywhere, except while typing somewhere else.
   React.useEffect(() => {
@@ -277,10 +279,8 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         className="max-w-lg gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
-        <DialogTitle className="sr-only">Search and navigate</DialogTitle>
-        <DialogDescription className="sr-only">
-          Type to filter actions, pages and projects. Arrow keys to move, Enter to run.
-        </DialogDescription>
+        <DialogTitle className="sr-only">{t("palette.title")}</DialogTitle>
+        <DialogDescription className="sr-only">{t("palette.description")}</DialogDescription>
 
         <div className="flex items-center gap-2 border-b border-border px-3">
           <Search className="size-4 shrink-0 text-muted-foreground" />
@@ -289,16 +289,16 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search tasks, pages and commands..."
+            placeholder={t("palette.placeholder")}
             className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             autoFocus
-            aria-label="Search"
+            aria-label={t("shell.search")}
           />
         </div>
 
         {results.length === 0 ? (
           <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-            {searching ? "Searching…" : `Nothing matches “${query}”.`}
+            {searching ? t("palette.searching") : t("palette.noMatch", { query })}
           </p>
         ) : (
           <ul
@@ -326,7 +326,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
                       onMouseEnter={() => setActive(index)}
                       onClick={() => go(entry)}
                       className={cn(
-                        "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors",
+                        "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-start text-sm transition-colors",
                         index === active
                           ? "bg-accent text-accent-foreground"
                           : "text-foreground",
@@ -335,14 +335,14 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
                       <Icon className="size-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{entry.label}</span>
-                        {entry.group === "Tasks" && entry.hint && (
+                        {entry.group === t("palette.group.tasks") && entry.hint && (
                           <span className="block truncate text-xs text-muted-foreground">
                             {entry.hint}
                           </span>
                         )}
                       </span>
                       {index === active && (
-                        <CornerDownLeft className="size-3 shrink-0 text-muted-foreground" />
+                        <CornerDownLeft className="size-3 shrink-0 text-muted-foreground rtl:-scale-x-100" />
                       )}
                     </button>
                   </li>
@@ -354,10 +354,10 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
 
         <div className="flex items-center justify-between border-t border-border px-3 py-2 text-xs text-muted-foreground">
           <span>
-            <Kbd>↑</Kbd> <Kbd>↓</Kbd> to move · <Kbd>↵</Kbd> to open
+            <Kbd>↑</Kbd> <Kbd>↓</Kbd> {t("palette.move")} · <Kbd>↵</Kbd> {t("palette.open")}
           </span>
           <span>
-            <Kbd>esc</Kbd> to close
+            <Kbd>esc</Kbd> {t("palette.close")}
           </span>
         </div>
       </DialogContent>
@@ -376,6 +376,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
 
 /** The header affordance that tells people the palette exists. */
 export function CommandHint() {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -384,11 +385,11 @@ export function CommandHint() {
           new KeyboardEvent("keydown", { key: "k", metaKey: true }),
         )
       }
-      aria-label="Search"
+      aria-label={t("shell.search")}
       className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:min-h-10 pointer-coarse:px-3"
     >
       <Search className="size-4 sm:size-3.5" />
-      <span className="hidden sm:inline">Search</span>
+      <span className="hidden sm:inline">{t("shell.search")}</span>
       <kbd className="hidden rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4 sm:inline">
         ⌘K
       </kbd>

@@ -21,13 +21,15 @@ import {
 import { signOut } from "@/lib/auth/actions";
 import { roleMeta } from "@/lib/constants";
 import type { Profile } from "@/lib/supabase/database.types";
+import { useI18n } from "@/lib/i18n/client";
 
 export function UserMenu({ profile }: { profile: Profile }) {
+  const { t } = useI18n();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none pointer-coarse:size-10"
-        aria-label="Account menu"
+        aria-label={t("shell.accountMenu")}
       >
         <Avatar>
           {profile.avatar_url && (
@@ -48,7 +50,7 @@ export function UserMenu({ profile }: { profile: Profile }) {
             {profile.email}
           </span>
           <span className="mt-1 text-xs font-normal text-muted-foreground">
-            {roleMeta(profile.role).label}
+            {t(roleMeta(profile.role).label)}
           </span>
         </DropdownMenuLabel>
 
@@ -57,7 +59,7 @@ export function UserMenu({ profile }: { profile: Profile }) {
         <DropdownMenuItem asChild>
           <Link href="/profile">
             <User />
-            Profile
+            {t("shell.profile")}
           </Link>
         </DropdownMenuItem>
 
@@ -69,8 +71,8 @@ export function UserMenu({ profile }: { profile: Profile }) {
             type="submit"
             className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <LogOut className="size-4" />
-            Sign out
+            <LogOut className="size-4 rtl:-scale-x-100" />
+            {t("shell.signOut")}
           </button>
         </form>
       </DropdownMenuContent>

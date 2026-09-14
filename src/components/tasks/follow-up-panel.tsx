@@ -16,7 +16,7 @@ import {
   relativeDay,
   toLocalInput,
 } from "@/lib/dates";
-import { formatDateTime } from "@/components/tasks/task-meta";
+import { formatDateTime } from "@/lib/dates";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**
@@ -95,7 +95,7 @@ export function FollowUpPanel({
           <span className="min-w-0 flex-1">
             <span className="block text-sm">
               Follow up {relativeDay(task.follow_up_at)}
-              <span className="ml-1.5 text-xs text-muted-foreground">
+              <span className="ms-1.5 text-xs text-muted-foreground">
                 {formatDateTime(task.follow_up_at)}
               </span>
             </span>

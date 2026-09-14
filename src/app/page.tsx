@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { getI18n } from "@/lib/i18n/server";
 
 /**
  * Public entry point. Signed-in visitors go straight to their dashboard;
@@ -18,6 +19,7 @@ import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
  */
 export default async function Home() {
   const configured = isSupabaseConfigured();
+  const { t } = await getI18n();
 
   if (configured) {
     const supabase = await createClient();
@@ -48,7 +50,7 @@ export default async function Home() {
             <Button size="sm" variant="outline" asChild>
               <Link href="/login">
                 Sign in
-                <ArrowRight />
+                <ArrowRight className="rtl:-scale-x-100" />
               </Link>
             </Button>
           </div>
@@ -68,7 +70,7 @@ export default async function Home() {
             <Button asChild>
               <Link href="/login">
                 Sign in
-                <ArrowRight />
+                <ArrowRight className="rtl:-scale-x-100" />
               </Link>
             </Button>
             <Button variant="outline" asChild>
@@ -87,7 +89,7 @@ export default async function Home() {
             <CardContent className="flex flex-wrap gap-1.5">
               {TASK_STATUSES.map((status) => (
                 <Badge key={status.value} variant={status.variant}>
-                  {status.label}
+                  {t(status.label)}
                 </Badge>
               ))}
             </CardContent>
@@ -103,7 +105,7 @@ export default async function Home() {
                   key={priority.value}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-muted-foreground">{priority.label}</span>
+                  <span className="text-muted-foreground">{t(priority.label)}</span>
                   <span className="flex gap-0.5" aria-hidden>
                     {[1, 2, 3, 4].map((bar) => (
                       <span

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * Thumb-reachable navigation for phones and small tablets.
@@ -24,18 +25,19 @@ import { cn } from "@/lib/utils";
  * Above `lg` the sidebar rail is always on screen, so this is hidden there.
  */
 const ITEMS = [
-  { href: "/today", label: "Today", icon: Sunrise },
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/tasks?filter=all", match: "/tasks", label: "Tasks", icon: ListFilter },
-  { href: "/my-list", label: "My List", icon: ListChecks },
+  { href: "/today", label: "nav.today", icon: Sunrise },
+  { href: "/dashboard", label: "nav.home", icon: LayoutDashboard },
+  { href: "/tasks?filter=all", match: "/tasks", label: "nav.tasks", icon: ListFilter },
+  { href: "/my-list", label: "nav.myList", icon: ListChecks },
 ] as const;
 
 export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t("nav.tasks")}
       className={cn(
         "fixed inset-x-0 bottom-0 z-30 border-t border-chrome-border bg-chrome/90 backdrop-blur-md lg:hidden",
         // Sits above the home indicator on a phone rather than under it.
@@ -62,7 +64,7 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
                   className={cn("size-5", active && "stroke-[2.25]")}
                   aria-hidden
                 />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{t(item.label)}</span>
                 {/* A dot rather than a fill: the bar should read as a set of
                     labels, not as four buttons competing with the page. */}
                 <span
@@ -80,11 +82,11 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
           <button
             type="button"
             onClick={onOpenMore}
-            aria-label="More — projects, team and settings"
+            aria-label={t("shell.moreLabel")}
             className="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.6875rem] text-muted-foreground transition-colors hover:text-foreground"
           >
             <Menu className="size-5" aria-hidden />
-            <span>More</span>
+            <span>{t("shell.more")}</span>
             <span className="h-0.5 w-5" />
           </button>
         </li>

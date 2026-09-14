@@ -42,7 +42,7 @@ export function WorkloadCard({ workload }: { workload: Workload[] }) {
                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                     {open} open
                     {overdue > 0 && (
-                      <span className="ml-1.5 font-medium text-foreground">
+                      <span className="ms-1.5 font-medium text-foreground">
                         {overdue} overdue
                       </span>
                     )}

@@ -25,7 +25,7 @@ function SelectTrigger({
         "flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-card px-3.5 py-1 text-sm transition-[border-color,box-shadow] pointer-coarse:min-h-11",
         "data-[placeholder]:text-muted-foreground focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "[&>span]:line-clamp-1 [&>span]:text-left",
+        "[&>span]:line-clamp-1 [&>span]:text-start",
         size === "sm" ? "h-9 rounded-lg text-xs" : "h-10",
         className,
       )}
@@ -101,7 +101,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default select-none items-center gap-2 rounded-lg py-2 pl-2.5 pr-8 text-sm outline-none transition-colors pointer-coarse:min-h-10",
+        "relative flex w-full cursor-default select-none items-center gap-2 rounded-lg py-2 ps-2.5 pe-8 text-sm outline-none transition-colors pointer-coarse:min-h-10",
         "focus:bg-accent focus:text-accent-foreground",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         "[&_svg]:size-4 [&_svg]:shrink-0",
@@ -110,7 +110,7 @@ function SelectItem({
       {...props}
     >
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+      <span className="absolute end-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <Check className="size-4" />
         </SelectPrimitive.ItemIndicator>

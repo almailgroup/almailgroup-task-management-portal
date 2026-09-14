@@ -165,7 +165,7 @@ export function CommentThread({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="scrollbar-thin flex max-h-64 flex-col gap-3 overflow-y-auto pr-1">
+      <div className="scrollbar-thin flex max-h-64 flex-col gap-3 overflow-y-auto pe-1">
         {comments === null ? (
           <div className="flex flex-col gap-2">
             <Skeleton className="h-10 w-full" />

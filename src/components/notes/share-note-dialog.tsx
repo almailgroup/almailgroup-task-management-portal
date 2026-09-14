@@ -148,7 +148,7 @@ export function ShareNoteDialog({
                       {pending === person.id ? (
                         <Loader2 className="animate-spin" />
                       ) : person.id === profile.id ? (
-                        <LogOut />
+                        <LogOut className="rtl:-scale-x-100" />
                       ) : (
                         <UserMinus />
                       )}
@@ -233,7 +233,7 @@ function Person({
         <span className="block truncate text-sm font-medium">
           {person.full_name ?? person.email}
           {you && (
-            <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+            <span className="ms-1.5 text-xs font-normal text-muted-foreground">
               you
             </span>
           )}

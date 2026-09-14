@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { statusMeta, TASK_STATUSES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 
 /**
@@ -37,7 +38,8 @@ export function StatusMoveMenu({
   onMove: (next: TaskStatus) => void;
   className?: string;
 }) {
-  const current = statusMeta(status);
+  const { t } = useI18n();
+  const current = t(statusMeta(status).label);
 
   const allowed = (next: TaskStatus) => {
     if (canComplete || next === status) return true;
@@ -51,7 +53,7 @@ export function StatusMoveMenu({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label={`Status: ${current.label}. Move this task`}
+          aria-label={t("task.statusMoveLabel", { status: current })}
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
           className={cn(
@@ -61,13 +63,13 @@ export function StatusMoveMenu({
             className,
           )}
         >
-          {current.label}
+          {current}
           <MoveRight className="size-3 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuLabel>Move to</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("task.moveTo")}</DropdownMenuLabel>
         {TASK_STATUSES.map((entry) => (
           <DropdownMenuItem
             key={entry.value}
@@ -79,7 +81,7 @@ export function StatusMoveMenu({
             <span className="flex size-4 items-center justify-center">
               {entry.value === status && <Check className="size-3.5" />}
             </span>
-            {entry.label}
+            {t(entry.label)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

@@ -8,8 +8,8 @@ import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
 import {
   AssigneeStack,
   StatusBadge,
-  formatDateTime,
 } from "@/components/tasks/task-meta";
+import { formatDateTime } from "@/lib/dates";
 import { relativeDay } from "@/lib/dates";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
@@ -107,7 +107,7 @@ function Group({
             <button
               type="button"
               onClick={() => onOpenTask(task)}
-              className="w-full min-w-0 text-left focus-visible:outline-none sm:w-auto sm:flex-1"
+              className="w-full min-w-0 text-start focus-visible:outline-none sm:w-auto sm:flex-1"
             >
               <span className="block truncate text-[0.9375rem] font-medium">
                 {task.title}

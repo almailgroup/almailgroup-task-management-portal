@@ -24,6 +24,7 @@ import {
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { OneTimePassword } from "@/components/team/one-time-password";
 import { USER_ROLES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import { addTeamMember } from "@/lib/data/team-actions";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -40,6 +41,7 @@ type Created = { email: string; password: string };
  */
 export function AddMemberDialog({ configured }: { configured: boolean }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<Created> | null>(null);
@@ -81,7 +83,7 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
           Add teammate
         </Button>
         {!configured && (
-          <p className="max-w-[15rem] text-right text-xs leading-relaxed text-muted-foreground">
+          <p className="max-w-[15rem] text-end text-xs leading-relaxed text-muted-foreground">
             Needs <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> in
             the server environment.
           </p>
@@ -169,7 +171,7 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
                   <SelectContent>
                     {USER_ROLES.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
-                        {role.label}
+                        {t(role.label)}
                       </SelectItem>
                     ))}
                   </SelectContent>

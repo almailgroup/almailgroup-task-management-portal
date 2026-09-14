@@ -1,4 +1,5 @@
-import { isDueToday, isOverdue } from "@/components/tasks/task-meta";
+import { isDueToday, isOverdue } from "@/lib/dates";
+import { en } from "@/lib/i18n/en";
 import { statusMeta } from "@/lib/constants";
 import type { MahamAnswer, MahamSnapshot, MahamTask } from "@/lib/maham/types";
 
@@ -26,7 +27,7 @@ function dueLabel(task: MahamTask): string {
 
 /** "Ship the catalogue — In Progress, due 14 Sep (Gemellry)" */
 function describe(task: MahamTask): string {
-  const bits = [statusMeta(task.status).label, dueLabel(task)];
+  const bits = [en[statusMeta(task.status).label], dueLabel(task)];
   if (task.project) bits.push(task.project);
   return `${task.title} — ${bits.join(", ")}`;
 }

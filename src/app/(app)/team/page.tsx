@@ -16,12 +16,14 @@ import { PositionSelect } from "@/components/team/position-select";
 import { Users } from "lucide-react";
 
 import { roleMeta } from "@/lib/constants";
+import { getI18n } from "@/lib/i18n/server";
 import { getTeam, requireProfile } from "@/lib/data/queries";
 import { hasServiceRole } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Team" };
 
 export default async function TeamPage() {
+  const { t } = await getI18n();
   const [profile, team] = await Promise.all([requireProfile(), getTeam()]);
   const isAdmin = profile.role === "admin";
   // Both admin actions here need the service-role key; say so rather than
@@ -64,7 +66,7 @@ export default async function TeamPage() {
                 <p className="truncate text-[0.9375rem] font-medium">
                   {member.full_name ?? member.email}
                   {member.id === profile.id && (
-                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                    <span className="ms-1.5 text-xs font-normal text-muted-foreground">
                       you
                     </span>
                   )}
@@ -103,7 +105,7 @@ export default async function TeamPage() {
                 )}
               </div>
             ) : (
-              <Badge variant="outline">{roleMeta(member.role).label}</Badge>
+              <Badge variant="outline">{t(roleMeta(member.role).label)}</Badge>
             )}
           </div>
         ))}

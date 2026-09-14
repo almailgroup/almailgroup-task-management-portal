@@ -44,7 +44,7 @@ export const TaskCard = React.forwardRef<
         onClick={onOpen}
         // Negative margin cancels the padding, so the tappable area grows to a
         // thumb-friendly height on touch without changing the card's layout.
-        className="w-full text-left focus-visible:outline-none pointer-coarse:-my-2 pointer-coarse:py-2"
+        className="w-full text-start focus-visible:outline-none pointer-coarse:-my-2 pointer-coarse:py-2"
       >
         <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
       </button>
@@ -53,7 +53,7 @@ export const TaskCard = React.forwardRef<
         <PriorityIndicator priority={task.priority} />
         <DueDate dueAt={task.due_at} status={task.status} />
         <ElapsedSinceCreated createdAt={task.created_at} />
-        <span className="ml-auto">
+        <span className="ms-auto">
           <AssigneeStack assignees={task.assignees} max={2} />
         </span>
       </div>

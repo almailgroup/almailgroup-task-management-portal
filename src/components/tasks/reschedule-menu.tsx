@@ -16,8 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { rescheduleTask } from "@/lib/data/task-actions";
-import { quickDateOptions, relativeDay, toLocalInput } from "@/lib/dates";
-import { formatDateTime } from "@/components/tasks/task-meta";
+import {
+  formatDateTime,
+  quickDateOptions,
+  relativeDay,
+  toLocalInput,
+} from "@/lib/dates";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**

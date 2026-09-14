@@ -32,6 +32,7 @@ import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { StatusMoveMenu } from "@/components/tasks/status-move-menu";
 import { moveTask } from "@/lib/data/task-actions";
 import { TASK_STATUSES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import type {
   TaskStatus,
@@ -67,6 +68,7 @@ export function KanbanBoard({
   onCreateTask: (status: TaskStatus) => void;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [items, setItems] = React.useState(tasks);
   const [activeId, setActiveId] = React.useState<string | null>(null);
 
@@ -241,7 +243,7 @@ export function KanbanBoard({
             <Column
               key={status.value}
               status={status.value}
-              label={status.label}
+              label={t(status.label)}
               count={columnTasks.length}
               canCreate={canCreate}
               onCreate={() => onCreateTask(status.value)}

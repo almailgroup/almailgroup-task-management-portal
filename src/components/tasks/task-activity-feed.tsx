@@ -76,7 +76,7 @@ export function TaskActivityFeed({ taskId }: { taskId: string }) {
   }
 
   return (
-    <div className="scrollbar-thin max-h-64 overflow-y-auto pr-1">
+    <div className="scrollbar-thin max-h-64 overflow-y-auto pe-1">
       <ActivityLog entries={entries} />
     </div>
   );

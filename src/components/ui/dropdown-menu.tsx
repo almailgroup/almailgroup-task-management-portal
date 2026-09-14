@@ -14,7 +14,7 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 const contentMotion =
-  "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1";
+  "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-[side=left]:slide-in-from-end-1 data-[side=right]:slide-in-from-start-1";
 
 const itemBase =
   "relative flex cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-10 [&_svg]:size-4 [&_svg]:shrink-0";
@@ -50,7 +50,7 @@ function DropdownMenuItem({
   return (
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
-      className={cn(itemBase, inset && "pl-8", className)}
+      className={cn(itemBase, inset && "ps-8", className)}
       {...props}
     />
   );
@@ -65,11 +65,11 @@ function DropdownMenuCheckboxItem({
   return (
     <DropdownMenuPrimitive.CheckboxItem
       data-slot="dropdown-menu-checkbox-item"
-      className={cn(itemBase, "pl-8", className)}
+      className={cn(itemBase, "ps-8", className)}
       checked={checked}
       {...props}
     >
-      <span className="absolute left-2 flex size-3.5 items-center justify-center">
+      <span className="absolute start-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <Check className="size-4" />
         </DropdownMenuPrimitive.ItemIndicator>
@@ -87,10 +87,10 @@ function DropdownMenuRadioItem({
   return (
     <DropdownMenuPrimitive.RadioItem
       data-slot="dropdown-menu-radio-item"
-      className={cn(itemBase, "pl-8", className)}
+      className={cn(itemBase, "ps-8", className)}
       {...props}
     >
-      <span className="absolute left-2 flex size-3.5 items-center justify-center">
+      <span className="absolute start-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <Circle className="size-2 fill-current" />
         </DropdownMenuPrimitive.ItemIndicator>
@@ -112,7 +112,7 @@ function DropdownMenuLabel({
       data-slot="dropdown-menu-label"
       className={cn(
         "px-2 py-1.5 text-xs font-medium text-muted-foreground",
-        inset && "pl-8",
+        inset && "ps-8",
         className,
       )}
       {...props}
@@ -141,7 +141,7 @@ function DropdownMenuShortcut({
     <span
       data-slot="dropdown-menu-shortcut"
       className={cn(
-        "ml-auto font-mono text-xs tracking-widest text-muted-foreground",
+        "ms-auto font-mono text-xs tracking-widest text-muted-foreground",
         className,
       )}
       {...props}
@@ -163,13 +163,13 @@ function DropdownMenuSubTrigger({
       className={cn(
         itemBase,
         "data-[state=open]:bg-accent",
-        inset && "pl-8",
+        inset && "ps-8",
         className,
       )}
       {...props}
     >
       {children}
-      <ChevronRight className="ml-auto size-4" />
+      <ChevronRight className="ms-auto size-4 rtl:-scale-x-100" />
     </DropdownMenuPrimitive.SubTrigger>
   );
 }

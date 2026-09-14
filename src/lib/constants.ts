@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/lib/i18n";
 import type { TaskPriority, TaskStatus, UserRole } from "@/lib/supabase/database.types";
 
 /**
@@ -10,53 +11,54 @@ import type { TaskPriority, TaskStatus, UserRole } from "@/lib/supabase/database
 
 export type StatusMeta = {
   value: TaskStatus;
-  label: string;
+  /** Dictionary key — render with `t(meta.label)`. */
+  label: TranslationKey;
   /** Badge variant from `@/components/ui/badge`. */
   variant: "default" | "secondary" | "outline" | "muted" | "subtle";
 };
 
 export const TASK_STATUSES: readonly StatusMeta[] = [
-  { value: "todo", label: "To Do", variant: "subtle" },
-  { value: "in_progress", label: "In Progress", variant: "secondary" },
-  { value: "in_review", label: "In Review", variant: "outline" },
-  { value: "done", label: "Done", variant: "default" },
+  { value: "todo", label: "status.todo", variant: "subtle" },
+  { value: "in_progress", label: "status.in_progress", variant: "secondary" },
+  { value: "in_review", label: "status.in_review", variant: "outline" },
+  { value: "done", label: "status.done", variant: "default" },
 ] as const;
 
 export type PriorityMeta = {
   value: TaskPriority;
-  label: string;
+  label: TranslationKey;
   /** Filled bars out of four — a colourless severity ramp. */
   weight: 1 | 2 | 3 | 4;
 };
 
 export const TASK_PRIORITIES: readonly PriorityMeta[] = [
-  { value: "low", label: "Low", weight: 1 },
-  { value: "medium", label: "Medium", weight: 2 },
-  { value: "high", label: "High", weight: 3 },
-  { value: "urgent", label: "Urgent", weight: 4 },
+  { value: "low", label: "priority.low", weight: 1 },
+  { value: "medium", label: "priority.medium", weight: 2 },
+  { value: "high", label: "priority.high", weight: 3 },
+  { value: "urgent", label: "priority.urgent", weight: 4 },
 ] as const;
 
 export type RoleMeta = {
   value: UserRole;
-  label: string;
-  description: string;
+  label: TranslationKey;
+  description: TranslationKey;
 };
 
 export const USER_ROLES: readonly RoleMeta[] = [
   {
     value: "admin",
-    label: "Admin",
-    description: "Full access across every project and member.",
+    label: "role.admin",
+    description: "role.admin.description",
   },
   {
     value: "manager",
-    label: "Manager",
-    description: "Creates projects, assigns work and manages tasks.",
+    label: "role.manager",
+    description: "role.manager.description",
   },
   {
     value: "member",
-    label: "Team Member",
-    description: "Works on assigned tasks and collaborates on comments.",
+    label: "role.member",
+    description: "role.member.description",
   },
 ] as const;
 

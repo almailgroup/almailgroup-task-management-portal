@@ -26,6 +26,8 @@ import {
 } from "@/lib/sidebar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
+import { LanguageSelector } from "@/components/layout/language-selector";
 import type {
   Notification,
   Profile,
@@ -53,6 +55,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   // Two independent widths, picked by what the rail is currently showing.
@@ -218,16 +221,16 @@ export function AppShell({
         href="#content"
         className={cn(
           "sr-only z-50 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[var(--shadow-lg)]",
-          "focus:not-sr-only focus:fixed focus:left-4 focus:top-4",
+          "focus:not-sr-only focus:fixed focus:start-4 focus:top-4",
         )}
       >
-        Skip to content
+        {t("shell.skip")}
       </a>
       {/* Desktop rail */}
       <aside
         style={{ width: "var(--sidebar-width)" }}
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden border-r border-chrome-border bg-chrome lg:block",
+          "fixed inset-y-0 start-0 z-30 hidden border-e border-chrome-border bg-chrome lg:block",
           animating && "transition-[width] duration-200 ease-out",
         )}
       >
@@ -241,10 +244,10 @@ export function AppShell({
             </span>
             <span className="flex flex-col leading-none">
               <span className="text-sm font-semibold tracking-tight">
-                Almailgroup
+                {t("shell.brand")}
               </span>
               <span className="mt-0.5 text-[10px] text-muted-foreground">
-                Task Portal
+                {t("shell.tagline")}
               </span>
             </span>
           </Link>
@@ -278,26 +281,26 @@ export function AppShell({
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-label={t("shell.closeNavigation")}
             className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
             onClick={() => setDrawerOpen(false)}
           />
           <aside
             className={cn(
-              "absolute inset-y-0 left-0 flex max-w-[92vw] flex-col border-r border-chrome-border bg-chrome",
+              "absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-e border-chrome-border bg-chrome",
               "transition-[width] duration-200 ease-out",
               mahamOpen ? "w-[22rem]" : "w-72",
             )}
           >
             <div className="flex h-14 items-center justify-between border-b border-chrome-border px-4">
               <span className="text-sm font-medium tracking-tight">
-                Almailgroup
+                {t("shell.brand")}
               </span>
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setDrawerOpen(false)}
-                aria-label="Close navigation"
+                aria-label={t("shell.closeNavigation")}
               >
                 <X />
               </Button>
@@ -326,7 +329,7 @@ export function AppShell({
 
       <div
         className={cn(
-          "lg:pl-[var(--sidebar-width)]",
+          "lg:ps-[var(--sidebar-width)]",
           animating && "transition-[padding] duration-200 ease-out",
         )}
       >
@@ -336,6 +339,7 @@ export function AppShell({
           </div>
 
           <div className="flex items-center gap-1">
+            <LanguageSelector />
             <NotificationBell
               profile={profile}
               initialItems={notifications}

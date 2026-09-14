@@ -35,7 +35,8 @@ describe("tasksToCsv", () => {
   it("writes a header, the labels people see, and CRLF lines", () => {
     const csv = tasksToCsv(rows, () => "Freight");
     const [header, row, trailing] = csv.split("\r\n");
-    expect(header).toBe("Title,Project,Status,Priority,Due,Assignees,Created,Description");
+    // The byte-order mark tells Excel the file is UTF-8, so Arabic survives.
+    expect(header).toBe("\uFEFFTitle,Project,Status,Priority,Due,Assignees,Created,Description");
     expect(row).toBe(
       '"Chase the customs paperwork, urgently",Freight,In Progress,Urgent,2026-09-14T16:00:00Z,Sara Khan; k@x,2026-09-10T09:00:00Z,',
     );

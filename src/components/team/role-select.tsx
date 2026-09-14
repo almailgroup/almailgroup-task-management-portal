@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { USER_ROLES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import { updateMemberRole } from "@/lib/data/profile-actions";
 import type { UserRole } from "@/lib/supabase/database.types";
 
@@ -26,6 +27,7 @@ export function RoleSelect({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [pending, setPending] = React.useState(false);
   const [value, setValue] = React.useState<UserRole>(role);
 
@@ -56,7 +58,7 @@ export function RoleSelect({
       <SelectContent>
         {USER_ROLES.map((option) => (
           <SelectItem key={option.value} value={option.value}>
-            {option.label}
+            {t(option.label)}
           </SelectItem>
         ))}
       </SelectContent>

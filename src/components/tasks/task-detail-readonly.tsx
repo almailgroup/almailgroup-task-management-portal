@@ -22,6 +22,7 @@ import { DueDate, PriorityIndicator } from "@/components/tasks/task-meta";
 import { initialsFrom } from "@/lib/initials";
 import { changeTaskStatus } from "@/lib/data/task-actions";
 import { TASK_STATUSES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import type {
   TaskStatus,
   TaskWithAssignees,
@@ -47,6 +48,7 @@ export function TaskDetailReadonly({
   onSaved?: () => void;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [status, setStatus] = React.useState<TaskStatus>(task.status);
   const [saving, setSaving] = React.useState(false);
 
@@ -106,7 +108,7 @@ export function TaskDetailReadonly({
                   value={option.value}
                   disabled={option.value === "done" && !canComplete}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </SelectItem>
               ))}
             </SelectContent>

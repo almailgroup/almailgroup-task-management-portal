@@ -1,4 +1,4 @@
-import { isDueToday, isOverdue } from "@/components/tasks/task-meta";
+import { isDueToday, isOverdue } from "@/lib/dates";
 import type { Profile, TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /** Aggregations behind the dashboard cards. Pure functions, easy to reason about. */

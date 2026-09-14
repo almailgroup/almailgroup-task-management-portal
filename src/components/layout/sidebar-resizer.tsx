@@ -106,7 +106,7 @@ export function SidebarResizer({
         onCommit(preferred);
       }}
       onKeyDown={onKeyDown}
-      className="group absolute inset-y-0 -right-1.5 z-40 hidden w-3 cursor-col-resize touch-none lg:block"
+      className="group absolute inset-y-0 -end-1.5 z-40 hidden w-3 cursor-col-resize touch-none lg:block"
       title="Drag to resize. Double-click to reset."
     >
       {/* The visible line is 2px and only appears on hover, focus or drag. */}

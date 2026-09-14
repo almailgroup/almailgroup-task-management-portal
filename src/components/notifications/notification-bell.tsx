@@ -28,6 +28,8 @@ import {
 } from "@/lib/data/notification-actions";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
+import type { Translator } from "@/lib/i18n";
 import type {
   Notification,
   NotificationType,
@@ -60,6 +62,7 @@ export function NotificationBell({
   initialUnread: number;
 }) {
   const router = useRouter();
+  const { t, tag } = useI18n();
   const supabase = React.useMemo(() => createClient(), []);
   const [items, setItems] = React.useState(initialItems);
 
@@ -137,13 +140,11 @@ export function NotificationBell({
           variant="ghost"
           size="icon"
           className="relative"
-          aria-label={
-            unread > 0 ? `Notifications, ${unread} unread` : "Notifications"
-          }
+          aria-label={unread > 0 ? t("bell.labelUnread", { n: unread }) : t("bell.label")}
         >
           <Bell />
           {unread > 0 && (
-            <span className="absolute right-1 top-1 flex min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-semibold leading-[14px] text-primary-foreground">
+            <span className="absolute end-1 top-1 flex min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-semibold leading-[14px] text-primary-foreground">
               {unread > 9 ? "9+" : unread}
             </span>
           )}
@@ -153,7 +154,7 @@ export function NotificationBell({
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between px-3 py-2">
           <span className="text-xs font-medium text-muted-foreground">
-            Notifications
+            {t("bell.label")}
           </span>
           {unread > 0 && (
             <button
@@ -162,7 +163,7 @@ export function NotificationBell({
               className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               <CheckCheck className="size-3" />
-              Mark all read
+              {t("bell.markAllRead")}
             </button>
           )}
         </div>
@@ -171,7 +172,7 @@ export function NotificationBell({
 
         {items.length === 0 ? (
           <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-            Nothing yet. You will be told when work is assigned to you.
+            {t("bell.empty")}
           </p>
         ) : (
           <ul className="scrollbar-thin max-h-96 overflow-y-auto">
@@ -212,7 +213,7 @@ export function NotificationBell({
                         </span>
                       )}
                       <span className="mt-0.5 block text-xs text-muted-foreground">
-                        {relativeTime(notification.created_at)}
+                        {relativeTime(notification.created_at, t, tag)}
                       </span>
                     </span>
                   </Link>
@@ -226,12 +227,16 @@ export function NotificationBell({
   );
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(
+  iso: string,
+  t: Translator["t"],
+  tag: Translator["tag"],
+): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (minutes < 60 * 24) return `${Math.round(minutes / 60)}h ago`;
-  return new Date(iso).toLocaleDateString(undefined, {
+  if (minutes < 1) return t("common.justNow");
+  if (minutes < 60) return t("common.minutesAgo", { n: minutes });
+  if (minutes < 60 * 24) return t("common.hoursAgo", { n: Math.round(minutes / 60) });
+  return new Date(iso).toLocaleDateString(tag, {
     day: "numeric",
     month: "short",
   });

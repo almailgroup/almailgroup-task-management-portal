@@ -26,10 +26,8 @@ import {
   DueDate,
   PriorityIndicator,
   StatusBadge,
-  formatDateTime,
-  isDueToday,
-  isOverdue,
 } from "@/components/tasks/task-meta";
+import { formatDateTime, isDueToday, isOverdue } from "@/lib/dates";
 import { initialsFrom } from "@/lib/initials";
 import { relativeDay } from "@/lib/dates";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -189,7 +187,7 @@ export function TodayView({
                 key={task.id}
                 type="button"
                 onClick={() => openTask(task)}
-                className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2.5 py-2 text-left transition-colors hover:border-foreground/25"
+                className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2.5 py-2 text-start transition-colors hover:border-foreground/25"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[0.9375rem] font-medium">
@@ -229,7 +227,7 @@ export function TodayView({
                 <span className="min-w-0 flex-1 basis-40 truncate text-sm">
                   {person.full_name ?? person.email}
                   {person.job_title && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">
+                    <span className="ms-1.5 text-xs text-muted-foreground">
                       {person.job_title}
                     </span>
                   )}
@@ -329,7 +327,7 @@ function Section({
                 <button
                   type="button"
                   onClick={() => onOpen(task)}
-                  className="min-w-0 flex-1 text-left focus-visible:outline-none"
+                  className="min-w-0 flex-1 text-start focus-visible:outline-none"
                 >
                   <span className="block truncate text-[0.9375rem] font-medium">
                     {task.title}

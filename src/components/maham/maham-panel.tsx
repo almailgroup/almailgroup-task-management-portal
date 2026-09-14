@@ -157,7 +157,7 @@ export function MahamPanel({
             disabled={pending || !draft.trim()}
             aria-label="Send"
           >
-            {pending ? <Loader2 className="animate-spin" /> : <CornerDownLeft />}
+            {pending ? <Loader2 className="animate-spin" /> : <CornerDownLeft className="rtl:-scale-x-100" />}
           </Button>
         </div>
       </form>
@@ -187,7 +187,7 @@ function Welcome({
             disabled={disabled}
             onClick={() => onPick(starter)}
             className={cn(
-              "max-w-full rounded-full border border-border px-3 py-1.5 text-left text-xs transition-colors",
+              "max-w-full rounded-full border border-border px-3 py-1.5 text-start text-xs transition-colors",
               "text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
               "disabled:pointer-events-none disabled:opacity-50",
             )}

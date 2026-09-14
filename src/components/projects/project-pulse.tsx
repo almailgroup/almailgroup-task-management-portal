@@ -1,5 +1,5 @@
 import { ProgressBar } from "@/components/dashboard/metric-card";
-import { isOverdue } from "@/components/tasks/task-meta";
+import { isOverdue } from "@/lib/dates";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import { filtersActive, type TaskListFilters } from "@/lib/task-filters";
 import type {
   Profile,
@@ -51,6 +52,7 @@ export function TaskFilterBar({
   /** Whatever sits at the left of the bar — typically the view tabs. */
   children?: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const active = filtersActive(filters);
 
   return (
@@ -58,12 +60,12 @@ export function TaskFilterBar({
       {children}
 
       <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={filters.query}
           onChange={(event) => onChange({ query: event.target.value })}
           placeholder="Search tasks"
-          className="h-9 pl-8"
+          className="h-9 ps-8"
           aria-label={searchLabel}
         />
       </div>
@@ -79,7 +81,7 @@ export function TaskFilterBar({
           <SelectItem value="all">All statuses</SelectItem>
           {TASK_STATUSES.map((option) => (
             <SelectItem key={option.value} value={option.value}>
-              {option.label}
+              {t(option.label)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -98,7 +100,7 @@ export function TaskFilterBar({
           <SelectItem value="all">All priorities</SelectItem>
           {TASK_PRIORITIES.map((option) => (
             <SelectItem key={option.value} value={option.value}>
-              {option.label}
+              {t(option.label)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -128,7 +130,7 @@ export function TaskFilterBar({
         </Button>
       )}
 
-      <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+      <span className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
         <span className="tabular-nums">
           {shown} of {total}
         </span>

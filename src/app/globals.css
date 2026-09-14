@@ -188,6 +188,20 @@
     --shadow-lg: 0 28px 60px -18px rgb(0 0 0 / 0.62);
   }
 
+  /*
+   * Arabic gets a face that has its glyphs, ahead of the Latin one so the
+   * Latin words inside an Arabic sentence still fall through to Geist.
+   *
+   * The theme is declared `inline`, so `font-sans` carries Geist by value
+   * rather than by variable and cannot be re-pointed from :root; this rule is
+   * unlayered and so wins over the utility. Both font variables are set on
+   * <body>, which is why it is scoped there.
+   */
+  :root[lang="ar"] body,
+  :root[lang="ar"] .font-sans {
+    font-family: var(--font-arabic), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     /* A phone browser reacts to a page that is wider than the screen by

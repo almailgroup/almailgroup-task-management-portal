@@ -41,6 +41,7 @@ import {
   updateTask,
 } from "@/lib/data/task-actions";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
 import type {
   Profile,
@@ -72,6 +73,7 @@ export function TaskDialog({
   defaultStatus?: TaskStatus;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const editing = Boolean(task);
   const canComplete =
     currentProfile.role === "admin" || currentProfile.role === "manager";
@@ -243,7 +245,7 @@ export function TaskDialog({
                         // option states the rule instead of letting the save fail.
                         disabled={status.value === "done" && !canComplete}
                       >
-                        {status.label}
+                        {t(status.label)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -264,7 +266,7 @@ export function TaskDialog({
                   <SelectContent>
                     {TASK_PRIORITIES.map((priority) => (
                       <SelectItem key={priority.value} value={priority.value}>
-                        {priority.label}
+                        {t(priority.label)}
                       </SelectItem>
                     ))}
                   </SelectContent>

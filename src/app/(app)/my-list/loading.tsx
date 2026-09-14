@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Loading() {
   return (
     <div className="flex h-[calc(100svh-3.5rem)] flex-col lg:flex-row">
-      <div className="flex flex-col gap-3 border-border p-4 lg:w-80 lg:shrink-0 lg:border-r xl:w-96">
+      <div className="flex flex-col gap-3 border-border p-4 lg:w-80 lg:shrink-0 lg:border-e xl:w-96">
         <Skeleton className="h-7 w-28" />
         <Skeleton className="h-9 w-full" />
         {[0, 1, 2, 3].map((row) => (

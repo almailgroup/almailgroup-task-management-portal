@@ -60,7 +60,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             className={cn(
-              "absolute right-2.5 top-2.5 flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors",
+              "absolute end-2.5 top-2.5 flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors",
               "hover:bg-accent hover:text-foreground focus-visible:outline-none",
               "disabled:pointer-events-none",
             )}
@@ -78,7 +78,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-1.5 text-left", className)}
+      className={cn("flex flex-col gap-1.5 text-start", className)}
       {...props}
     />
   );

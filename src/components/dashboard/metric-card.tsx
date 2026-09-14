@@ -64,7 +64,7 @@ export function MetricCard({
           {hint}
           {href && (
             <ArrowRight
-              className="size-3 opacity-0 transition-opacity group-hover:opacity-100"
+              className="size-3 opacity-0 transition-opacity group-hover:opacity-100 rtl:-scale-x-100"
               aria-hidden
             />
           )}

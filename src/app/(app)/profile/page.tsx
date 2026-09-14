@@ -9,6 +9,7 @@ import { ChangePassword } from "@/components/profile/change-password";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ReminderSettings } from "@/components/profile/reminder-settings";
 import { roleMeta } from "@/lib/constants";
+import { getI18n } from "@/lib/i18n/server";
 import {
   getNotificationPreferences,
   requireProfile,
@@ -18,6 +19,7 @@ import { configuredChannels } from "@/lib/reminders/providers";
 export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
+  const { t } = await getI18n();
   const [profile, preferences] = await Promise.all([
     requireProfile(),
     getNotificationPreferences(),
@@ -40,7 +42,7 @@ export default async function ProfilePage() {
             {profile.job_title && (
               <Badge variant="secondary">{profile.job_title}</Badge>
             )}
-            <Badge variant="outline">{role.label}</Badge>
+            <Badge variant="outline">{t(role.label)}</Badge>
           </>
         }
       />
@@ -81,7 +83,7 @@ export default async function ProfilePage() {
           <CardTitle>Your access</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
-          <p>{role.description}</p>
+          <p>{t(role.description)}</p>
           <p>
             <span className="font-medium text-foreground">Position:</span>{" "}
             {profile.job_title ?? "Not set"}
