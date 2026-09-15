@@ -189,3 +189,115 @@ test("without a secret of its own it serves nobody", async () => {
   assert.equal(response.status, 401);
   assert.ok(logged.some((line) => line.includes("SHARED_SECRET is not set")));
 });
+
+// ---- proposals ------------------------------------------------------------
+
+/**
+ * A snapshot from somebody who may change things. The plain `snapshot` above
+ * deliberately has no `canManage`, so the tests that use it also cover a
+ * viewer who has not been granted one.
+ */
+const manager = {
+  ...snapshot,
+  viewer: { name: "Admin", role: "admin", canManage: true },
+  projects: [{ id: "p1", name: "Freight" }],
+  team: [{ id: "u1", name: "Sara" }],
+};
+
+function askAs(view, question = "Create a task to file the manifest") {
+  logged = [];
+  return worker.fetch(
+    new Request("https://worker.example/", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer test-secret",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: [{ id: "1", role: "user", text: question, at: view.takenAt }],
+        snapshot: view,
+      }),
+    }),
+    env,
+  );
+}
+
+test("a viewer who may not change things is not offered the tools", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+  await askAs({ ...snapshot, projects: [], team: [] });
+  assert.equal(sent.body.tools, undefined);
+});
+
+test("a manager is offered exactly the three tools", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+  await askAs(manager);
+  const names = sent.body.tools[0].functionDeclarations.map((tool) => tool.name);
+  assert.deepEqual(names, ["create_task", "set_task_status", "reschedule_task"]);
+});
+
+/**
+ * The model deals in ids, so it has to be given them. A name it cannot map to
+ * an id is a proposal the portal will reject, which reads to the person as the
+ * assistant simply not working.
+ */
+test("the ids a proposal needs are in the prompt", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+  await askAs(manager);
+  const prompt = sent.body.systemInstruction.parts[0].text;
+  assert.match(prompt, /p1 \| Freight/);
+  assert.match(prompt, /u1 \| Sara/);
+  // And the task ids, for the two tools that move an existing one.
+  assert.match(prompt, /^- t1 \| Chase customs/m);
+});
+
+test("a function call comes back as a proposal", async () => {
+  gemini({
+    candidates: [
+      {
+        content: {
+          parts: [
+            { text: "Here is what I would create." },
+            {
+              functionCall: {
+                name: "create_task",
+                args: { title: "File the manifest", projectId: "p1" },
+              },
+            },
+          ],
+        },
+      },
+    ],
+  });
+  const body = await (await askAs(manager)).json();
+  assert.equal(body.text, "Here is what I would create.");
+  assert.deepEqual(body.action, {
+    name: "create_task",
+    arguments: { title: "File the manifest", projectId: "p1" },
+  });
+});
+
+/**
+ * Models routinely call a tool and say nothing at all. The portal has a card
+ * to show for it, so that is an answer — not the empty reply that must fail.
+ */
+test("a proposal with no words is still an answer", async () => {
+  gemini({
+    candidates: [
+      {
+        content: { parts: [{ functionCall: { name: "set_task_status", args: { taskId: "t1", status: "done" } } }] },
+        finishReason: "STOP",
+      },
+    ],
+  });
+  const response = await askAs(manager);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.text, "");
+  assert.equal(body.action.name, "set_task_status");
+});
+
+test("an ordinary answer carries no proposal", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "Two are overdue." }] } }] });
+  const body = await (await askAs(manager, "What is overdue?")).json();
+  assert.equal(body.action, null);
+});

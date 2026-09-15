@@ -31,6 +31,93 @@
  */
 const DEFAULT_MODEL = "gemini-3.8-flash";
 
+/**
+ * What the assistant may propose.
+ *
+ * "Propose" is the whole design: this Worker has no database, no Supabase
+ * credentials and no way to reach either. A tool call comes back here as
+ * JSON, travels to the portal, is shown to the person who asked, and only
+ * runs — through the Server Action the ordinary buttons use — once they
+ * agree. Every permission check in the app therefore still applies, and the
+ * assistant can never do anything the asker could not do by hand.
+ */
+const TOOLS = [
+  {
+    functionDeclarations: [
+      {
+        name: "create_task",
+        description:
+          "Propose a new task. Use when the person asks for work to be added. " +
+          "Leave anything they did not say unset rather than inventing it.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Short, what needs doing." },
+            description: { type: "string", description: "Detail, only if given." },
+            projectId: {
+              type: "string",
+              description:
+                "Which project, from the list of projects. Omit for a general task.",
+            },
+            assigneeIds: {
+              type: "array",
+              items: { type: "string" },
+              description: "Who does it, by id, from the team list.",
+            },
+            dueAt: {
+              type: "string",
+              description:
+                "Due date and time as a full ISO instant, e.g. 2026-09-20T13:00:00.000Z. " +
+                "Work it out from the reader's timezone given above.",
+            },
+            priority: {
+              type: "string",
+              enum: ["low", "medium", "high", "urgent"],
+            },
+            status: {
+              type: "string",
+              enum: ["todo", "in_progress", "in_review", "done"],
+            },
+          },
+          required: ["title"],
+        },
+      },
+      {
+        name: "set_task_status",
+        description: "Propose moving one task to another status.",
+        parameters: {
+          type: "object",
+          properties: {
+            taskId: { type: "string", description: "The id from the board." },
+            status: {
+              type: "string",
+              enum: ["todo", "in_progress", "in_review", "done"],
+            },
+          },
+          required: ["taskId", "status"],
+        },
+      },
+      {
+        name: "reschedule_task",
+        description:
+          "Propose a new due date for one task, or clear it by omitting dueAt.",
+        parameters: {
+          type: "object",
+          properties: {
+            taskId: { type: "string", description: "The id from the board." },
+            dueAt: {
+              type: "string",
+              description:
+                "The new due instant in ISO form. Omit entirely to remove the due date.",
+            },
+          },
+          required: ["taskId"],
+        },
+      },
+    ],
+  },
+];
+
 /** Enough board to answer from, small enough to stay inside the free tier. */
 const MAX_TASKS = 200;
 /** Enough conversation to follow a thread, without resending an hour of it. */
@@ -70,9 +157,8 @@ export default {
     }
 
     try {
-      const text = await ask(messages, snapshot, env);
-      if (!text.trim()) throw new Error("Gemini returned no text");
-      return json({ text });
+      const { text, action } = await ask(messages, snapshot, env);
+      return json({ text, action });
     } catch (error) {
       // The portal answers from its own local brain on any non-2xx, so the
       // panel degrades to a worse answer rather than to an error. The reason
@@ -126,7 +212,7 @@ function authorised(request, env) {
  * @param {AssistantMessage[]} messages
  * @param {AssistantSnapshot} snapshot
  * @param {Env} env
- * @returns {Promise<string>}
+ * @returns {Promise<{ text: string, action: { name: string, arguments: Record<string, unknown> } | null }>}
  */
 async function ask(messages, snapshot, env) {
   const model = env.GEMINI_MODEL || DEFAULT_MODEL;
@@ -141,6 +227,11 @@ async function ask(messages, snapshot, env) {
     },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: brief(snapshot) }] },
+      // A member cannot create or change a task by hand, so the assistant is
+      // not offered the means to propose it for them. The database would
+      // refuse it anyway; not offering it is the difference between a clear
+      // "you cannot" and a confusing failure.
+      ...(snapshot.viewer?.canManage ? { tools: TOOLS } : {}),
       contents: messages.slice(-MAX_TURNS).map((message) => ({
         role: message.role === "assistant" ? "model" : "user",
         parts: [{ text: message.text }],
@@ -169,7 +260,13 @@ async function ask(messages, snapshot, env) {
   /**
    * @type {{
    *   candidates?: {
-   *     content?: { parts?: { text?: string, thought?: boolean }[] },
+   *     content?: {
+   *       parts?: {
+   *         text?: string,
+   *         thought?: boolean,
+   *         functionCall?: { name?: string, args?: Record<string, unknown> },
+   *       }[],
+   *     },
    *     finishReason?: string,
    *   }[],
    *   promptFeedback?: { blockReason?: string },
@@ -181,14 +278,21 @@ async function ask(messages, snapshot, env) {
     throw new Error(`Blocked: ${data.promptFeedback.blockReason}`);
   }
 
-  const answer = (data.candidates?.[0]?.content?.parts ?? [])
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+
+  const answer = parts
     // Newer models return their reasoning as parts too; those are not the answer.
     .filter((part) => !part.thought && typeof part.text === "string")
     .map((part) => part.text)
     .join("")
     .trim();
 
-  if (!answer) {
+  const call = parts.find((part) => part.functionCall?.name)?.functionCall;
+  const action = call
+    ? { name: String(call.name), arguments: call.args ?? {} }
+    : null;
+
+  if (!answer && !action) {
     // Worth naming: an empty answer and a failed call look identical from the
     // portal, and the commonest cause — the reasoning eating the whole token
     // budget — is fixed by a number in this file rather than by retrying.
@@ -197,7 +301,7 @@ async function ask(messages, snapshot, env) {
     );
   }
 
-  return answer;
+  return { text: answer, action };
 }
 
 /**
@@ -212,6 +316,8 @@ async function ask(messages, snapshot, env) {
  */
 function brief(snapshot) {
   const { viewer, counts, tasks, timeZone, locale, takenAt } = snapshot;
+  const projects = snapshot.projects ?? [];
+  const team = snapshot.team ?? [];
   const when = (/** @type {string | null} */ iso) =>
     iso
       ? new Intl.DateTimeFormat("en-CA", {
@@ -224,6 +330,7 @@ function brief(snapshot) {
   const shown = tasks.slice(0, MAX_TASKS);
   const lines = shown.map((task) => {
     const bits = [
+      task.id,
       task.title,
       task.status,
       `${task.priority} priority`,
@@ -234,6 +341,32 @@ function brief(snapshot) {
     if (task.followUpAt) bits.push(`follow up ${when(task.followUpAt)}`);
     return `- ${bits.join(" | ")}`;
   });
+
+  /**
+   * What it may do about what it reads.
+   *
+   * A member cannot create or change a task by hand, so they are told the
+   * plain "no" and given no tools. A manager is told that acting is a
+   * proposal somebody still has to agree to — otherwise the model writes as
+   * though the job is finished, and the person reads "done" about something
+   * sitting in front of them waiting for a click.
+   */
+  const powers = viewer.canManage
+    ? [
+        "- You can create a task, move one to another status, and change a due date,",
+        "  by calling the matching tool. One at a time, and only when clearly asked.",
+        "- Calling a tool does not do anything. It puts the change in front of the",
+        "  reader to confirm, so say what you are proposing, never that it is done.",
+        "- Use the ids exactly as they appear below — for the task, the project and",
+        "  the person. Never invent one, and never guess at who or which project:",
+        "  if they did not say, either leave it unset or ask.",
+        "- Anything else — deleting, assigning on an existing task, projects, people —",
+        "  you cannot do. Say so and point at where in the portal it lives.",
+      ]
+    : [
+        "- You can read and count. You cannot create, edit, assign or delete anything;",
+        "  if asked to, say so and describe where in the portal they can do it.",
+      ];
 
   return [
     "You are the assistant inside the Almailgroup task portal. You answer questions",
@@ -249,9 +382,8 @@ function brief(snapshot) {
     "- Be brief. Lead with the answer, then the tasks that support it.",
     "- Plain text only. No markdown, no headings, no ** or ##.",
     "- For a list, put each item on its own line starting with the bullet '• '.",
-    "- Refer to tasks by their title, as the reader sees them on the board.",
-    "- You can read and count. You cannot create, edit, assign or delete anything;",
-    "  if asked to, say so and describe where in the portal they can do it.",
+    "- Refer to tasks by their title, as the reader sees them. Ids are for tools.",
+    ...powers,
     "",
     "Counts already worked out for you — use these rather than recounting:",
     `total ${counts.total}, to do ${counts.todo}, in progress ${counts.inProgress},`,
@@ -260,11 +392,17 @@ function brief(snapshot) {
     `without a due date ${counts.noDueDate}.`,
     "",
     `The board (${shown.length} of ${tasks.length} tasks):`,
-    "title | status | priority | due | project | assignees",
+    "id | title | status | priority | due | project | assignees",
     ...lines,
     tasks.length > shown.length
       ? `…and ${tasks.length - shown.length} more not listed. Say so if it matters.`
       : "",
+    ...(viewer.canManage && projects.length
+      ? ["", "Projects (id | name):", ...projects.map((p) => `- ${p.id} | ${p.name}`)]
+      : []),
+    ...(viewer.canManage && team.length
+      ? ["", "People (id | name):", ...team.map((p) => `- ${p.id} | ${p.name}`)]
+      : []),
   ]
     .filter(Boolean)
     .join("\n");

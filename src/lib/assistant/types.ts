@@ -14,13 +14,6 @@ import type {
 
 export type AssistantRole = "user" | "assistant";
 
-export type AssistantMessage = {
-  id: string;
-  role: AssistantRole;
-  text: string;
-  /** ISO instant. Rendered in the viewer's timezone after hydration. */
-  at: string;
-};
 
 /** A task flattened to what the assistant needs to talk about it. */
 export type AssistantTask = {
@@ -43,7 +36,16 @@ export type AssistantTask = {
  */
 export type AssistantSnapshot = {
   /** Who is asking, so the answer can say "you" and mean it. */
-  viewer: { name: string; role: string };
+  viewer: {
+    name: string;
+    role: string;
+    /** Whether this person may create and change tasks at all. */
+    canManage: boolean;
+  };
+  /** The projects a task can be filed under, by id, for proposing one. */
+  projects: { id: string; name: string }[];
+  /** Who a task can be assigned to, by id. */
+  team: { id: string; name: string }[];
   /**
    * The language to answer in. The panel is read in Arabic as often as in
    * English, and a model left to infer it from the question will answer an
@@ -78,8 +80,47 @@ export type AssistantRequest = {
   messages: AssistantMessage[];
 };
 
+/**
+ * Something the assistant would like to do, if the person agrees.
+ *
+ * Deliberately loose on the wire: a language model can return anything, and
+ * the portal validates every field against a schema before it goes near the
+ * database. Nothing here is trusted — it is a proposal, not an instruction.
+ */
+export type AssistantAction = {
+  name: string;
+  arguments: Record<string, unknown>;
+  /**
+   * The same proposal in words, resolved against the snapshot before it
+   * leaves the server. Display only — what actually runs is `arguments`,
+   * re-validated at the point of use.
+   */
+  preview?: { heading: string; rows: { label: string; value: string }[] } | null;
+};
+
+export type AssistantMessage = {
+  id: string;
+  role: AssistantRole;
+  text: string;
+  /** ISO instant. Rendered in the viewer's timezone after hydration. */
+  at: string;
+  /** A change the assistant would like to make, awaiting a decision. */
+  action?: AssistantAction | null;
+  /**
+   * What became of it. `undefined` means the question has not been put yet —
+   * which is also every message that never carried a proposal.
+   */
+  outcome?: "done" | "dismissed";
+};
+
 /** What comes back. `source` says which brain answered. */
 export type AssistantAnswer = {
   text: string;
   source: "gemini" | "local";
+  /**
+   * Present when the model wants to change something. Nothing has happened
+   * yet: the panel shows it, the person confirms, and only then does the
+   * portal run it — through the same Server Action the buttons use.
+   */
+  action?: AssistantAction | null;
 };

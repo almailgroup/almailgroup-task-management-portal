@@ -821,4 +821,16 @@ export const en = {
   // to brain.fallback, which is for a workspace that never connected one.
   "brain.helpOffline": "I am Almail AI, the assistant for this portal. I can see exactly the tasks you can see — no more.\n\nAsk me things like:\n• {q1}\n• {q2}\n• {q3}\n• {q4}\n• {q5}\n\nI could not reach my language model just now, so anything more open-ended will have to wait a moment.",
   "brain.fallbackOffline": "I could not reach my language model just now, so I can only answer what I can count from the board.\n\nTry: what is overdue, what is due today, what should I work on next, what is in review, or a status summary — or ask me again in a moment.",
+
+  // ---- what the assistant proposes -------------------------------------------------------
+  "assistant.proposeCreate": "Create this task?",
+  "assistant.proposeStatus": "Move this task?",
+  "assistant.proposeReschedule": "Change this due date?",
+  "assistant.confirm": "Confirm",
+  "assistant.dismiss": "Dismiss",
+  "assistant.working": "Working…",
+  "assistant.done": "Done",
+  "assistant.dismissed": "Left as it was",
+  "assistant.badProposal": "That came back in a shape I could not act on. Ask me again.",
+  "assistant.unknownAction": "That is not something I can do here.",
 } as const;

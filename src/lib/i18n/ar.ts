@@ -902,4 +902,16 @@ export const ar: Dictionary = {
 
   "brain.helpOffline": "أنا Almail AI، مساعد هذه البوابة. أرى تماماً المهام التي تراها — لا أكثر.\n\nاسألني أشياء مثل:\n• {q1}\n• {q2}\n• {q3}\n• {q4}\n• {q5}\n\nتعذّر الوصول إلى نموذجي اللغوي الآن، لذا سينتظر أي سؤال أكثر انفتاحاً لحظة.",
   "brain.fallbackOffline": "تعذّر الوصول إلى نموذجي اللغوي الآن، لذا لا يمكنني الإجابة إلا عمّا أستطيع عدّه من اللوحة.\n\nجرّب: ما المتأخر، ما المستحق اليوم، على ماذا أعمل تالياً، ما الذي قيد المراجعة، أو ملخص الحالة — أو اسألني مرة أخرى بعد قليل.",
+
+  // ---- what the assistant proposes -------------------------------------------------------
+  "assistant.proposeCreate": "إنشاء هذه المهمة؟",
+  "assistant.proposeStatus": "نقل هذه المهمة؟",
+  "assistant.proposeReschedule": "تغيير تاريخ الاستحقاق؟",
+  "assistant.confirm": "تأكيد",
+  "assistant.dismiss": "تجاهل",
+  "assistant.working": "جارٍ التنفيذ…",
+  "assistant.done": "تم",
+  "assistant.dismissed": "تُرك كما هو",
+  "assistant.badProposal": "وصل ذلك بصيغة لا أستطيع تنفيذها. اسألني مرة أخرى.",
+  "assistant.unknownAction": "هذا ليس شيئاً أستطيع فعله هنا.",
 };

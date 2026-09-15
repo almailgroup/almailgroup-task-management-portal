@@ -634,7 +634,9 @@ list you are working through floats to the top of the sidebar.
 The in-app assistant, reached from the button above the clock at the foot of
 the sidebar. It answers questions about where work stands: what is overdue,
 what is due today, what to pick up next, what is waiting in review, and how
-the board is split by status.
+the board is split by status. With an account that may change things, it can
+also **propose** one: creating a task, moving one to another status, changing a
+due date.
 
 It opens **in the rail itself** rather than over the board — the sidebar
 widens to make room and hands its column to the conversation, so you can read
@@ -653,6 +655,30 @@ service-role access; it cannot widen what you see.
 
 The snapshot is built server-side on every question. The browser never holds
 it, and never learns the Worker's address or its secret.
+
+### What it can change
+
+Nothing, on its own. The model returns a **proposal** — a tool name and some
+arguments — and that is all it can do; the Worker has no database access of
+any kind. The portal resolves the ids in it to names, shows a card with what
+would happen, and waits.
+
+Confirm runs it through `runAssistantAction` in
+`src/lib/data/assistant-run.ts`, which parses every argument against a zod
+schema and then hands off to `createTask`, `changeTaskStatus` or
+`rescheduleTask` — the same Server Actions the ordinary buttons call. So the
+review gate still stops a member short of Done, RLS still decides which rows
+are visible, and the assistant cannot do anything the person asking could not
+do by hand. That the proposal arrived through our own Worker buys it nothing:
+this is a Server Action, so anyone signed in can call it with anything, and a
+language model is only the likeliest source of a strange payload.
+
+Someone who may not manage tasks is never offered the tools in the first
+place, and their snapshot carries no project or teammate ids.
+
+The card stays in the thread after a decision, showing what was agreed or that
+it was left alone. A thread that silently rewrote itself would leave no way to
+see what you had said yes to.
 
 ### Connecting Gemini
 
@@ -687,7 +713,9 @@ Authorization: Bearer <ALMAIL_AI_WORKER_SECRET>   // only if the secret is set
 {
   "messages": [{ "id": "…", "role": "user", "text": "What is overdue?", "at": "…" }],
   "snapshot": {
-    "viewer":   { "name": "…", "role": "manager" },
+    "viewer":   { "name": "…", "role": "manager", "canManage": true },
+    "projects": [{ "id": "…", "name": "Gemellry" }],   // only when canManage
+    "team":     [{ "id": "…", "name": "Sara Khan" }],  // only when canManage
     "locale":   "ar",                      // the language to answer in
     "timeZone": "Asia/Dubai",              // whose day "today" means
     "takenAt":  "2026-09-13T19:00:00.000Z",
@@ -700,9 +728,13 @@ Authorization: Bearer <ALMAIL_AI_WORKER_SECRET>   // only if the secret is set
 }
 ```
 
-and must reply with `{ "text": "…" }`. Anything else — a non-2xx status, an
-empty `text`, or no answer within 20 seconds — falls back to the local brain
-rather than surfacing an error.
+and must reply with `{ "text": "…", "action": … }`, where `action` is either
+`null` or `{ "name": "create_task", "arguments": { … } }`. Anything else — a
+non-2xx status, an empty reply carrying no proposal either, or no answer within
+20 seconds — falls back to the local brain rather than surfacing an error.
+
+`projects` and `team` are sent only to someone who may already pick from both
+in the New Task form, and only because a tool call has to name them by id.
 
 `locale` and `timeZone` are sent because neither can be inferred safely: a
 model left to guess answers an English word typed into an Arabic panel in

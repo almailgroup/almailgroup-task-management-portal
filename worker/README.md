@@ -192,12 +192,37 @@ curl -i -X POST "$ALMAIL_AI_WORKER_URL" \
 
 ---
 
+## Changing things: what comes back
+
+The Worker can propose a change as well as answer a question. When the
+snapshot says `viewer.canManage`, three tools are declared to the model —
+`create_task`, `set_task_status`, `reschedule_task` — and a reply may carry:
+
+```json
+{ "text": "Here is what I would create.",
+  "action": { "name": "create_task", "arguments": { "title": "…", "projectId": "…" } } }
+```
+
+`action` is a **proposal and nothing more**. The Worker has no database
+access of any kind: it cannot create a task, and calling a tool changes
+nothing. The portal resolves the ids to names, shows the person a card, and
+only on Confirm runs it — through the same Server Action the ordinary buttons
+call, so row-level security, the review gate and the role checks all apply
+exactly as they do to a click. Every argument is re-validated against a schema
+at that point; an id that is not a uuid never reaches a query.
+
+Without `canManage`, no tools are sent at all and `action` is always `null`.
+
 ## What it sends, and what it does not
 
 Only the snapshot the portal already built — and that snapshot is the asker's
 own view of the board, assembled through the same row-level security as the
 rest of the app. A member's question carries only the tasks assigned to them.
 There is no service-role access here and no permission logic of its own.
+
+For a viewer who may change things the snapshot also carries the id and name
+of each project and each teammate, because a tool call has to name them by id.
+That is the same list the New Task form already shows that person.
 
 It does not send: email addresses, passwords, attachments, comments, or
 anything about anyone the asker could not already see in the UI.
@@ -214,8 +239,9 @@ cd worker && npm test
 Node's own runner, no framework, the same file that goes into Cloudflare's
 editor, and Gemini stubbed. It covers the failures that are invisible from the
 portal — a reply that is all reasoning and no answer, a blocked prompt, a bad
-key — plus the two properties worth keeping: the API key never appears in a
-URL, and a Worker with no secret of its own serves nobody.
+key — plus the properties worth keeping: the API key never appears in a URL, a
+Worker with no secret of its own serves nobody, and a viewer who may not change
+things is never offered the tools that would let them.
 
 ## Local development
 

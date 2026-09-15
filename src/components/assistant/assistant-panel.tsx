@@ -1,14 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { CornerDownLeft, Loader2, RotateCcw, Sparkles, X } from "lucide-react";
+import { Check, CornerDownLeft, Loader2, RotateCcw, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
 import type { Assistant } from "@/components/assistant/use-assistant";
-import type { AssistantMessage } from "@/lib/assistant/types";
+import type { AssistantAction, AssistantMessage } from "@/lib/assistant/types";
 
 /** Openers that match what the assistant can actually answer today. */
 const STARTERS = [
@@ -42,7 +42,8 @@ export function AssistantPanel({
   active: boolean;
   onClose: () => void;
 }) {
-  const { messages, draft, setDraft, pending, send, clear } = assistant;
+  const { messages, draft, setDraft, pending, send, clear, confirm, dismiss, running } =
+    assistant;
   const { t } = useI18n();
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -55,7 +56,7 @@ export function AssistantPanel({
   React.useEffect(() => {
     const node = scrollRef.current;
     if (node && node.offsetParent !== null) node.scrollTop = node.scrollHeight;
-  }, [messages, pending, active]);
+  }, [messages, pending, running, active]);
 
   // Opening used to drop focus on <body>: the launcher that was focused gets
   // display:none the moment the rail swaps, and nothing picked focus up.
@@ -93,7 +94,7 @@ export function AssistantPanel({
               variant="ghost"
               size="icon-sm"
               onClick={clear}
-              disabled={pending}
+              disabled={pending || running !== null}
               aria-label={t("assistant.clear")}
               title={t("assistant.clear")}
             >
@@ -121,7 +122,17 @@ export function AssistantPanel({
         ) : (
           <div className="flex flex-col gap-3">
             {messages.map((message) => (
-              <Bubble key={message.id} message={message} />
+              <Bubble
+                key={message.id}
+                message={message}
+                onConfirm={() => confirm(message.id)}
+                onDismiss={() => dismiss(message.id)}
+                running={running === message.id}
+                // One proposal at a time: a second card's buttons go quiet
+                // while the first is being written, so two confirmations
+                // cannot race into the same board.
+                blocked={running !== null && running !== message.id}
+              />
             ))}
             {pending && <Thinking />}
           </div>
@@ -202,7 +213,19 @@ function Welcome({
   );
 }
 
-function Bubble({ message }: { message: AssistantMessage }) {
+function Bubble({
+  message,
+  onConfirm,
+  onDismiss,
+  running,
+  blocked,
+}: {
+  message: AssistantMessage;
+  onConfirm: () => void;
+  onDismiss: () => void;
+  running: boolean;
+  blocked: boolean;
+}) {
   const { t } = useI18n();
   const mine = message.role === "user";
 
@@ -229,7 +252,93 @@ function Bubble({ message }: { message: AssistantMessage }) {
           {mine ? t("assistant.youAsked") : t("assistant.answered")}
         </span>
         <AnswerText text={message.text} />
+        {message.action?.preview && (
+          <Proposal
+            action={message.action}
+            outcome={message.outcome}
+            onConfirm={onConfirm}
+            onDismiss={onDismiss}
+            running={running}
+            blocked={blocked}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A change the assistant would like to make, and the decision about it.
+ *
+ * Nothing has happened when this renders. The model returned a proposal; the
+ * portal resolved the ids in it to names on the server so that what is shown
+ * is what will run. Pressing Confirm sends the arguments back to be validated
+ * again and carried out through the same Server Action the ordinary buttons
+ * call — so this card can never do more than the person reading it could.
+ *
+ * Once decided it stays on screen as a record of what was agreed, with the
+ * buttons replaced by the outcome: a thread that silently rewrote itself
+ * would leave no way to see what you had said yes to.
+ */
+function Proposal({
+  action,
+  outcome,
+  onConfirm,
+  onDismiss,
+  running,
+  blocked,
+}: {
+  action: AssistantAction;
+  outcome: AssistantMessage["outcome"];
+  onConfirm: () => void;
+  onDismiss: () => void;
+  running: boolean;
+  blocked: boolean;
+}) {
+  const { t } = useI18n();
+  const preview = action.preview;
+  if (!preview) return null;
+
+  return (
+    <div className="mt-2.5 rounded-xl border border-border bg-background p-2.5">
+      <p className="text-xs font-semibold leading-tight">{preview.heading}</p>
+
+      <dl className="mt-2 flex flex-col gap-1">
+        {preview.rows.map((row) => (
+          <div key={row.label} className="flex gap-2 text-xs leading-snug">
+            <dt className="w-20 shrink-0 text-muted-foreground">{row.label}</dt>
+            <dd className="min-w-0 break-words">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {outcome ? (
+        <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+          {outcome === "done" && <Check aria-hidden className="size-3.5" />}
+          {t(outcome === "done" ? "assistant.done" : "assistant.dismissed")}
+        </p>
+      ) : (
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <Button size="sm" onClick={onConfirm} disabled={running || blocked}>
+            {running ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("assistant.working")}
+              </>
+            ) : (
+              t("assistant.confirm")
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDismiss}
+            disabled={running || blocked}
+          >
+            {t("assistant.dismiss")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

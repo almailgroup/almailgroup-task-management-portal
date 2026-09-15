@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAllTasks, getProjects, requireProfile } from "@/lib/data/queries";
+import { getAllTasks, getProjects, getTeam, requireProfile } from "@/lib/data/queries";
 import { summarise } from "@/lib/metrics";
 import { getLocale, getTimeZone } from "@/lib/i18n/server";
 import type { AssistantSnapshot, AssistantTask } from "@/lib/assistant/types";
@@ -18,10 +18,11 @@ import type { AssistantSnapshot, AssistantTask } from "@/lib/assistant/types";
  * assistant and the dashboard can never disagree about how many are overdue.
  */
 export async function buildSnapshot(): Promise<AssistantSnapshot> {
-  const [profile, tasks, projects, locale, timeZone] = await Promise.all([
+  const [profile, tasks, projects, team, locale, timeZone] = await Promise.all([
     requireProfile(),
     getAllTasks(),
     getProjects(),
+    getTeam(),
     getLocale(),
     getTimeZone(),
   ]);
@@ -43,7 +44,18 @@ export async function buildSnapshot(): Promise<AssistantSnapshot> {
   }));
 
   return {
-    viewer: { name: profile.full_name ?? profile.email, role: profile.role },
+    viewer: {
+      name: profile.full_name ?? profile.email,
+      role: profile.role,
+      // The same rule the New task button uses. Told to the model so it can
+      // say no itself rather than proposing something the database refuses.
+      canManage: profile.role === "admin" || profile.role === "manager",
+    },
+    projects: projects.map((project) => ({ id: project.id, name: project.name })),
+    team: team.map((person) => ({
+      id: person.id,
+      name: person.full_name ?? person.email,
+    })),
     locale,
     timeZone,
     takenAt: new Date().toISOString(),

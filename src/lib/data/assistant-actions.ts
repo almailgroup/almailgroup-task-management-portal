@@ -2,6 +2,7 @@
 
 import { buildSnapshot } from "@/lib/assistant/snapshot";
 import { answerLocally } from "@/lib/assistant/local-brain";
+import { previewOf } from "@/lib/assistant/preview";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getI18n } from "@/lib/i18n/server";
 import type { AssistantAnswer, AssistantMessage } from "@/lib/assistant/types";
@@ -65,10 +66,27 @@ export async function askAssistant(
       );
     }
 
-    const body = (await response.json()) as { text?: string };
-    if (!body.text?.trim()) throw new Error("Worker replied with no text");
+    const body = (await response.json()) as {
+      text?: string;
+      action?: { name?: string; arguments?: Record<string, unknown> } | null;
+    };
 
-    return ok({ text: body.text, source: "gemini" });
+    // A turn that only proposes something carries no prose, and that is fine:
+    // the panel has a card to show. A turn with neither is a failure.
+    const proposed = body.action?.name
+      ? { name: body.action.name, arguments: body.action.arguments ?? {} }
+      : null;
+
+    // A proposal nobody could read is not one worth showing. If the snapshot
+    // cannot make sense of it — an id that is not on this board, a field
+    // missing — it is dropped and the prose stands on its own.
+    const preview = proposed ? previewOf(proposed, snapshot, i18n) : null;
+    const action = proposed && preview ? { ...proposed, preview } : null;
+    if (!body.text?.trim() && !action) {
+      throw new Error("Worker replied with no text");
+    }
+
+    return ok({ text: body.text ?? "", source: "gemini", action });
   } catch (error) {
     // Silent in front of the person asking, who cannot act on it and is
     // better served by a worse answer than by an error. Not silent in the

@@ -2,7 +2,11 @@
 
 import * as React from "react";
 
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
 import { askAssistant } from "@/lib/data/assistant-actions";
+import { runAssistantAction } from "@/lib/data/assistant-run";
 import { useI18n } from "@/lib/i18n/client";
 import type { AssistantMessage } from "@/lib/assistant/types";
 
@@ -13,6 +17,12 @@ export type Assistant = {
   pending: boolean;
   send: (text: string) => void;
   clear: () => void;
+  /** Carry out the proposal on a message, once the person has agreed. */
+  confirm: (messageId: string) => void;
+  /** Decline it, and leave the board alone. */
+  dismiss: (messageId: string) => void;
+  /** The message whose proposal is being carried out, if any. */
+  running: string | null;
 };
 
 const newId = () =>
@@ -33,7 +43,9 @@ export function useAssistant(): Assistant {
   const [messages, setMessages] = React.useState<AssistantMessage[]>([]);
   const [draft, setDraft] = React.useState("");
   const [pending, setPending] = React.useState(false);
+  const [running, setRunning] = React.useState<string | null>(null);
   const { t, tm } = useI18n();
+  const router = useRouter();
 
   const send = React.useCallback(
     (text: string) => {
@@ -54,9 +66,11 @@ export function useAssistant(): Assistant {
 
       void (async () => {
         let reply: string;
+        let action: AssistantMessage["action"] = null;
         try {
           const outcome = await askAssistant(history);
           reply = outcome.ok ? outcome.data.text : tm(outcome.error);
+          if (outcome.ok) action = outcome.data.action ?? null;
         } catch {
           // A Server Action rejects outright when the network drops or the
           // deployment 500s. Without this the spinner ran forever and the
@@ -72,6 +86,7 @@ export function useAssistant(): Assistant {
             role: "assistant",
             text: reply,
             at: new Date().toISOString(),
+            action,
           },
         ]);
         setPending(false);
@@ -80,10 +95,59 @@ export function useAssistant(): Assistant {
     [messages, pending, t, tm],
   );
 
-  const clear = React.useCallback(() => {
-    if (pending) return;
-    setMessages([]);
-  }, [pending]);
+  const settle = React.useCallback(
+    (messageId: string, outcome: "done" | "dismissed") =>
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === messageId ? { ...message, outcome } : message,
+        ),
+      ),
+    [],
+  );
 
-  return { messages, draft, setDraft, pending, send, clear };
+  /**
+   * Carry out what was proposed.
+   *
+   * The arguments go back to the server exactly as they arrived and are
+   * validated there before anything is written — this is the button, not the
+   * authority. A refresh follows a success so the board behind the panel
+   * shows the change rather than the state before it.
+   */
+  const confirm = React.useCallback(
+    (messageId: string) => {
+      const message = messages.find((entry) => entry.id === messageId);
+      if (!message?.action || message.outcome || running) return;
+
+      setRunning(messageId);
+      void (async () => {
+        try {
+          const outcome = await runAssistantAction(message.action!);
+          if (!outcome.ok) {
+            toast.error(tm(outcome.error));
+            return;
+          }
+          settle(messageId, "done");
+          toast.success(t("assistant.done"));
+          router.refresh();
+        } catch {
+          toast.error(t("assistant.unreachable"));
+        } finally {
+          setRunning(null);
+        }
+      })();
+    },
+    [messages, running, settle, t, tm, router],
+  );
+
+  const dismiss = React.useCallback(
+    (messageId: string) => settle(messageId, "dismissed"),
+    [settle],
+  );
+
+  const clear = React.useCallback(() => {
+    if (pending || running) return;
+    setMessages([]);
+  }, [pending, running]);
+
+  return { messages, draft, setDraft, pending, send, clear, confirm, dismiss, running };
 }
