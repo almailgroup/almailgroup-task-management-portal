@@ -54,6 +54,15 @@ export function answerLocally(
   question: string,
   snapshot: AssistantSnapshot,
   i18n: Speaker = english,
+  /**
+   * Whether a language model is wired up at all.
+   *
+   * It changes only the two lines that explain themselves, and it matters:
+   * once Gemini is connected, "my language model is not connected" sends
+   * somebody off to re-check a configuration that was right all along. The
+   * honest version of the same sentence is that it could not be reached.
+   */
+  modelConfigured = false,
 ): AssistantAnswer {
   const { t, tn } = i18n;
   const q = question.toLowerCase().trim();
@@ -225,7 +234,7 @@ export function answerLocally(
     matches(q, ["help"], ["what", "can", "you"], ["who", "are", "you"], ["مساعدة"], ["ماذا", "تستطيع"], ["من", "أنت"])
   ) {
     return answer(
-      t("brain.help", {
+      t(modelConfigured ? "brain.helpOffline" : "brain.help", {
         q1: t("assistant.starter.overdue"),
         q2: t("assistant.starter.today"),
         q3: t("assistant.starter.next"),
@@ -236,5 +245,5 @@ export function answerLocally(
   }
 
   // Fallback -----------------------------------------------------------
-  return answer(t("brain.fallback"));
+  return answer(t(modelConfigured ? "brain.fallbackOffline" : "brain.fallback"));
 }

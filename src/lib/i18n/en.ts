@@ -816,4 +816,9 @@ export const en = {
   "auth.noNetwork": "Could not reach the server. Check your connection and try again.",
   "auth.serviceDown": "The sign-in service is not responding right now. Nothing is wrong with your details — wait a moment and try again.",
   "action.noPermissionReschedule": "You do not have permission to reschedule this task.",
+
+  // Said when the model is wired up but did not answer this time — as opposed
+  // to brain.fallback, which is for a workspace that never connected one.
+  "brain.helpOffline": "I am Almail AI, the assistant for this portal. I can see exactly the tasks you can see — no more.\n\nAsk me things like:\n• {q1}\n• {q2}\n• {q3}\n• {q4}\n• {q5}\n\nI could not reach my language model just now, so anything more open-ended will have to wait a moment.",
+  "brain.fallbackOffline": "I could not reach my language model just now, so I can only answer what I can count from the board.\n\nTry: what is overdue, what is due today, what should I work on next, what is in review, or a status summary — or ask me again in a moment.",
 } as const;

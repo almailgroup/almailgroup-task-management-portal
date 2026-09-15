@@ -67,6 +67,8 @@ export async function askAssistant(
     // better served by a worse answer than by an error. Not silent in the
     // server log, which is where somebody can.
     console.error("[assistant] the Worker call failed, answering locally:", error);
-    return ok(answerLocally(question, snapshot, i18n));
+    // `true`: a model is configured, it just did not answer. Saying otherwise
+    // would send whoever asked to re-check settings that are fine.
+    return ok(answerLocally(question, snapshot, i18n, true));
   }
 }
