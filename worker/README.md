@@ -64,10 +64,16 @@ Keep the output. It goes in two places, and they must match.
 cd worker
 npm install
 npx wrangler login          # opens a browser once
+npx wrangler deploy         # creates the Worker and prints its address
 npx wrangler secret put GEMINI_API_KEY   # paste the key from step 1
 npx wrangler secret put SHARED_SECRET    # paste the secret from step 3
-npx wrangler deploy
 ```
+
+Deploy first, then the secrets: `wrangler secret put` needs the Worker to
+exist, and secrets take effect immediately without another deploy. Between the
+two commands the Worker refuses every request — it has no secret to check
+against, and an endpoint that spends your Gemini quota should not sit open
+while you fetch the next command.
 
 `wrangler deploy` prints the address, something like
 `https://almailgroup-assistant.<your-subdomain>.workers.dev`. Copy it.
@@ -113,6 +119,7 @@ Ask the assistant something while that is running.
 | `Gemini replied 400: API key not valid` | Wrong key, or not saved. Re-run `wrangler secret put GEMINI_API_KEY`. |
 | `Gemini replied 404` | That model name is not available to your key. Redo step 2. |
 | `Gemini replied 429` | Free-tier limit hit. Wait, or add billing. |
+| `401`, and `SHARED_SECRET is not set` | You deployed but never set it. Run `wrangler secret put SHARED_SECRET`. |
 | `401` from the Worker, nothing logged | `MAHAM_WORKER_SECRET` and `SHARED_SECRET` differ. |
 | Nothing at all in `tail` | The portal is not calling it. `MAHAM_WORKER_URL` is unset or the deployment predates it — redeploy. |
 

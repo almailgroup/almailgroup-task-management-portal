@@ -78,9 +78,20 @@ export default {
  * A plain `===` on a secret leaks its prefix through how long the comparison
  * takes. The cost of doing it properly is nothing, so there is no reason to
  * take the argument that this one is hard to exploit over the internet.
+ *
+ * No secret means no service. It would be friendlier to run open until one is
+ * set, and that is exactly the window — between `wrangler deploy` and
+ * `wrangler secret put` — in which an address that spends somebody's Gemini
+ * quota sits on the internet waiting to be found.
  */
 function authorised(request: Request, env: Env): boolean {
-  if (!env.SHARED_SECRET) return true; // Unset: open, and said so in the README.
+  if (!env.SHARED_SECRET) {
+    console.error(
+      "SHARED_SECRET is not set, so every request is refused. Set it with:\n" +
+        "  npx wrangler secret put SHARED_SECRET",
+    );
+    return false;
+  }
   const offered = (request.headers.get("authorization") ?? "").replace(/^Bearer /i, "");
   const a = new TextEncoder().encode(offered);
   const b = new TextEncoder().encode(env.SHARED_SECRET);
