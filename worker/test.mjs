@@ -301,3 +301,106 @@ test("an ordinary answer carries no proposal", async () => {
   const body = await (await askAs(manager, "What is overdue?")).json();
   assert.equal(body.action, null);
 });
+
+// ---- a busy model ---------------------------------------------------------
+
+/**
+ * Queue a reply per attempt, so a test can say "fail, then succeed".
+ * Returns how many times the Worker actually called upstream.
+ */
+function geminiSequence(replies) {
+  let calls = 0;
+  globalThis.fetch = async (url, init) => {
+    const reply = replies[Math.min(calls, replies.length - 1)];
+    calls += 1;
+    sent = { url: String(url), key: init.headers["x-goog-api-key"], body: JSON.parse(init.body) };
+    return new Response(JSON.stringify(reply.body), {
+      status: reply.status ?? 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+  return () => calls;
+}
+
+const answered = { body: { candidates: [{ content: { parts: [{ text: "One is overdue." }] } }] } };
+const overloaded = { status: 503, body: { error: { code: 503, message: "The model is overloaded." } } };
+
+/**
+ * A free-tier Flash model returns 503 often enough that one question
+ * succeeding and the next failing twenty seconds later is its ordinary
+ * behaviour. Falling back to the local brain on the first 503 makes the
+ * assistant look broken when it is merely busy.
+ */
+test("a busy model is asked again rather than given up on", async () => {
+  const calls = geminiSequence([overloaded, answered]);
+  const response = await ask();
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).text, "One is overdue.");
+  assert.equal(calls(), 2);
+});
+
+test("busy twice is a failure, and says so", async () => {
+  const calls = geminiSequence([overloaded, overloaded]);
+  const response = await ask();
+  assert.equal(response.status, 502);
+  assert.equal(calls(), 2);
+  assert.match((await response.json()).reason, /503 twice/);
+});
+
+test("a wrong key is not worth asking twice", async () => {
+  const calls = geminiSequence([
+    { status: 400, body: { error: { message: "API key not valid" } } },
+  ]);
+  assert.equal((await ask()).status, 502);
+  assert.equal(calls(), 1);
+});
+
+/**
+ * A minute's rate limit clears on its own; a day's does not. Both arrive as
+ * 429, and only the body says which — so the body is what decides.
+ */
+test("a per-minute 429 is retried; a per-day one is not", async () => {
+  const perMinute = {
+    status: 429,
+    body: { error: { message: "Quota exceeded", details: [{ violations: [{ quotaId: "GenerateRequestsPerMinutePerProjectPerModel-FreeTier" }] }] } },
+  };
+  const perDay = {
+    status: 429,
+    body: { error: { message: "Quota exceeded", details: [{ violations: [{ quotaId: "GenerateRequestsPerDayPerProjectPerModel-FreeTier" }] }] } },
+  };
+
+  let calls = geminiSequence([perMinute, answered]);
+  assert.equal((await ask()).status, 200);
+  assert.equal(calls(), 2);
+
+  calls = geminiSequence([perDay, answered]);
+  assert.equal((await ask()).status, 502);
+  assert.equal(calls(), 1, "a day's quota will say the same thing again");
+});
+
+/**
+ * A turn that only proposed something carries no prose. Sending that back as
+ * an empty part is at best pointless.
+ */
+test("an empty turn is not sent back as history", async () => {
+  gemini(answered.body);
+  await worker.fetch(
+    new Request("https://worker.example/", {
+      method: "POST",
+      headers: { authorization: "Bearer test-secret", "content-type": "application/json" },
+      body: JSON.stringify({
+        snapshot,
+        messages: [
+          { id: "1", role: "user", text: "Create a task", at: snapshot.takenAt },
+          { id: "2", role: "assistant", text: "", at: snapshot.takenAt },
+          { id: "3", role: "user", text: "What is overdue?", at: snapshot.takenAt },
+        ],
+      }),
+    }),
+    env,
+  );
+  assert.deepEqual(
+    sent.body.contents.map((turn) => turn.parts[0].text),
+    ["Create a task", "What is overdue?"],
+  );
+});

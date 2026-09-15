@@ -122,8 +122,21 @@ const TOOLS = [
 const MAX_TASKS = 200;
 /** Enough conversation to follow a thread, without resending an hour of it. */
 const MAX_TURNS = 12;
-/** Under the 20s the portal waits, so it falls back rather than hanging. */
+/**
+ * Under the 20s the portal waits, so it falls back rather than hanging. This
+ * is the budget for the whole call including a retry, not for each attempt.
+ */
 const TIMEOUT_MS = 15_000;
+/** One retry. A second one would not fit inside the budget above. */
+const ATTEMPTS = 2;
+/** Long enough for a busy model to come free, short enough not to be felt. */
+const RETRY_PAUSE_MS = 700;
+/**
+ * Statuses where the model was busy rather than the request wrong. A free-tier
+ * Flash model returns 503 often enough that one ask succeeding and the next
+ * failing twenty seconds later is its ordinary behaviour, not a fault.
+ */
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 
 export default {
   /**
@@ -163,7 +176,11 @@ export default {
       // The portal answers from its own local brain on any non-2xx, so the
       // panel degrades to a worse answer rather than to an error. The reason
       // belongs in `wrangler tail`, not in front of whoever asked.
-      console.error("Gemini call failed:", error);
+      // The reason, not the Error: Cloudflare's Events list summarises a
+      // thrown Error as its stack, which puts "at ask (worker.js:257)" in the
+      // one line you can actually see and hides the status and Gemini's own
+      // words behind a click. The stack was never the interesting half.
+      console.error("Gemini call failed:", reasonOf(error));
       // The caller is the portal's own server, never a browser, so the reason
       // can travel: it ends up in the Vercel log, which is where somebody is
       // already looking when they wonder why the assistant went quiet.
@@ -218,62 +235,97 @@ async function ask(messages, snapshot, env) {
   const model = env.GEMINI_MODEL || DEFAULT_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      // In a header rather than the query string: URLs turn up in logs.
-      "x-goog-api-key": env.GEMINI_API_KEY,
-    },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: brief(snapshot) }] },
-      // A member cannot create or change a task by hand, so the assistant is
-      // not offered the means to propose it for them. The database would
-      // refuse it anyway; not offering it is the difference between a clear
-      // "you cannot" and a confusing failure.
-      ...(snapshot.viewer?.canManage ? { tools: TOOLS } : {}),
-      contents: messages.slice(-MAX_TURNS).map((message) => ({
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: brief(snapshot) }] },
+    // A member cannot create or change a task by hand, so the assistant is
+    // not offered the means to propose it for them. The database would
+    // refuse it anyway; not offering it is the difference between a clear
+    // "you cannot" and a confusing failure.
+    ...(snapshot.viewer?.canManage ? { tools: TOOLS } : {}),
+    // A turn that only proposed something carries no prose, and a part with
+    // no text in it is not worth sending back as history.
+    contents: messages
+      .slice(-MAX_TURNS)
+      .filter((message) => message.text && message.text.trim())
+      .map((message) => ({
         role: message.role === "assistant" ? "model" : "user",
         parts: [{ text: message.text }],
       })),
-      generationConfig: {
-        // Low, not zero: this is a question about facts on a board, and the
-        // answer should not drift between two identical asks.
-        temperature: 0.2,
-        /**
-         * Far more than an answer needs, because on these models the budget
-         * covers the reasoning as well. At 900 a model can think its way
-         * through the whole allowance and stop before writing a word, which
-         * arrives here as a perfectly successful response with no text in it.
-         * The answer itself stays short; the system prompt asks for that.
-         */
-        maxOutputTokens: 4096,
-      },
-    }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    generationConfig: {
+      // Low, not zero: this is a question about facts on a board, and the
+      // answer should not drift between two identical asks.
+      temperature: 0.2,
+      /**
+       * Far more than an answer needs, because on these models the budget
+       * covers the reasoning as well. At 900 a model can think its way
+       * through the whole allowance and stop before writing a word, which
+       * arrives here as a perfectly successful response with no text in it.
+       * The answer itself stays short; the system prompt asks for that.
+       */
+      maxOutputTokens: 4096,
+    },
   });
 
-  if (!response.ok) {
-    throw new Error(`Gemini replied ${response.status}: ${await response.text()}`);
+  /**
+   * One budget for the whole call, shared by both attempts, so a retry can
+   * never push past the 20 seconds the portal is prepared to wait. A single
+   * signal created here aborts whichever attempt is in flight when it fires.
+   */
+  const deadline = AbortSignal.timeout(TIMEOUT_MS);
+
+  let failure = "";
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        // In a header rather than the query string: URLs turn up in logs.
+        "x-goog-api-key": env.GEMINI_API_KEY,
+      },
+      body: payload,
+      signal: deadline,
+    });
+
+    if (response.ok) return read(await response.json());
+
+    const detail = await response.text();
+    failure = `Gemini replied ${response.status}${
+      attempt > 1 ? " twice" : ""
+    }: ${detail}`;
+
+    // A wrong key, a model that does not exist and a day's quota already spent
+    // will all say exactly the same thing again. Only a busy model is worth
+    // asking twice — and a per-day 429 is not a busy model, whatever its code.
+    const busy =
+      RETRYABLE.has(response.status) && !/PerDay/i.test(detail) && attempt < ATTEMPTS;
+    if (!busy) break;
+
+    console.warn(`Gemini replied ${response.status}; asking once more.`);
+    await new Promise((resolve) => setTimeout(resolve, RETRY_PAUSE_MS));
   }
 
-  /**
-   * @type {{
-   *   candidates?: {
-   *     content?: {
-   *       parts?: {
-   *         text?: string,
-   *         thought?: boolean,
-   *         functionCall?: { name?: string, args?: Record<string, unknown> },
-   *       }[],
-   *     },
-   *     finishReason?: string,
-   *   }[],
-   *   promptFeedback?: { blockReason?: string },
-   * }}
-   */
-  const data = await response.json();
+  throw new Error(failure);
+}
 
+/**
+ * What Gemini said, turned into an answer and — perhaps — a proposal.
+ *
+ * @param {{
+ *   candidates?: {
+ *     content?: {
+ *       parts?: {
+ *         text?: string,
+ *         thought?: boolean,
+ *         functionCall?: { name?: string, args?: Record<string, unknown> },
+ *       }[],
+ *     },
+ *     finishReason?: string,
+ *   }[],
+ *   promptFeedback?: { blockReason?: string },
+ * }} data
+ * @returns {{ text: string, action: { name: string, arguments: Record<string, unknown> } | null }}
+ */
+function read(data) {
   if (data.promptFeedback?.blockReason) {
     throw new Error(`Blocked: ${data.promptFeedback.blockReason}`);
   }

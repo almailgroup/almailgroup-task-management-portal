@@ -171,7 +171,8 @@ log stream**. Ask the assistant something while it is running.
 | --- | --- |
 | `Gemini replied 400: API key not valid` | Wrong key, or not saved. Re-run `wrangler secret put GEMINI_API_KEY`. |
 | `Gemini replied 404` | That model name is not available to your key. Redo step 2. |
-| `Gemini replied 429` | Free-tier limit hit. Wait, or add billing. |
+| `Gemini replied 503` | The free-tier model was busy. Asked twice already; ask again. |
+| `Gemini replied 429` | Free-tier limit hit. `PerMinute` clears itself; `PerDay` waits for midnight Pacific, or add billing. |
 | `401`, and `SHARED_SECRET is not set` | You deployed but never set it. Run `wrangler secret put SHARED_SECRET`. |
 | `401` from the Worker, nothing logged | `ALMAIL_AI_WORKER_SECRET` and `SHARED_SECRET` differ. |
 | Nothing at all in `tail` | The portal is not calling it. `ALMAIL_AI_WORKER_URL` is unset or the deployment predates it — redeploy. |
@@ -230,6 +231,19 @@ anything about anyone the asker could not already see in the UI.
 The wire types are imported from `../src/lib/assistant/types.ts` rather than
 copied, so the two ends cannot drift apart.
 
+## Reading the logs
+
+**Workers & Pages → your Worker → Observability → Logs.** The Events list shows
+one line per request; click a row for the whole event. A failed call logs
+`Gemini call failed: Gemini replied <status>: <what Gemini said>` — the status
+and the reason are in that summary line deliberately, because logging the
+Error itself put its *stack* there instead and hid the only half worth reading.
+
+A 503 from a free-tier Flash model is ordinary, not a fault: one question
+succeeding and the next failing twenty seconds later is what a busy shared
+model looks like. The Worker asks a second time before giving up, so a line
+reading `asking once more` followed by nothing is a retry that worked.
+
 ## Tests
 
 ```bash
@@ -240,8 +254,9 @@ Node's own runner, no framework, the same file that goes into Cloudflare's
 editor, and Gemini stubbed. It covers the failures that are invisible from the
 portal — a reply that is all reasoning and no answer, a blocked prompt, a bad
 key — plus the properties worth keeping: the API key never appears in a URL, a
-Worker with no secret of its own serves nobody, and a viewer who may not change
-things is never offered the tools that would let them.
+Worker with no secret of its own serves nobody, a viewer who may not change
+things is never offered the tools that would let them, and a busy model is
+asked twice while a wrong key is not.
 
 ## Local development
 
