@@ -29,6 +29,15 @@ export async function askAssistant(
   const endpoint = process.env.ALMAIL_AI_WORKER_URL;
 
   if (!endpoint) {
+    // Whoever is asking cannot act on this; whoever runs the workspace can,
+    // and until now had nothing to act on. Both ways of ending up with a
+    // local answer looked identical from every side, which is a poor way to
+    // spend an evening wondering why Gemini is not answering.
+    console.warn(
+      "[assistant] ALMAIL_AI_WORKER_URL is not set on this deployment, " +
+        "so the answer came from the local brain. Environment variables are " +
+        "fixed when a deployment is built: adding one means redeploying.",
+    );
     return ok(answerLocally(question, snapshot, i18n));
   }
 
@@ -53,9 +62,11 @@ export async function askAssistant(
     if (!body.text?.trim()) throw new Error("Worker replied with no text");
 
     return ok({ text: body.text, source: "gemini" });
-  } catch {
-    // Deliberately silent about the cause: the person asking cannot act on a
-    // Worker error, and the local answer is usually still useful.
+  } catch (error) {
+    // Silent in front of the person asking, who cannot act on it and is
+    // better served by a worse answer than by an error. Not silent in the
+    // server log, which is where somebody can.
+    console.error("[assistant] the Worker call failed, answering locally:", error);
     return ok(answerLocally(question, snapshot, i18n));
   }
 }
