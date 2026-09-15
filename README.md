@@ -814,6 +814,27 @@ few minutes out with each reminder channel switched on.
 Set `NEXT_PUBLIC_SITE_URL` to the deployment's own URL. It is what confirmation
 emails link back to, so a stale value sends new users to the wrong host.
 
+### Deployment protection and the manifest
+
+Vercel's **Deployment Protection** puts every deployment-specific URL — the
+long ones with a build hash, `…-5rjqd1vk8-…vercel.app` — behind its own SSO,
+even when the same build is live on the production domain. Anything requested
+without Vercel's cookie is redirected to `vercel.com/sso-api`.
+
+A web app manifest is normally fetched with cookies *omitted*, so it was being
+redirected off-origin and refused by CORS:
+
+```
+Access to manifest at 'https://vercel.com/sso-api?url=…'
+(redirected from '…/manifest.webmanifest') has been blocked by CORS policy
+```
+
+The link in `src/app/layout.tsx` therefore carries
+`crossOrigin="use-credentials"`, which sends the cookie and stops the redirect.
+That is also why the manifest is a static file in `public/` rather than an
+`app/manifest.ts` route: the Metadata API renders the link itself and gives no
+way to set the attribute.
+
 ### Regions
 
 **Not pinned.** `vercel.json` deliberately carries no `regions` key: on the

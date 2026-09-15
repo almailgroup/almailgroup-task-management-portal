@@ -66,6 +66,25 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} dir={directionFor(locale)} suppressHydrationWarning>
+      {/*
+       * The manifest is asked for with credentials, which is not the default.
+       *
+       * A manifest is fetched with cookies omitted unless the link says
+       * otherwise. Behind Vercel's deployment protection that reads as an
+       * anonymous request, so the platform redirects it to vercel.com/sso-api
+       * — a different origin, which turns a same-origin fetch into a CORS one
+       * that vercel.com refuses. The console filled with CORS failures and the
+       * app had no manifest: no name, no icon, nothing to install to a home
+       * screen, on exactly the protected URLs the team tests from.
+       *
+       * Written out here rather than through `metadata.manifest`, which has
+       * no way to set the attribute.
+       */}
+      <link
+        rel="manifest"
+        href="/manifest.webmanifest"
+        crossOrigin="use-credentials"
+      />
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoArabic.variable}`}
       >
