@@ -24,7 +24,12 @@
  * @property {string} [GEMINI_MODEL]   Plain text; model names come and go.
  */
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+/**
+ * Overridden by the GEMINI_MODEL variable. A Flash model, because those are
+ * the ones the free tier carries; `models?key=…` will list what a given key
+ * can see, though seeing a model is not the same as it being free.
+ */
+const DEFAULT_MODEL = "gemini-3.8-flash";
 
 /** Enough board to answer from, small enough to stay inside the free tier. */
 const MAX_TASKS = 200;
@@ -141,7 +146,14 @@ async function ask(messages, snapshot, env) {
         // Low, not zero: this is a question about facts on a board, and the
         // answer should not drift between two identical asks.
         temperature: 0.2,
-        maxOutputTokens: 900,
+        /**
+         * Far more than an answer needs, because on these models the budget
+         * covers the reasoning as well. At 900 a model can think its way
+         * through the whole allowance and stop before writing a word, which
+         * arrives here as a perfectly successful response with no text in it.
+         * The answer itself stays short; the system prompt asks for that.
+         */
+        maxOutputTokens: 4096,
       },
     }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -153,7 +165,10 @@ async function ask(messages, snapshot, env) {
 
   /**
    * @type {{
-   *   candidates?: { content?: { parts?: { text?: string, thought?: boolean }[] } }[],
+   *   candidates?: {
+   *     content?: { parts?: { text?: string, thought?: boolean }[] },
+   *     finishReason?: string,
+   *   }[],
    *   promptFeedback?: { blockReason?: string },
    * }}
    */
@@ -163,12 +178,23 @@ async function ask(messages, snapshot, env) {
     throw new Error(`Blocked: ${data.promptFeedback.blockReason}`);
   }
 
-  return (data.candidates?.[0]?.content?.parts ?? [])
+  const answer = (data.candidates?.[0]?.content?.parts ?? [])
     // Newer models return their reasoning as parts too; those are not the answer.
     .filter((part) => !part.thought && typeof part.text === "string")
     .map((part) => part.text)
     .join("")
     .trim();
+
+  if (!answer) {
+    // Worth naming: an empty answer and a failed call look identical from the
+    // portal, and the commonest cause — the reasoning eating the whole token
+    // budget — is fixed by a number in this file rather than by retrying.
+    throw new Error(
+      `Gemini returned no text (finishReason: ${data.candidates?.[0]?.finishReason ?? "none"})`,
+    );
+  }
+
+  return answer;
 }
 
 /**

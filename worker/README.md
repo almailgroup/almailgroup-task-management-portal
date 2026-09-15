@@ -53,9 +53,17 @@ https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY
 (That puts the key in your browser history. Fine for a one-off check; clear it
 afterwards if it bothers you.)
 
-Pick a **Flash** model from that list — they are the ones on the free tier —
-and put it in `wrangler.toml` under `GEMINI_MODEL` if it differs from the
-default.
+Pick a **Flash** model from that list. The Worker defaults to the newest one
+that was current when this was written; set the `GEMINI_MODEL` variable to
+choose another.
+
+Two things the list does not tell you. Every current model *thinks* before it
+answers, and that reasoning is spent from the same token budget as the reply —
+which is why `maxOutputTokens` here is 4096 rather than the few hundred an
+answer needs. And a model appearing in the list is not proof it is free: the
+list is what your key can see, the free tier is a separate quota. If the log
+shows `429`, move down a step — `gemini-2.5-flash` has been on the free tier
+the longest.
 
 ## 3. Make a shared secret
 
@@ -196,6 +204,18 @@ anything about anyone the asker could not already see in the UI.
 
 The wire types are imported from `../src/lib/maham/types.ts` rather than
 copied, so the two ends cannot drift apart.
+
+## Tests
+
+```bash
+cd worker && npm test
+```
+
+Node's own runner, no framework, the same file that goes into Cloudflare's
+editor, and Gemini stubbed. It covers the failures that are invisible from the
+portal — a reply that is all reasoning and no answer, a blocked prompt, a bad
+key — plus the two properties worth keeping: the API key never appears in a
+URL, and a Worker with no secret of its own serves nobody.
 
 ## Local development
 
