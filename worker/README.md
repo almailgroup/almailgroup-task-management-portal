@@ -91,7 +91,7 @@ changing the Worker more than once.
 
 1. **[dash.cloudflare.com](https://dash.cloudflare.com)** → **Workers & Pages**
    → **Create** → **Start with Hello World!** → **Deploy**.
-   Name it `almailgroup-assistant`. First time, Cloudflare asks you to pick a
+   Name it `almailgroup-task-management`. First time, Cloudflare asks you to pick a
    `workers.dev` subdomain — any name; it becomes part of the address.
 2. On the Worker, choose **Edit code**. Select everything in the editor and
    replace it with the whole of
@@ -107,7 +107,7 @@ changing the Worker more than once.
 
    Then **Deploy** again, so the variables take effect.
 4. The Worker's address is on its overview page:
-   `https://almailgroup-assistant.<your-subdomain>.workers.dev`. Copy it.
+   `https://almailgroup-task-management.<your-subdomain>.workers.dev`. Copy it.
 
 The cost of this route: the dashboard now holds the deployed code, and this
 repository no longer matches it. Change the Worker here and you must paste it
