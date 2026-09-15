@@ -333,7 +333,7 @@ export function AppShell({
           animating && "transition-[padding] duration-200 ease-out",
         )}
       >
-        <header className="glass-chrome sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-0 border-b px-4 sm:px-6">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <CommandHint />
           </div>

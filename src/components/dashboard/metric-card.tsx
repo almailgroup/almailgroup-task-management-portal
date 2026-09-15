@@ -24,6 +24,8 @@ export function MetricCard({
   /** Makes the whole tile a link to the matching task list. */
   href?: string;
 }) {
+  // `data-metric` is only a hook for the dashboard's glass experiment; the
+  // tile does not otherwise care.
   const className = cn(
     "group block rounded-2xl border bg-card p-3.5 shadow-[var(--shadow-sm)] sm:p-5",
     emphasis
@@ -73,10 +75,10 @@ export function MetricCard({
     </>
   );
 
-  if (!href) return <div className={className}>{body}</div>;
+  if (!href) return <div data-metric className={className}>{body}</div>;
 
   return (
-    <Link href={href} className={className}>
+    <Link data-metric href={href} className={className}>
       {body}
     </Link>
   );

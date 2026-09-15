@@ -39,7 +39,7 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
     <nav
       aria-label={t("nav.tasks")}
       className={cn(
-        "glass-chrome fixed inset-x-0 bottom-0 z-30 border-0 border-t lg:hidden",
+        "fixed inset-x-0 bottom-0 z-30 border-t border-chrome-border bg-chrome/90 backdrop-blur-md lg:hidden",
         // Sits above the home indicator on a phone rather than under it.
         "pb-[env(safe-area-inset-bottom)]",
       )}
