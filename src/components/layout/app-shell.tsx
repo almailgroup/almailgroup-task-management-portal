@@ -230,7 +230,7 @@ export function AppShell({
       <aside
         style={{ width: "var(--sidebar-width)" }}
         className={cn(
-          "fixed inset-y-0 start-0 z-30 hidden border-e border-chrome-border bg-chrome lg:block",
+          "glass-chrome fixed inset-y-0 start-0 z-30 hidden border-0 border-e lg:block",
           animating && "transition-[width] duration-200 ease-out",
         )}
       >
@@ -287,7 +287,7 @@ export function AppShell({
           />
           <aside
             className={cn(
-              "absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-e border-chrome-border bg-chrome",
+              "glass-chrome absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-0 border-e",
               "transition-[width] duration-200 ease-out",
               assistantOpen ? "w-[22rem]" : "w-72",
             )}
@@ -333,7 +333,7 @@ export function AppShell({
           animating && "transition-[padding] duration-200 ease-out",
         )}
       >
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
+        <header className="glass-chrome sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-0 border-b px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <CommandHint />
           </div>
