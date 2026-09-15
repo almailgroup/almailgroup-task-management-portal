@@ -3,7 +3,7 @@ import "server-only";
 import { getAllTasks, getProjects, requireProfile } from "@/lib/data/queries";
 import { summarise } from "@/lib/metrics";
 import { getLocale, getTimeZone } from "@/lib/i18n/server";
-import type { MahamSnapshot, MahamTask } from "@/lib/maham/types";
+import type { AssistantSnapshot, AssistantTask } from "@/lib/assistant/types";
 
 /**
  * Gather what the assistant is allowed to know about the caller's work.
@@ -17,7 +17,7 @@ import type { MahamSnapshot, MahamTask } from "@/lib/maham/types";
  * Counts come from the same `summarise` the dashboard cards use, so the
  * assistant and the dashboard can never disagree about how many are overdue.
  */
-export async function buildSnapshot(): Promise<MahamSnapshot> {
+export async function buildSnapshot(): Promise<AssistantSnapshot> {
   const [profile, tasks, projects, locale, timeZone] = await Promise.all([
     requireProfile(),
     getAllTasks(),
@@ -30,7 +30,7 @@ export async function buildSnapshot(): Promise<MahamSnapshot> {
   const metrics = summarise(tasks, timeZone);
   const open = tasks.filter((task) => task.status !== "done");
 
-  const flattened: MahamTask[] = tasks.map((task) => ({
+  const flattened: AssistantTask[] = tasks.map((task) => ({
     id: task.id,
     title: task.title,
     status: task.status,

@@ -2,12 +2,12 @@
 
 import * as React from "react";
 
-import { askMaham } from "@/lib/data/maham-actions";
+import { askAssistant } from "@/lib/data/assistant-actions";
 import { useI18n } from "@/lib/i18n/client";
-import type { MahamMessage } from "@/lib/maham/types";
+import type { AssistantMessage } from "@/lib/assistant/types";
 
-export type Maham = {
-  messages: MahamMessage[];
+export type Assistant = {
+  messages: AssistantMessage[];
   draft: string;
   setDraft: (value: string) => void;
   pending: boolean;
@@ -29,8 +29,8 @@ const newId = () =>
  * a question was in flight, and a viewport that crossed the `lg` breakpoint
  * with the drawer open could fire two requests into one thread.
  */
-export function useMaham(): Maham {
-  const [messages, setMessages] = React.useState<MahamMessage[]>([]);
+export function useAssistant(): Assistant {
+  const [messages, setMessages] = React.useState<AssistantMessage[]>([]);
   const [draft, setDraft] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const { t, tm } = useI18n();
@@ -40,7 +40,7 @@ export function useMaham(): Maham {
       const question = text.trim();
       if (!question || pending) return;
 
-      const asked: MahamMessage = {
+      const asked: AssistantMessage = {
         id: newId(),
         role: "user",
         text: question,
@@ -55,14 +55,14 @@ export function useMaham(): Maham {
       void (async () => {
         let reply: string;
         try {
-          const outcome = await askMaham(history);
+          const outcome = await askAssistant(history);
           reply = outcome.ok ? outcome.data.text : tm(outcome.error);
         } catch {
           // A Server Action rejects outright when the network drops or the
           // deployment 500s. Without this the spinner ran forever and the
           // panel stayed disabled — and since it is no longer a dialog that
           // unmounts, closing and reopening did not clear it either.
-          reply = t("maham.unreachable");
+          reply = t("assistant.unreachable");
         }
 
         setMessages((current) => [

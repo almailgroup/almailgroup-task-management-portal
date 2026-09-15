@@ -9,7 +9,7 @@ Worker server-to-server, so the browser never learns its address either.
 
 If the Worker is not deployed, or is down, or answers anything but `200`, the
 portal falls back to its own local brain — the counting answers in
-`src/lib/maham/local-brain.ts`. The panel is never simply dead.
+`src/lib/assistant/local-brain.ts`. The panel is never simply dead.
 
 ---
 
@@ -141,8 +141,8 @@ In **Vercel → your project → Settings → Environment Variables**, for
 
 | Name | Value |
 | --- | --- |
-| `MAHAM_WORKER_URL` | the address from step 4 |
-| `MAHAM_WORKER_SECRET` | the secret from step 3 |
+| `ALMAIL_AI_WORKER_URL` | the address from step 4 |
+| `ALMAIL_AI_WORKER_SECRET` | the secret from step 3 |
 
 Then **redeploy** — environment variables are read at build time, so an
 existing deployment will not pick them up on its own.
@@ -173,14 +173,14 @@ log stream**. Ask the assistant something while it is running.
 | `Gemini replied 404` | That model name is not available to your key. Redo step 2. |
 | `Gemini replied 429` | Free-tier limit hit. Wait, or add billing. |
 | `401`, and `SHARED_SECRET is not set` | You deployed but never set it. Run `wrangler secret put SHARED_SECRET`. |
-| `401` from the Worker, nothing logged | `MAHAM_WORKER_SECRET` and `SHARED_SECRET` differ. |
-| Nothing at all in `tail` | The portal is not calling it. `MAHAM_WORKER_URL` is unset or the deployment predates it — redeploy. |
+| `401` from the Worker, nothing logged | `ALMAIL_AI_WORKER_SECRET` and `SHARED_SECRET` differ. |
+| Nothing at all in `tail` | The portal is not calling it. `ALMAIL_AI_WORKER_URL` is unset or the deployment predates it — redeploy. |
 
 Test the Worker without the portal:
 
 ```bash
-curl -i -X POST "$MAHAM_WORKER_URL" \
-  -H "authorization: Bearer $MAHAM_WORKER_SECRET" \
+curl -i -X POST "$ALMAIL_AI_WORKER_URL" \
+  -H "authorization: Bearer $ALMAIL_AI_WORKER_SECRET" \
   -H "content-type: application/json" \
   -d '{"messages":[{"id":"1","role":"user","text":"What is overdue?","at":"2026-01-01T00:00:00Z"}],
        "snapshot":{"viewer":{"name":"Admin","role":"admin"},"locale":"en","timeZone":"Asia/Dubai",
@@ -202,7 +202,7 @@ There is no service-role access here and no permission logic of its own.
 It does not send: email addresses, passwords, attachments, comments, or
 anything about anyone the asker could not already see in the UI.
 
-The wire types are imported from `../src/lib/maham/types.ts` rather than
+The wire types are imported from `../src/lib/assistant/types.ts` rather than
 copied, so the two ends cannot drift apart.
 
 ## Tests

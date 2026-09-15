@@ -646,7 +646,7 @@ saved as the navigation width.
 ### What it can see
 
 Nothing you could not already open yourself. `buildSnapshot` in
-`src/lib/maham/snapshot.ts` reads through the ordinary RLS-scoped queries, so
+`src/lib/assistant/snapshot.ts` reads through the ordinary RLS-scoped queries, so
 a member's snapshot holds only the tasks assigned to them and a manager's
 holds their projects. The assistant has no permission logic of its own and no
 service-role access; it cannot widen what you see.
@@ -657,12 +657,12 @@ it, and never learns the Worker's address or its secret.
 ### Connecting Gemini
 
 The assistant is named "AI assistant" everywhere it is read. Its code still
-lives under `src/lib/maham/` and its two environment variables are still
-`MAHAM_WORKER_URL` and `MAHAM_WORKER_SECRET` — renaming those would mean
+lives under `src/lib/assistant/` and its two environment variables are still
+`ALMAIL_AI_WORKER_URL` and `ALMAIL_AI_WORKER_SECRET` — renaming those would mean
 re-entering them on Vercel and in Cloudflare for no gain.
 
-Until `MAHAM_WORKER_URL` is set, answers come from the local brain in
-`src/lib/maham/local-brain.ts` — deterministic, counted straight off the
+Until `ALMAIL_AI_WORKER_URL` is set, answers come from the local brain in
+`src/lib/assistant/local-brain.ts` — deterministic, counted straight off the
 board, and honest about the questions it cannot take. That brain stays on
 afterwards as the fallback when the Worker call fails, so the panel is never
 simply dead.
@@ -681,8 +681,8 @@ prompts are not used for training. See `worker/README.md`.
 The Worker receives:
 
 ```jsonc
-POST <MAHAM_WORKER_URL>
-Authorization: Bearer <MAHAM_WORKER_SECRET>   // only if the secret is set
+POST <ALMAIL_AI_WORKER_URL>
+Authorization: Bearer <ALMAIL_AI_WORKER_SECRET>   // only if the secret is set
 
 {
   "messages": [{ "id": "…", "role": "user", "text": "What is overdue?", "at": "…" }],
@@ -709,7 +709,7 @@ model left to guess answers an English word typed into an Arabic panel in
 English, and "what is due today" cannot be read off a list of instants without
 knowing whose midnight to measure from.
 
-The shapes above are `src/lib/maham/types.ts`, which is deliberately free of
+The shapes above are `src/lib/assistant/types.ts`, which is deliberately free of
 React and Supabase imports — the Worker imports that file directly rather than
 keeping a copy, so the two ends cannot drift apart.
 

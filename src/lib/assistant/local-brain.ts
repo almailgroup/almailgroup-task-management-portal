@@ -1,7 +1,7 @@
 import { isDueToday, isOverdue } from "@/lib/dates";
 import { statusMeta } from "@/lib/constants";
 import { createTranslator, type Translator } from "@/lib/i18n";
-import type { MahamAnswer, MahamSnapshot, MahamTask } from "@/lib/maham/types";
+import type { AssistantAnswer, AssistantSnapshot, AssistantTask } from "@/lib/assistant/types";
 
 /**
  * The assistant's placeholder brain.
@@ -21,7 +21,7 @@ import type { MahamAnswer, MahamSnapshot, MahamTask } from "@/lib/maham/types";
 type Speaker = Pick<Translator, "t" | "tn" | "tag" | "timeZone">;
 const english: Speaker = createTranslator("en");
 
-function dueLabel(task: MahamTask, { t, tag, timeZone }: Speaker): string {
+function dueLabel(task: AssistantTask, { t, tag, timeZone }: Speaker): string {
   if (!task.dueAt) return t("brain.noDueDate");
   const due = new Date(task.dueAt);
   return t("brain.due", {
@@ -30,13 +30,13 @@ function dueLabel(task: MahamTask, { t, tag, timeZone }: Speaker): string {
 }
 
 /** "Ship the catalogue — In Progress, due 14 Sep (Gemellry)" */
-function describe(task: MahamTask, i18n: Speaker): string {
+function describe(task: AssistantTask, i18n: Speaker): string {
   const bits = [i18n.t(statusMeta(task.status).label), dueLabel(task, i18n)];
   if (task.project) bits.push(task.project);
   return `${task.title} — ${bits.join(", ")}`;
 }
 
-function list(tasks: MahamTask[], i18n: Speaker, limit = 8): string {
+function list(tasks: AssistantTask[], i18n: Speaker, limit = 8): string {
   const shown = tasks.slice(0, limit).map((task) => `• ${describe(task, i18n)}`);
   if (tasks.length > limit) {
     shown.push(i18n.t("brain.andMore", { n: tasks.length - limit }));
@@ -44,7 +44,7 @@ function list(tasks: MahamTask[], i18n: Speaker, limit = 8): string {
   return shown.join("\n");
 }
 
-const answer = (text: string): MahamAnswer => ({ text, source: "local" });
+const answer = (text: string): AssistantAnswer => ({ text, source: "local" });
 
 /** Every word in one of these groups has to appear for the intent to match. */
 const matches = (question: string, ...groups: string[][]) =>
@@ -52,9 +52,9 @@ const matches = (question: string, ...groups: string[][]) =>
 
 export function answerLocally(
   question: string,
-  snapshot: MahamSnapshot,
+  snapshot: AssistantSnapshot,
   i18n: Speaker = english,
-): MahamAnswer {
+): AssistantAnswer {
   const { t, tn } = i18n;
   const q = question.toLowerCase().trim();
   const { counts, tasks } = snapshot;
@@ -166,7 +166,7 @@ export function answerLocally(
       ["تالي"],
     )
   ) {
-    const weight = (task: MahamTask) => {
+    const weight = (task: AssistantTask) => {
       if (isOverdue(task.dueAt, task.status)) return 0;
       if (isDueToday(task.dueAt, i18n.timeZone)) return 1;
       if (task.priority === "urgent") return 2;
@@ -226,11 +226,11 @@ export function answerLocally(
   ) {
     return answer(
       t("brain.help", {
-        q1: t("maham.starter.overdue"),
-        q2: t("maham.starter.today"),
-        q3: t("maham.starter.next"),
-        q4: t("maham.starter.review"),
-        q5: t("maham.starter.summary"),
+        q1: t("assistant.starter.overdue"),
+        q2: t("assistant.starter.today"),
+        q3: t("assistant.starter.next"),
+        q4: t("assistant.starter.review"),
+        q5: t("assistant.starter.summary"),
       }),
     );
   }

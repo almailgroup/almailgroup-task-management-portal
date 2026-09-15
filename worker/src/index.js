@@ -15,8 +15,8 @@
  * which is a comment at runtime and still checked against the portal's own
  * definitions by `npm run typecheck`.
  *
- * @typedef {import("../../src/lib/maham/types").MahamMessage} MahamMessage
- * @typedef {import("../../src/lib/maham/types").MahamSnapshot} MahamSnapshot
+ * @typedef {import("../../src/lib/assistant/types").AssistantMessage} AssistantMessage
+ * @typedef {import("../../src/lib/assistant/types").AssistantSnapshot} AssistantSnapshot
  *
  * @typedef {object} Env
  * @property {string}  GEMINI_API_KEY  From Google AI Studio. A secret.
@@ -56,7 +56,7 @@ export default {
       return json({ error: "Not configured." }, 500);
     }
 
-    /** @type {{ messages?: MahamMessage[], snapshot?: MahamSnapshot }} */
+    /** @type {{ messages?: AssistantMessage[], snapshot?: AssistantSnapshot }} */
     let body;
     try {
       body = await request.json();
@@ -120,8 +120,8 @@ function authorised(request, env) {
 }
 
 /**
- * @param {MahamMessage[]} messages
- * @param {MahamSnapshot} snapshot
+ * @param {AssistantMessage[]} messages
+ * @param {AssistantSnapshot} snapshot
  * @param {Env} env
  * @returns {Promise<string>}
  */
@@ -204,7 +204,7 @@ async function ask(messages, snapshot, env) {
  * instants, because asking a language model to do timezone arithmetic is a
  * way of finding out that it cannot.
  *
- * @param {MahamSnapshot} snapshot
+ * @param {AssistantSnapshot} snapshot
  * @returns {string}
  */
 function brief(snapshot) {

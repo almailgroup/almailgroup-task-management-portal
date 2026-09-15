@@ -12,18 +12,18 @@ import type {
   TaskStatus,
 } from "@/lib/supabase/database.types";
 
-export type MahamRole = "user" | "assistant";
+export type AssistantRole = "user" | "assistant";
 
-export type MahamMessage = {
+export type AssistantMessage = {
   id: string;
-  role: MahamRole;
+  role: AssistantRole;
   text: string;
   /** ISO instant. Rendered in the viewer's timezone after hydration. */
   at: string;
 };
 
 /** A task flattened to what the assistant needs to talk about it. */
-export type MahamTask = {
+export type AssistantTask = {
   id: string;
   title: string;
   status: TaskStatus;
@@ -41,7 +41,7 @@ export type MahamTask = {
  * because row-level security already scopes the query that builds it — the
  * assistant inherits the permission model rather than re-implementing it.
  */
-export type MahamSnapshot = {
+export type AssistantSnapshot = {
   /** Who is asking, so the answer can say "you" and mean it. */
   viewer: { name: string; role: string };
   /**
@@ -58,7 +58,7 @@ export type MahamSnapshot = {
   timeZone: string;
   /** ISO instant the snapshot was taken, for relative phrasing. */
   takenAt: string;
-  tasks: MahamTask[];
+  tasks: AssistantTask[];
   counts: {
     total: number;
     todo: number;
@@ -73,13 +73,13 @@ export type MahamSnapshot = {
 };
 
 /** What the chat panel sends. */
-export type MahamRequest = {
+export type AssistantRequest = {
   /** Full turn history, oldest first, including the question just asked. */
-  messages: MahamMessage[];
+  messages: AssistantMessage[];
 };
 
 /** What comes back. `source` says which brain answered. */
-export type MahamAnswer = {
+export type AssistantAnswer = {
   text: string;
   source: "gemini" | "local";
 };

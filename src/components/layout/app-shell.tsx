@@ -15,8 +15,8 @@ import {
   CommandPalette,
 } from "@/components/layout/command-palette";
 import { SidebarResizer } from "@/components/layout/sidebar-resizer";
-import { MahamPanel } from "@/components/maham/maham-panel";
-import { useMaham } from "@/components/maham/use-maham";
+import { AssistantPanel } from "@/components/assistant/assistant-panel";
+import { useAssistant } from "@/components/assistant/use-assistant";
 import {
   SIDEBAR_CHAT_DEFAULT,
   SIDEBAR_DEFAULT,
@@ -74,8 +74,8 @@ export function AppShell({
   // can read a task while asking about it. One flag drives both the rail and
   // the drawer: a second flag for the drawer drifted out of sync with this one
   // and left the hamburger reopening into the assistant.
-  const [mahamOpen, setMahamOpen] = React.useState(false);
-  const maham = useMaham();
+  const [assistantOpen, setAssistantOpen] = React.useState(false);
+  const assistant = useAssistant();
 
   // Width changes are animated only while opening or closing the assistant —
   // a transition left on during a resize drag trails the pointer by a frame.
@@ -96,16 +96,16 @@ export function AppShell({
    * drawer.
    */
   const bounds = React.useMemo(() => {
-    const base = sidebarBounds(mahamOpen ? "chat" : "nav");
-    if (!mahamOpen || viewportWidth === 0) return base;
+    const base = sidebarBounds(assistantOpen ? "chat" : "nav");
+    if (!assistantOpen || viewportWidth === 0) return base;
     const max = Math.max(
       base.min,
       Math.min(base.max, Math.round(viewportWidth * 0.45)),
     );
     return { min: base.min, max, preferred: Math.min(base.preferred, max) };
-  }, [mahamOpen, viewportWidth]);
+  }, [assistantOpen, viewportWidth]);
 
-  const sidebarWidth = mahamOpen
+  const sidebarWidth = assistantOpen
     ? Math.min(chatWidth, bounds.max)
     : navWidth;
 
@@ -133,10 +133,10 @@ export function AppShell({
 
   const setSidebarWidth = React.useCallback(
     (value: number) => {
-      if (mahamOpen) setChatWidth(clampSidebarWidth(value, "chat"));
+      if (assistantOpen) setChatWidth(clampSidebarWidth(value, "chat"));
       else setNavWidth(clampSidebarWidth(value));
     },
-    [mahamOpen],
+    [assistantOpen],
   );
 
   const persistWidth = React.useCallback(
@@ -144,7 +144,7 @@ export function AppShell({
       // Only navigation widths are remembered. Clamped on the way in: a drag
       // that starts in chat mode and ends after the mode flipped would
       // otherwise store a width navigation can never use.
-      if (mahamOpen) {
+      if (assistantOpen) {
         setChatWidth(clampSidebarWidth(value, "chat"));
         return;
       }
@@ -156,22 +156,22 @@ export function AppShell({
         // Not being able to remember the width is not worth surfacing.
       }
     },
-    [mahamOpen],
+    [assistantOpen],
   );
 
-  const openMaham = React.useCallback(() => {
-    setMahamOpen(true);
+  const openAssistant = React.useCallback(() => {
+    setAssistantOpen(true);
     setAnimating(true);
   }, []);
 
-  const closeMaham = React.useCallback(() => {
-    setMahamOpen(false);
+  const closeAssistant = React.useCallback(() => {
+    setAssistantOpen(false);
     setAnimating(true);
     // Hand focus back to the launcher; it is about to be shown again, and the
     // element that had focus is about to be display:none.
     requestAnimationFrame(() => {
       document
-        .querySelectorAll<HTMLButtonElement>("[data-maham-launcher]")
+        .querySelectorAll<HTMLButtonElement>("[data-assistant-launcher]")
         .forEach((button) => {
           if (button.offsetParent !== null) button.focus();
         });
@@ -195,7 +195,7 @@ export function AppShell({
   // Escape closes the drawer, and hands the rail back from the assistant —
   // matching the dialog behaviour elsewhere.
   React.useEffect(() => {
-    if (!drawerOpen && !mahamOpen) return;
+    if (!drawerOpen && !assistantOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       // A Radix layer that handled this keystroke marks it handled. Without
@@ -203,11 +203,11 @@ export function AppShell({
       // collapsed the assistant out of the rail behind it.
       if (event.defaultPrevented) return;
       if (drawerOpen) setDrawerOpen(false);
-      else closeMaham();
+      else closeAssistant();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen, mahamOpen, closeMaham]);
+  }, [drawerOpen, assistantOpen, closeAssistant]);
 
   return (
     <div className="min-h-svh bg-background">
@@ -255,16 +255,16 @@ export function AppShell({
         <div className="h-[calc(100svh-3.5rem)]">
           {/* Both are mounted and one is hidden: the navigation keeps its
               scroll position, and the conversation survives a close. */}
-          <div className={cn("h-full", mahamOpen && "hidden")}>
+          <div className={cn("h-full", assistantOpen && "hidden")}>
             <SidebarNav
               profile={profile}
               projects={projects}
               activeProjectId={activeProjectId}
-              onOpenMaham={openMaham}
+              onOpenAssistant={openAssistant}
             />
           </div>
-          <div className={cn("h-full", !mahamOpen && "hidden")}>
-            <MahamPanel maham={maham} active={mahamOpen} onClose={closeMaham} />
+          <div className={cn("h-full", !assistantOpen && "hidden")}>
+            <AssistantPanel assistant={assistant} active={assistantOpen} onClose={closeAssistant} />
           </div>
         </div>
 
@@ -289,7 +289,7 @@ export function AppShell({
             className={cn(
               "absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-e border-chrome-border bg-chrome",
               "transition-[width] duration-200 ease-out",
-              mahamOpen ? "w-[22rem]" : "w-72",
+              assistantOpen ? "w-[22rem]" : "w-72",
             )}
           >
             <div className="flex h-14 items-center justify-between border-b border-chrome-border px-4">
@@ -306,20 +306,20 @@ export function AppShell({
               </Button>
             </div>
             <div className="min-h-0 flex-1">
-              <div className={cn("h-full", mahamOpen && "hidden")}>
+              <div className={cn("h-full", assistantOpen && "hidden")}>
                 <SidebarNav
                   profile={profile}
                   projects={projects}
                   activeProjectId={activeProjectId}
                   onNavigate={() => setDrawerOpen(false)}
-                  onOpenMaham={openMaham}
+                  onOpenAssistant={openAssistant}
                 />
               </div>
-              <div className={cn("h-full", !mahamOpen && "hidden")}>
-                <MahamPanel
-                  maham={maham}
-                  active={mahamOpen}
-                  onClose={closeMaham}
+              <div className={cn("h-full", !assistantOpen && "hidden")}>
+                <AssistantPanel
+                  assistant={assistant}
+                  active={assistantOpen}
+                  onClose={closeAssistant}
                 />
               </div>
             </div>

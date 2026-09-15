@@ -7,16 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
-import type { Maham } from "@/components/maham/use-maham";
-import type { MahamMessage } from "@/lib/maham/types";
+import type { Assistant } from "@/components/assistant/use-assistant";
+import type { AssistantMessage } from "@/lib/assistant/types";
 
 /** Openers that match what the assistant can actually answer today. */
 const STARTERS = [
-  "maham.starter.overdue",
-  "maham.starter.today",
-  "maham.starter.next",
-  "maham.starter.review",
-  "maham.starter.summary",
+  "assistant.starter.overdue",
+  "assistant.starter.today",
+  "assistant.starter.next",
+  "assistant.starter.review",
+  "assistant.starter.summary",
 ] as const;
 
 /**
@@ -32,17 +32,17 @@ const STARTERS = [
  * board under the caller's permissions: this component never holds task data
  * and never talks to a model directly.
  */
-export function MahamPanel({
-  maham,
+export function AssistantPanel({
+  assistant,
   active,
   onClose,
 }: {
-  maham: Maham;
+  assistant: Assistant;
   /** True when this copy is the one on screen. */
   active: boolean;
   onClose: () => void;
 }) {
-  const { messages, draft, setDraft, pending, send, clear } = maham;
+  const { messages, draft, setDraft, pending, send, clear } = assistant;
   const { t } = useI18n();
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -79,10 +79,10 @@ export function MahamPanel({
           </span>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold leading-tight tracking-tight">
-              {t("nav.maham")}
+              {t("nav.assistant")}
             </h2>
             <p className="truncate text-[0.6875rem] leading-tight text-muted-foreground">
-              {t("maham.subtitle")}
+              {t("assistant.subtitle")}
             </p>
           </div>
         </div>
@@ -94,8 +94,8 @@ export function MahamPanel({
               size="icon-sm"
               onClick={clear}
               disabled={pending}
-              aria-label={t("maham.clear")}
-              title={t("maham.clear")}
+              aria-label={t("assistant.clear")}
+              title={t("assistant.clear")}
             >
               <RotateCcw />
             </Button>
@@ -104,8 +104,8 @@ export function MahamPanel({
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
-            aria-label={t("maham.close")}
-            title={t("maham.backToNav")}
+            aria-label={t("assistant.close")}
+            title={t("assistant.backToNav")}
           >
             <X />
           </Button>
@@ -147,17 +147,17 @@ export function MahamPanel({
                 send(draft);
               }
             }}
-            placeholder={t("maham.placeholder")}
+            placeholder={t("assistant.placeholder")}
             rows={1}
             maxLength={2000}
             className="max-h-28 min-h-[2.25rem] resize-none py-1.5 text-sm"
-            aria-label={t("maham.ask")}
+            aria-label={t("assistant.ask")}
           />
           <Button
             type="submit"
             size="icon-sm"
             disabled={pending || !draft.trim()}
-            aria-label={t("maham.send")}
+            aria-label={t("assistant.send")}
           >
             {pending ? <Loader2 className="animate-spin" /> : <CornerDownLeft className="rtl:-scale-x-100" />}
           </Button>
@@ -178,7 +178,7 @@ function Welcome({
   return (
     <div className="flex flex-col gap-3 py-1">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        {t("maham.welcome")}
+        {t("assistant.welcome")}
       </p>
 
       <div className="flex flex-col items-start gap-1.5">
@@ -202,7 +202,7 @@ function Welcome({
   );
 }
 
-function Bubble({ message }: { message: MahamMessage }) {
+function Bubble({ message }: { message: AssistantMessage }) {
   const { t } = useI18n();
   const mine = message.role === "user";
 
@@ -226,7 +226,7 @@ function Bubble({ message }: { message: MahamMessage }) {
         )}
       >
         <span className="sr-only">
-          {mine ? t("maham.youAsked") : t("maham.answered")}
+          {mine ? t("assistant.youAsked") : t("assistant.answered")}
         </span>
         <AnswerText text={message.text} />
       </div>
@@ -313,7 +313,7 @@ function Thinking() {
             style={{ animationDelay: `${dot * 160}ms` }}
           />
         ))}
-        <span className="sr-only">{t("maham.thinking")}</span>
+        <span className="sr-only">{t("assistant.thinking")}</span>
       </span>
     </div>
   );
