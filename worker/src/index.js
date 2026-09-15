@@ -9,20 +9,20 @@
  *
  * It is server-to-server only. There is deliberately no CORS header, so a page
  * cannot call it directly even if somebody learns the address.
+ *
+ * Plain JavaScript, and nothing is imported, so this file is exactly what goes
+ * into Cloudflare's browser editor — copy it whole. The types below are JSDoc,
+ * which is a comment at runtime and still checked against the portal's own
+ * definitions by `npm run typecheck`.
+ *
+ * @typedef {import("../../src/lib/maham/types").MahamMessage} MahamMessage
+ * @typedef {import("../../src/lib/maham/types").MahamSnapshot} MahamSnapshot
+ *
+ * @typedef {object} Env
+ * @property {string}  GEMINI_API_KEY  From Google AI Studio. A secret.
+ * @property {string} [SHARED_SECRET]  Shared with the portal. A secret.
+ * @property {string} [GEMINI_MODEL]   Plain text; model names come and go.
  */
-
-import type { MahamMessage, MahamSnapshot } from "../../src/lib/maham/types";
-
-export interface Env {
-  /** From Google AI Studio. `wrangler secret put GEMINI_API_KEY`. */
-  GEMINI_API_KEY: string;
-  /** Shared with the portal, so only it can spend the quota. */
-  SHARED_SECRET?: string;
-  /** Overridable without a code change, because model names come and go. */
-  GEMINI_MODEL?: string;
-}
-
-type Body = { messages?: MahamMessage[]; snapshot?: MahamSnapshot };
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
@@ -34,7 +34,12 @@ const MAX_TURNS = 12;
 const TIMEOUT_MS = 15_000;
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  /**
+   * @param {Request} request
+   * @param {Env} env
+   * @returns {Promise<Response>}
+   */
+  async fetch(request, env) {
     if (request.method !== "POST") {
       return json({ error: "Use POST." }, 405);
     }
@@ -46,9 +51,10 @@ export default {
       return json({ error: "Not configured." }, 500);
     }
 
-    let body: Body;
+    /** @type {{ messages?: MahamMessage[], snapshot?: MahamSnapshot }} */
+    let body;
     try {
-      body = (await request.json()) as Body;
+      body = await request.json();
     } catch {
       return json({ error: "Expected JSON." }, 400);
     }
@@ -83,8 +89,12 @@ export default {
  * set, and that is exactly the window — between `wrangler deploy` and
  * `wrangler secret put` — in which an address that spends somebody's Gemini
  * quota sits on the internet waiting to be found.
+ *
+ * @param {Request} request
+ * @param {Env} env
+ * @returns {boolean}
  */
-function authorised(request: Request, env: Env): boolean {
+function authorised(request, env) {
   if (!env.SHARED_SECRET) {
     console.error(
       "SHARED_SECRET is not set, so every request is refused. Set it with:\n" +
@@ -104,11 +114,13 @@ function authorised(request: Request, env: Env): boolean {
   return difference === 0;
 }
 
-async function ask(
-  messages: MahamMessage[],
-  snapshot: MahamSnapshot,
-  env: Env,
-): Promise<string> {
+/**
+ * @param {MahamMessage[]} messages
+ * @param {MahamSnapshot} snapshot
+ * @param {Env} env
+ * @returns {Promise<string>}
+ */
+async function ask(messages, snapshot, env) {
   const model = env.GEMINI_MODEL || DEFAULT_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
@@ -139,10 +151,13 @@ async function ask(
     throw new Error(`Gemini replied ${response.status}: ${await response.text()}`);
   }
 
-  const data = (await response.json()) as {
-    candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
-    promptFeedback?: { blockReason?: string };
-  };
+  /**
+   * @type {{
+   *   candidates?: { content?: { parts?: { text?: string, thought?: boolean }[] } }[],
+   *   promptFeedback?: { blockReason?: string },
+   * }}
+   */
+  const data = await response.json();
 
   if (data.promptFeedback?.blockReason) {
     throw new Error(`Blocked: ${data.promptFeedback.blockReason}`);
@@ -162,10 +177,13 @@ async function ask(
  * Dates are resolved to the reader's own zone here rather than sent as
  * instants, because asking a language model to do timezone arithmetic is a
  * way of finding out that it cannot.
+ *
+ * @param {MahamSnapshot} snapshot
+ * @returns {string}
  */
-function brief(snapshot: MahamSnapshot): string {
+function brief(snapshot) {
   const { viewer, counts, tasks, timeZone, locale, takenAt } = snapshot;
-  const when = (iso: string | null) =>
+  const when = (/** @type {string | null} */ iso) =>
     iso
       ? new Intl.DateTimeFormat("en-CA", {
           timeZone,
@@ -223,7 +241,12 @@ function brief(snapshot: MahamSnapshot): string {
     .join("\n");
 }
 
-function json(body: unknown, status = 200): Response {
+/**
+ * @param {unknown} body
+ * @param {number} [status]
+ * @returns {Response}
+ */
+function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },

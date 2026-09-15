@@ -44,21 +44,68 @@ curl -s https://generativelanguage.googleapis.com/v1beta/models \
   -H "x-goog-api-key: YOUR_KEY" | grep '"name"'
 ```
 
+No terminal? Open this in a browser tab instead — it is a plain GET:
+
+```
+https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY
+```
+
+(That puts the key in your browser history. Fine for a one-off check; clear it
+afterwards if it bothers you.)
+
 Pick a **Flash** model from that list — they are the ones on the free tier —
 and put it in `wrangler.toml` under `GEMINI_MODEL` if it differs from the
 default.
 
 ## 3. Make a shared secret
 
-So that only the portal can spend your quota:
+So that only the portal can spend your quota. Any 32+ random characters will
+do. In a terminal:
 
 ```bash
-openssl rand -base64 32
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Or, with no terminal, in any browser's developer console (F12 → Console):
+
+```js
+crypto.randomUUID() + crypto.randomUUID()
 ```
 
 Keep the output. It goes in two places, and they must match.
 
 ## 4. Deploy the Worker
+
+Two routes. **A** needs nothing installed; **B** is better if you will be
+changing the Worker more than once.
+
+### A. In the Cloudflare dashboard, no computer setup
+
+1. **[dash.cloudflare.com](https://dash.cloudflare.com)** → **Workers & Pages**
+   → **Create** → **Start with Hello World!** → **Deploy**.
+   Name it `almailgroup-assistant`. First time, Cloudflare asks you to pick a
+   `workers.dev` subdomain — any name; it becomes part of the address.
+2. On the Worker, choose **Edit code**. Select everything in the editor and
+   replace it with the whole of
+   [`worker/src/index.js`](src/index.js) — it is plain JavaScript with nothing
+   imported, so it pastes in as it is. **Deploy**.
+3. Back on the Worker → **Settings** → **Variables and Secrets** → **Add**:
+
+   | Type | Name | Value |
+   | --- | --- | --- |
+   | Secret | `GEMINI_API_KEY` | the key from step 1 |
+   | Secret | `SHARED_SECRET` | the value from step 3 |
+   | Text | `GEMINI_MODEL` | only if step 2's list had no `gemini-2.5-flash` |
+
+   Then **Deploy** again, so the variables take effect.
+4. The Worker's address is on its overview page:
+   `https://almailgroup-assistant.<your-subdomain>.workers.dev`. Copy it.
+
+The cost of this route: the dashboard now holds the deployed code, and this
+repository no longer matches it. Change the Worker here and you must paste it
+across again. Route B keeps the two in step.
+
+### B. From a terminal
 
 ```bash
 cd worker
@@ -75,12 +122,9 @@ two commands the Worker refuses every request — it has no secret to check
 against, and an endpoint that spends your Gemini quota should not sit open
 while you fetch the next command.
 
-`wrangler deploy` prints the address, something like
-`https://almailgroup-assistant.<your-subdomain>.workers.dev`. Copy it.
-
 Secrets are stored encrypted on Cloudflare. Nothing you typed is written to
-this repository — that is what `wrangler secret put` is for, rather than
-`[vars]` in `wrangler.toml`.
+this repository — that is what `wrangler secret put` and the dashboard's
+**Secret** type are for, rather than `[vars]` in `wrangler.toml`.
 
 ## 5. Tell the portal about it
 
@@ -112,7 +156,8 @@ act on it. The reason is in the Worker's log.
 npx wrangler tail
 ```
 
-Ask the assistant something while that is running.
+Or, with no terminal: the Worker's page in the dashboard → **Logs** → **Begin
+log stream**. Ask the assistant something while it is running.
 
 | What you see | What it means |
 | --- | --- |

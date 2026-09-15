@@ -7,7 +7,7 @@
 # Secrets are never written here. `wrangler secret put` stores them encrypted
 # on Cloudflare; this file is committed.
 name = "almailgroup-assistant"
-main = "src/index.ts"
+main = "src/index.js"
 compatibility_date = "2026-09-01"
 
 [observability]
