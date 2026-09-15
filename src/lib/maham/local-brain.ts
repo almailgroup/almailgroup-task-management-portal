@@ -4,7 +4,7 @@ import { createTranslator, type Translator } from "@/lib/i18n";
 import type { MahamAnswer, MahamSnapshot, MahamTask } from "@/lib/maham/types";
 
 /**
- * MAHAM's placeholder brain.
+ * The assistant's placeholder brain.
  *
  * It answers the handful of tracking questions that can be resolved by
  * counting rows, and says plainly when a question needs the language model.

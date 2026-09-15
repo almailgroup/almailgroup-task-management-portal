@@ -20,9 +20,9 @@ const STARTERS = [
 ] as const;
 
 /**
- * MAHAM AI — the assistant, living in the sidebar rail rather than in a modal
- * over the board. The point is that you can read a task while you ask about
- * it, so this never covers the work.
+ * The AI assistant, living in the sidebar rail rather than in a modal over
+ * the board. The point is that you can read a task while you ask about it, so
+ * this never covers the work.
  *
  * The thread is held by AppShell and passed in, so the rail and the mobile
  * drawer show one conversation rather than drifting apart, and closing the
@@ -237,7 +237,7 @@ function Bubble({ message }: { message: MahamMessage }) {
 /**
  * Renders an answer's plain text.
  *
- * MAHAM writes lists as "• " lines. Rendering those as real list items rather
+ * The assistant writes lists as "• " lines. Rendering those as real list items rather
  * than as one pre-wrapped block is what gives a wrapped task title a hanging
  * indent instead of starting again under the bullet — which matters more here
  * than it did in a wide modal.

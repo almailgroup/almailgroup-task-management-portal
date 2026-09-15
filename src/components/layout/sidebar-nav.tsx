@@ -37,7 +37,7 @@ export function SidebarNav({
   projects: Project[];
   activeProjectId?: string;
   onNavigate?: () => void;
-  /** Hands the rail over to MAHAM AI; owned by AppShell, which resizes it. */
+  /** Hands the rail over to the assistant; owned by AppShell, which resizes it. */
   onOpenMaham: () => void;
 }) {
   const pathname = usePathname();

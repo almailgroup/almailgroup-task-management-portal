@@ -21,7 +21,7 @@ const newId = () =>
     : `${Date.now()}-${Math.random()}`;
 
 /**
- * The MAHAM AI conversation.
+ * The AI assistant's conversation.
  *
  * Held once, in AppShell, and handed to both the rail panel and the mobile
  * drawer panel. All of it is shared — not just the thread: when each panel

@@ -335,7 +335,7 @@ Both hand back:
   and the database helpers return their messages as keys, so one action
   serves every language and the client shows it in the reader's.
 
-MAHAM AI answers in the language it is asked in, and understands the
+The AI assistant answers in the language it is asked in, and understands the
 tracking questions in both.
 
 To add a language: add its code to `LOCALES`, a dictionary file typed as
@@ -614,7 +614,7 @@ push; loosening a policy fails the build with the rule that moved.
 Ticking an item bumps the parent note's `updated_at` through a trigger, so a
 list you are working through floats to the top of the sidebar.
 
-## MAHAM AI
+## AI assistant
 
 The in-app assistant, reached from the button above the clock at the foot of
 the sidebar. It answers questions about where work stands: what is overdue,
@@ -640,6 +640,11 @@ The snapshot is built server-side on every question. The browser never holds
 it, and never learns the Worker's address or its secret.
 
 ### Connecting Gemini
+
+The assistant is named "AI assistant" everywhere it is read. Its code still
+lives under `src/lib/maham/` and its two environment variables are still
+`MAHAM_WORKER_URL` and `MAHAM_WORKER_SECRET` — renaming those would mean
+re-entering them on Vercel and in Cloudflare for no gain.
 
 Until `MAHAM_WORKER_URL` is set, answers come from the local brain in
 `src/lib/maham/local-brain.ts` — deterministic, counted straight off the

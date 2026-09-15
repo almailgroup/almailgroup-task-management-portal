@@ -15,7 +15,7 @@ export type ResizerBounds = { min: number; max: number; preferred: number };
  * limits, Enter resets.
  *
  * The limits are passed in rather than looked up: the rail can be dragged
- * wider while it holds the MAHAM AI conversation than while it holds
+ * wider while it holds the assistant's conversation than while it holds
  * navigation, and the shell caps that against the window width.
  */
 export function SidebarResizer({

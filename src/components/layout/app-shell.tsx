@@ -70,7 +70,7 @@ export function AppShell({
   const [chatWidth, setChatWidth] = React.useState(SIDEBAR_CHAT_DEFAULT);
   const [adopted, setAdopted] = React.useState(false);
 
-  // MAHAM AI takes over the rail rather than opening over the board, so you
+  // The assistant takes over the rail rather than opening over the board, so you
   // can read a task while asking about it. One flag drives both the rail and
   // the drawer: a second flag for the drawer drifted out of sync with this one
   // and left the hamburger reopening into the assistant.

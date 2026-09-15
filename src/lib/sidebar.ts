@@ -12,7 +12,7 @@ export const SIDEBAR_DEFAULT = 240;
 export const SIDEBAR_STORAGE_KEY = "almailgroup:sidebar-width";
 
 /**
- * The rail holds a conversation when MAHAM AI is open, which needs more room
+ * The rail holds a conversation when the assistant is open, which needs more room
  * than a list of links. It gets its own bounds rather than widening the ones
  * above, so closing the assistant returns the sidebar to sane navigation
  * widths instead of leaving it stretched.

@@ -36,7 +36,7 @@ export const en = {
   "nav.noProjects": "No projects yet.",
   "nav.createFirstProject": "Create your first project to get started.",
   "nav.selectProject": "Select project",
-  "nav.maham": "MAHAM AI",
+  "nav.maham": "AI assistant",
   "nav.mahamHint": "Ask about your tasks",
 
   // ---- command palette --------------------------------------------------------
@@ -658,7 +658,7 @@ export const en = {
   "remind.on": "On",
   "remind.channelLabel": "{channel} reminders",
 
-  // ---- MAHAM AI --------------------------------------------------------------------------------------
+  // ---- AI assistant --------------------------------------------------------------------------------------
   "maham.starter.overdue": "What is overdue?",
   "maham.starter.today": "What is due today?",
   "maham.starter.next": "What should I work on next?",
@@ -666,15 +666,15 @@ export const en = {
   "maham.starter.summary": "Give me a status summary",
   "maham.subtitle": "Answers from the tasks you can see",
   "maham.clear": "Clear conversation",
-  "maham.close": "Close MAHAM AI",
+  "maham.close": "Close the AI assistant",
   "maham.backToNav": "Back to navigation",
   "maham.placeholder": "Ask about your tasks…",
-  "maham.ask": "Ask MAHAM AI",
+  "maham.ask": "Ask the AI assistant",
   "maham.send": "Send",
   "maham.welcome": "Ask me where the work stands. I read the same board you do, so I can only tell you about tasks you already have access to.",
   "maham.youAsked": "You asked: ",
-  "maham.answered": "MAHAM AI answered: ",
-  "maham.thinking": "MAHAM AI is thinking",
+  "maham.answered": "The AI assistant answered: ",
+  "maham.thinking": "The AI assistant is thinking",
   "maham.unreachable": "I could not reach the server. Check your connection and ask me again.",
   "brain.noTasks": "There are no tasks I can see yet. Once work is assigned to you it will show up here and I can track it.",
   "brain.nothingOverdue": "Nothing is overdue. Every task with a due date is still inside it.",
@@ -704,7 +704,7 @@ export const en = {
   "brain.noAssigneeCount_other": "{n} open tasks have no assignee.",
   "brain.noDueDateCount_one": "{n} open task has no due date.",
   "brain.noDueDateCount_other": "{n} open tasks have no due date.",
-  "brain.help": "I am MAHAM, the assistant for this portal. I can see exactly the tasks you can see — no more.\n\nAsk me things like:\n• {q1}\n• {q2}\n• {q3}\n• {q4}\n• {q5}\n\nAnything more open-ended needs my language model, which is not connected yet.",
+  "brain.help": "I am the AI assistant for this portal. I can see exactly the tasks you can see — no more.\n\nAsk me things like:\n• {q1}\n• {q2}\n• {q3}\n• {q4}\n• {q5}\n\nAnything more open-ended needs my language model, which is not connected yet.",
   "brain.fallback": "I cannot answer that one yet — my language model is not connected, so for now I only handle the tracking questions I can count from the board.\n\nTry: what is overdue, what is due today, what should I work on next, what is in review, or a status summary.",
   "brain.noDueDate": "no due date",
   "brain.due": "due {date}",

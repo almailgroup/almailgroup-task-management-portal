@@ -7,7 +7,7 @@ import { getI18n } from "@/lib/i18n/server";
 import type { MahamAnswer, MahamMessage } from "@/lib/maham/types";
 
 /**
- * Ask MAHAM a question.
+ * Ask the assistant a question.
  *
  * The snapshot is built server-side, per request, under the caller's own
  * permissions — the browser never holds the task data the assistant reasons

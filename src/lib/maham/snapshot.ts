@@ -5,7 +5,7 @@ import { summarise } from "@/lib/metrics";
 import type { MahamSnapshot, MahamTask } from "@/lib/maham/types";
 
 /**
- * Gather what MAHAM is allowed to know about the caller's work.
+ * Gather what the assistant is allowed to know about the caller's work.
  *
  * Every read goes through the normal RLS-scoped queries, so the snapshot is
  * already the caller's own view of the board: a member sees only the tasks

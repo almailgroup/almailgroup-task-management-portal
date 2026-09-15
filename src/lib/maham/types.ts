@@ -1,5 +1,5 @@
 /**
- * MAHAM AI — shared types.
+ * The AI assistant — shared types.
  *
  * Deliberately free of React and of Supabase: the same shapes travel from the
  * chat panel, through the Server Action, to the Cloudflare Worker that will
@@ -36,7 +36,7 @@ export type MahamTask = {
 };
 
 /**
- * Everything MAHAM knows when it answers, gathered under the caller's own
+ * Everything the assistant knows when it answers, gathered under the caller's own
  * permissions. A member's snapshot holds only the tasks assigned to them,
  * because row-level security already scopes the query that builds it — the
  * assistant inherits the permission model rather than re-implementing it.
