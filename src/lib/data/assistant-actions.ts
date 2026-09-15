@@ -56,7 +56,14 @@ export async function askAssistant(
       signal: AbortSignal.timeout(20_000),
     });
 
-    if (!response.ok) throw new Error(`Worker replied ${response.status}`);
+    if (!response.ok) {
+      // The body carries the Worker's own account of what went wrong. Without
+      // it the log says only "502", which names the messenger, not the news.
+      const detail = await response.text().catch(() => "");
+      throw new Error(
+        `Worker replied ${response.status}${detail ? `: ${detail.slice(0, 300)}` : ""}`,
+      );
+    }
 
     const body = (await response.json()) as { text?: string };
     if (!body.text?.trim()) throw new Error("Worker replied with no text");

@@ -118,7 +118,18 @@ test("a blocked prompt fails rather than returning nothing", async () => {
 
 test("an upstream error is a 502, so the portal falls back", async () => {
   gemini({ error: { message: "API key not valid" } }, 400);
-  assert.equal((await ask()).status, 502);
+  const response = await ask();
+  assert.equal(response.status, 502);
+  // The reason travels: the portal logs it, which is the only place anybody
+  // is going to read it.
+  assert.match((await response.json()).reason, /API key not valid/);
+});
+
+test("a key is never repeated back in the reason", async () => {
+  gemini({ error: { message: "key AIzaSyEXAMPLE0123456789abcdef is invalid" } }, 400);
+  const { reason } = await (await ask()).json();
+  assert.match(reason, /\[key\]/);
+  assert.doesNotMatch(reason, /AIzaSy/);
 });
 
 test("the key travels in a header, never in the URL", async () => {

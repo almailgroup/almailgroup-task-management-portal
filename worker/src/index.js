@@ -78,7 +78,10 @@ export default {
       // panel degrades to a worse answer rather than to an error. The reason
       // belongs in `wrangler tail`, not in front of whoever asked.
       console.error("Gemini call failed:", error);
-      return json({ error: "Upstream failed." }, 502);
+      // The caller is the portal's own server, never a browser, so the reason
+      // can travel: it ends up in the Vercel log, which is where somebody is
+      // already looking when they wonder why the assistant went quiet.
+      return json({ error: "Upstream failed.", reason: reasonOf(error) }, 502);
     }
   },
 };
@@ -265,6 +268,24 @@ function brief(snapshot) {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/**
+ * @param {unknown} body
+ * @param {number} [status]
+ * @returns {Response}
+ */
+/**
+ * A failure in one short line, with anything key-shaped taken out — Google
+ * does not echo the key back, but a log is a poor place to find out otherwise.
+ *
+ * @param {unknown} error
+ * @returns {string}
+ */
+function reasonOf(error) {
+  return String(error instanceof Error ? error.message : error)
+    .replace(/AIza[0-9A-Za-z_-]{10,}/g, "[key]")
+    .slice(0, 300);
 }
 
 /**
