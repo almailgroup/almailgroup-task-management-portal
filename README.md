@@ -322,6 +322,16 @@ Arabic, with Latin words inside a sentence — a container number, an email
 address — still falling through to Geist. Dates are formatted for `ar-AE`
 with Western digits, since that is how the company's own documents read.
 
+Both languages name their locale — `en-AE` and `ar-AE-u-nu-latn` — and every
+date is formatted in the timezone the `tz` cookie reports, never in whichever
+one the machine doing the formatting happens to be in. That is not a
+preference: a page is rendered twice, once on the server and once in the
+browser, and if the two spell a date differently React throws the server's
+HTML away and re-renders the whole tree (hydration error #418). Vercel runs
+in UTC and answers `en-US`; a browser here is four hours ahead and answers
+`en-GB`. `tests/unit/hydration-safe-dates.test.ts` pins the helpers that could
+drift back.
+
 The dictionaries live in `src/lib/i18n/`: flat, namespaced keys
 (`"nav.dashboard"`, `"task.saveChanges"`) with English as the source of truth
 and Arabic typed against it, so a key missing from either fails the build.
@@ -752,6 +762,11 @@ actually had, not towards a coverage number:
 - **`i18n` / `server-messages`** — that the Arabic dictionary has every key,
   placeholder and plural form the English one has, and that no Server Action
   returns an English sentence where the client expects a key.
+- **`hydration-safe-dates`** — that a date reads the same on the server as in
+  the browser. Both the locale and the timezone are named rather than left to
+  the runtime, because a task due at 22:00 UTC was "Sep 15, 10:00 PM" on
+  Vercel and "16 Sept, 2:00" in Dubai, which cost the whole page its
+  server render.
 
 The end-to-end tests cover the pages reachable without a session, plus two
 rules that apply everywhere and keep getting broken by accident: no page may

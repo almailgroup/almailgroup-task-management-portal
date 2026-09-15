@@ -89,7 +89,7 @@ export function DueDate({
   status: TaskStatus;
   className?: string;
 }) {
-  const { t, tag } = useI18n();
+  const { t, tag, timeZone } = useI18n();
   if (!dueAt) return null;
 
   const overdue = isOverdue(dueAt, status);
@@ -108,7 +108,7 @@ export function DueDate({
       title={overdue ? t("meta.overdue") : t("meta.dueDate")}
     >
       <CalendarDays className="size-3" />
-      {formatDateTime(dueAt, tag)}
+      {formatDateTime(dueAt, tag, timeZone)}
       {overdue && <span className="sr-only">{t("meta.overdueSr")}</span>}
     </span>
   );
@@ -165,7 +165,7 @@ export function TaskProvenance({
   createdAt: string;
   creator: Profile | null;
 }) {
-  const { t, tag } = useI18n();
+  const { t, tag, timeZone } = useI18n();
   const name = creator?.full_name ?? creator?.email ?? null;
 
   return (
@@ -190,8 +190,11 @@ export function TaskProvenance({
 
       <span className="inline-flex items-center gap-1.5">
         <Clock3 className="size-3.5 shrink-0" />
-        <time dateTime={createdAt} title={new Date(createdAt).toLocaleString(tag)}>
-          {formatDateTime(createdAt, tag)}
+        <time
+          dateTime={createdAt}
+          title={new Date(createdAt).toLocaleString(tag, { timeZone })}
+        >
+          {formatDateTime(createdAt, tag, timeZone)}
         </time>
       </span>
     </div>

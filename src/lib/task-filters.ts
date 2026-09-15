@@ -42,6 +42,8 @@ export function filterBlurb(filter: TaskFilter): TranslationKey | "" {
 export function applyTaskFilter(
   tasks: TaskWithAssignees[],
   filter: TaskFilter,
+  /** The reader's zone: "due today" is a question about their day. */
+  timeZone?: string,
 ): TaskWithAssignees[] {
   switch (filter) {
     case "todo":
@@ -56,7 +58,7 @@ export function applyTaskFilter(
       return tasks.filter((task) => task.status === "done");
     case "due_today":
       return tasks.filter(
-        (task) => task.status !== "done" && isDueToday(task.due_at),
+        (task) => task.status !== "done" && isDueToday(task.due_at, timeZone),
       );
     case "overdue":
       return tasks.filter((task) => isOverdue(task.due_at, task.status));

@@ -6,9 +6,37 @@ import type { TaskStatus } from "@/lib/supabase/database.types";
 /**
  * Whoever renders one of these passes their translator; the pure callers —
  * tests, the CSV writer — get English by leaving it out.
+ *
+ * `tag` and `timeZone` come with it, so a date is written the same way on the
+ * server as in the browser. Both sides read them from the same translator,
+ * which is the whole point: asking each runtime for its own answer is what
+ * made the two renders disagree.
  */
-export type Speaker = Pick<Translator, "t" | "tn">;
+export type Speaker = Pick<Translator, "t" | "tn" | "tag" | "timeZone">;
 const english: Speaker = createTranslator("en");
+
+/**
+ * The calendar day an instant falls on, in a given zone, as "2026-09-16".
+ *
+ * en-CA is the shortest way to ask Intl for ISO order, and the result compares
+ * as a plain string. Every "is this today", "how many days away" and "do we
+ * need to print the year" question goes through here, so they all answer in
+ * the reader's own zone instead of the machine's.
+ */
+function dayIn(date: Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/** That same day as a count of days, so two of them can be subtracted. */
+function dayNumber(date: Date, timeZone?: string): number {
+  const [year, month, day] = dayIn(date, timeZone).split("-").map(Number);
+  return Date.UTC(year, month - 1, day) / 86_400_000;
+}
 
 /**
  * A task is overdue once its due instant has passed and the work is not done.
@@ -22,30 +50,38 @@ export function isOverdue(dueAt: string | null, status: TaskStatus): boolean {
   return new Date(dueAt).getTime() < Date.now();
 }
 
-/** True when the due instant falls on the viewer's local calendar today. */
-export function isDueToday(dueAt: string | null): boolean {
+/**
+ * True when the due instant falls on the viewer's calendar today.
+ *
+ * `timeZone` is the viewer's, from the translator. Left out it falls back to
+ * the runtime's own zone, which is right for the server-side aggregates that
+ * never reach a browser — but never for anything that is rendered twice.
+ */
+export function isDueToday(dueAt: string | null, timeZone?: string): boolean {
   if (!dueAt) return false;
-  const due = new Date(dueAt);
-  const now = new Date();
-  return (
-    due.getFullYear() === now.getFullYear() &&
-    due.getMonth() === now.getMonth() &&
-    due.getDate() === now.getDate()
-  );
+  return dayIn(new Date(dueAt), timeZone) === dayIn(new Date(), timeZone);
 }
 
 /**
  * Date and time in the viewer's own timezone. The year is shown only when it
  * differs from the current one, to keep the board compact.
  *
- * `tag` is the reader's language, from the translator; left out, the browser
- * formats in its own default.
+ * `tag` and `timeZone` both come from the translator rather than from the
+ * runtime. Ask the runtime and the server answers UTC in en-US while the
+ * browser answers Dubai in en-GB, the two strings differ, and React throws
+ * the server's markup away (hydration error #418).
  */
-export function formatDateTime(value: string, tag?: string): string {
+export function formatDateTime(
+  value: string,
+  tag?: string,
+  timeZone?: string,
+): string {
   const date = new Date(value);
-  const sameYear = date.getFullYear() === new Date().getFullYear();
+  const sameYear =
+    dayIn(date, timeZone).slice(0, 4) === dayIn(new Date(), timeZone).slice(0, 4);
 
   return date.toLocaleString(tag, {
+    timeZone,
     day: "numeric",
     month: "short",
     year: sameYear ? undefined : "numeric",
@@ -112,14 +148,17 @@ export function toLocalInput(iso: string | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** Whole calendar days from an instant to now, in the viewer's zone. */
+export function daysAgo(iso: string, timeZone?: string): number {
+  return dayNumber(new Date(), timeZone) - dayNumber(new Date(iso), timeZone);
+}
+
 /** Short, human relative phrasing: "in 2 days", "3 days ago", "today". */
-export function relativeDay(iso: string, { t, tn }: Speaker = english): string {
-  const then = new Date(iso);
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round(
-    (startOfDay(then) - startOfDay(new Date())) / 86_400_000,
-  );
+export function relativeDay(
+  iso: string,
+  { t, tn, timeZone }: Speaker = english,
+): string {
+  const days = dayNumber(new Date(iso), timeZone) - dayNumber(new Date(), timeZone);
 
   if (days === 0) return t("rel.today");
   if (days === 1) return t("rel.tomorrow");

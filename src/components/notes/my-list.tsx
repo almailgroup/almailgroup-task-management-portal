@@ -14,6 +14,7 @@ import {
   deleteNote,
   setNotePinned,
 } from "@/lib/data/note-actions";
+import { daysAgo } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
 import type { Translator } from "@/lib/i18n";
@@ -39,7 +40,7 @@ export function MyList({
   /** The directory the share picker offers. */
   team: Profile[];
 }) {
-  const { t, tm, tag } = useI18n();
+  const { t, tm, tag, timeZone } = useI18n();
   const [notes, setNotes] = React.useState(initialNotes);
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState("");
@@ -227,7 +228,7 @@ export function MyList({
                       )}
                     </span>
                     <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="shrink-0">{dayLabel(note.updated_at, t, tag)}</span>
+                      <span className="shrink-0">{dayLabel(note.updated_at, t, tag, timeZone)}</span>
                       <span className="min-w-0 flex-1 truncate">
                         {note.mine
                           ? previewOf(note, t)
@@ -297,22 +298,28 @@ export function MyList({
 }
 
 /** "Today", "Yesterday", or a short date — the Notes app's own shorthand. */
-function dayLabel(iso: string, t: Translator["t"], tag: Translator["tag"]): string {
+function dayLabel(
+  iso: string,
+  t: Translator["t"],
+  tag: Translator["tag"],
+  timeZone: Translator["timeZone"],
+): string {
   const then = new Date(iso);
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round(
-    (startOfDay(new Date()) - startOfDay(then)) / 86_400_000,
-  );
+  const days = daysAgo(iso, timeZone);
 
   if (days === 0) {
     return then.toLocaleTimeString(tag, {
+      timeZone,
       hour: "numeric",
       minute: "2-digit",
     });
   }
   if (days === 1) return t("gap.yesterday");
-  return then.toLocaleDateString(tag, { day: "numeric", month: "short" });
+  return then.toLocaleDateString(tag, {
+    timeZone,
+    day: "numeric",
+    month: "short",
+  });
 }
 
 /** The line under the title: what is left to do, or the note's own text. */

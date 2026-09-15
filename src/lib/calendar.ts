@@ -15,6 +15,43 @@ export function dayKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
+/**
+ * The grid cell an *instant* belongs in, in the viewer's zone.
+ *
+ * The cells themselves are floating dates — midnight on a wall calendar, with
+ * no zone of their own — and `dayKey` is right for those. A due date is not:
+ * it is a moment, and which square it lands on depends on where the reader is.
+ * Asking the runtime instead put a task due at 22:00 UTC on the 15th for the
+ * server and the 16th for a browser in Dubai, so the two renders drew
+ * different calendars.
+ */
+export function dayKeyIn(date: Date, timeZone?: string): string {
+  const [year, month, day] = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(date)
+    .split("-")
+    .map(Number);
+  return `${year}-${month - 1}-${day}`;
+}
+
+/** Today as a floating date, on the viewer's calendar rather than the machine's. */
+export function todayIn(timeZone?: string): Date {
+  const [year, month, day] = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date())
+    .split("-")
+    .map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function isSameDay(a: Date, b: Date): boolean {
   return startOfDay(a).getTime() === startOfDay(b).getTime();
 }

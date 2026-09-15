@@ -87,7 +87,7 @@ function Group({
   onOpenTask: (task: TaskWithAssignees) => void;
 }) {
   const i18n = useI18n();
-  const { t, tag } = i18n;
+  const { t, tag, timeZone } = i18n;
   return (
     <section className="flex flex-col gap-2">
       <h2 className="flex items-center gap-1.5 text-sm">
@@ -121,7 +121,7 @@ function Group({
               {task.follow_up_at ? relativeDay(task.follow_up_at, i18n) : ""}
             </Badge>
             <span className="hidden text-xs text-muted-foreground sm:inline">
-              {task.follow_up_at ? formatDateTime(task.follow_up_at, tag) : ""}
+              {task.follow_up_at ? formatDateTime(task.follow_up_at, tag, timeZone) : ""}
             </span>
 
             <StatusBadge status={task.status} />

@@ -41,7 +41,7 @@ export function RescheduleMenu({
 }) {
   const router = useRouter();
   const i18n = useI18n();
-  const { t, tm, tag } = i18n;
+  const { t, tm, tag, timeZone } = i18n;
   const [pending, setPending] = React.useState(false);
   const [picking, setPicking] = React.useState(false);
   const [custom, setCustom] = React.useState("");
@@ -57,7 +57,7 @@ export function RescheduleMenu({
     }
 
     toast.success(
-      dueAt ? t("resched.movedTo", { when: formatDateTime(dueAt, tag) }) : t("resched.cleared"),
+      dueAt ? t("resched.movedTo", { when: formatDateTime(dueAt, tag, timeZone) }) : t("resched.cleared"),
     );
     setPicking(false);
     router.refresh();

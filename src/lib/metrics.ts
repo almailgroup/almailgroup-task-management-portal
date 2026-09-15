@@ -16,7 +16,11 @@ export type Metrics = {
   completionRate: number;
 };
 
-export function summarise(tasks: TaskWithAssignees[]): Metrics {
+export function summarise(
+  tasks: TaskWithAssignees[],
+  /** The reader's zone, so "due today" means their day and not the server's. */
+  timeZone?: string,
+): Metrics {
   let done = 0;
   let todo = 0;
   let overdue = 0;
@@ -30,7 +34,7 @@ export function summarise(tasks: TaskWithAssignees[]): Metrics {
     if (task.status === "in_progress") inProgress += 1;
     if (task.status === "in_review") inReview += 1;
     if (isOverdue(task.due_at, task.status)) overdue += 1;
-    if (task.status !== "done" && isDueToday(task.due_at)) dueToday += 1;
+    if (task.status !== "done" && isDueToday(task.due_at, timeZone)) dueToday += 1;
   }
 
   const total = tasks.length;

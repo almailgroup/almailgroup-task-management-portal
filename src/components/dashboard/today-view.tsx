@@ -61,7 +61,7 @@ export function TodayView({
   profile: Profile;
 }) {
   const i18n = useI18n();
-  const { t, tn, tag } = i18n;
+  const { t, tn, tag, timeZone } = i18n;
   const [active, setActive] = React.useState<TaskWithAssignees | null>(null);
   const [open, setOpen] = React.useState(false);
 
@@ -75,12 +75,12 @@ export function TodayView({
 
   const overdue = tasks.filter((t) => isOverdue(t.due_at, t.status));
   const dueToday = tasks.filter(
-    (t) => t.status !== "done" && isDueToday(t.due_at),
+    (t) => t.status !== "done" && isDueToday(t.due_at, timeZone),
   );
   const inProgress = tasks.filter((t) => t.status === "in_progress");
   const inReview = tasks.filter((t) => t.status === "in_review");
   const completedToday = tasks.filter(
-    (t) => t.status === "done" && isDueToday(t.updated_at),
+    (t) => t.status === "done" && isDueToday(t.updated_at, timeZone),
   );
 
   const chaseNow = followUps.filter(
@@ -101,14 +101,14 @@ export function TodayView({
         const row = rows.get(person.id);
         if (!row) continue;
         if (isOverdue(task.due_at, task.status)) row.late += 1;
-        if (task.status !== "done" && isDueToday(task.due_at)) row.today += 1;
+        if (task.status !== "done" && isDueToday(task.due_at, timeZone)) row.today += 1;
         if (task.status === "in_progress") row.active += 1;
       }
     }
     return [...rows.values()]
       .filter((r) => r.today + r.late + r.active > 0)
       .sort((a, b) => b.late - a.late || b.today - a.today);
-  }, [tasks, team]);
+  }, [tasks, team, timeZone]);
 
   function openTask(task: TaskWithAssignees) {
     setActive(task);
@@ -116,6 +116,7 @@ export function TodayView({
   }
 
   const today = new Date().toLocaleDateString(tag, {
+    timeZone,
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -294,7 +295,7 @@ function Section({
   onOpen: (task: TaskWithAssignees) => void;
   canReschedule: boolean;
 }) {
-  const { tag } = useI18n();
+  const { tag, timeZone } = useI18n();
   return (
     <Card
       className={cn(
@@ -342,7 +343,7 @@ function Section({
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {projectName(task.project_id)}
-                    {task.due_at && ` · ${formatDateTime(task.due_at, tag)}`}
+                    {task.due_at && ` · ${formatDateTime(task.due_at, tag, timeZone)}`}
                   </span>
                 </button>
               </div>

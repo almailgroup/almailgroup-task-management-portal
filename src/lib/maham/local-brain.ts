@@ -18,14 +18,14 @@ import type { MahamAnswer, MahamSnapshot, MahamTask } from "@/lib/maham/types";
  * dictionary.
  */
 
-type Speaker = Pick<Translator, "t" | "tn" | "tag">;
+type Speaker = Pick<Translator, "t" | "tn" | "tag" | "timeZone">;
 const english: Speaker = createTranslator("en");
 
-function dueLabel(task: MahamTask, { t, tag }: Speaker): string {
+function dueLabel(task: MahamTask, { t, tag, timeZone }: Speaker): string {
   if (!task.dueAt) return t("brain.noDueDate");
   const due = new Date(task.dueAt);
   return t("brain.due", {
-    date: due.toLocaleDateString(tag, { day: "numeric", month: "short" }),
+    date: due.toLocaleDateString(tag, { timeZone, day: "numeric", month: "short" }),
   });
 }
 
@@ -77,7 +77,7 @@ export function answerLocally(
 
   // Due today ----------------------------------------------------------
   if (matches(q, ["due", "today"], ["today"], ["due", "now"], ["اليوم"])) {
-    const today = open.filter((task) => isDueToday(task.dueAt));
+    const today = open.filter((task) => isDueToday(task.dueAt, i18n.timeZone));
     // A task due at 09:00 this morning is both due today and overdue. It
     // belongs under today's heading, once — so the overdue section below
     // covers only the days already behind us.
@@ -168,7 +168,7 @@ export function answerLocally(
   ) {
     const weight = (task: MahamTask) => {
       if (isOverdue(task.dueAt, task.status)) return 0;
-      if (isDueToday(task.dueAt)) return 1;
+      if (isDueToday(task.dueAt, i18n.timeZone)) return 1;
       if (task.priority === "urgent") return 2;
       if (task.priority === "high") return 3;
       return task.dueAt ? 4 : 5;

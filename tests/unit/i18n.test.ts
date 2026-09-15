@@ -92,11 +92,28 @@ describe("createTranslator", () => {
 });
 
 describe("locale metadata", () => {
-  it("Arabic is right-to-left with Western digits; English is untouched", () => {
+  it("Arabic is right-to-left with Western digits", () => {
     expect(directionFor("ar")).toBe("rtl");
     expect(directionFor("en")).toBe("ltr");
-    expect(localeTag("en")).toBeUndefined();
     expect(new Intl.NumberFormat(localeTag("ar")).format(1234)).toBe("1,234");
+  });
+
+  /**
+   * Both tags are named rather than left to the runtime. Leaving English unset
+   * meant Intl asked whoever was running it: Node on Vercel said en-US and the
+   * browser said en-GB, the two spelled the same date differently, and React
+   * threw the server's HTML away (hydration error #418).
+   */
+  it("names a locale for both languages, so no runtime picks its own", () => {
+    for (const locale of LOCALES) {
+      expect(localeTag(locale), locale).toBeTruthy();
+      expect(() => new Intl.DateTimeFormat(localeTag(locale)), locale).not.toThrow();
+    }
+  });
+
+  it("carries the viewer's timezone, defaulting to UTC until the cookie exists", () => {
+    expect(createTranslator("en").timeZone).toBe("UTC");
+    expect(createTranslator("en", "Asia/Dubai").timeZone).toBe("Asia/Dubai");
   });
 
   it("rejects anything that is not a supported locale", () => {

@@ -2,6 +2,7 @@ import "server-only";
 
 import { getAllTasks, getProjects, requireProfile } from "@/lib/data/queries";
 import { summarise } from "@/lib/metrics";
+import { getTimeZone } from "@/lib/i18n/server";
 import type { MahamSnapshot, MahamTask } from "@/lib/maham/types";
 
 /**
@@ -24,7 +25,7 @@ export async function buildSnapshot(): Promise<MahamSnapshot> {
   ]);
 
   const projectName = new Map(projects.map((project) => [project.id, project.name]));
-  const metrics = summarise(tasks);
+  const metrics = summarise(tasks, await getTimeZone());
   const open = tasks.filter((task) => task.status !== "done");
 
   const flattened: MahamTask[] = tasks.map((task) => ({

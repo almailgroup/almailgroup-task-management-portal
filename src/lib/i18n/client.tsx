@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  DEFAULT_TIME_ZONE,
   LOCALE_COOKIE,
   createTranslator,
   type Locale,
@@ -21,12 +22,23 @@ const I18nContext = React.createContext<Translator | null>(null);
  */
 export function I18nProvider({
   locale,
+  timeZone = DEFAULT_TIME_ZONE,
   children,
 }: {
   locale: Locale;
+  /**
+   * The viewer's timezone as the *server* read it. Deliberately not
+   * `Intl.DateTimeFormat().resolvedOptions().timeZone` — the browser knowing
+   * better than the server is precisely what tore the two renders apart.
+   * TimeZoneCookie corrects the cookie and refreshes.
+   */
+  timeZone?: string;
   children: React.ReactNode;
 }) {
-  const value = React.useMemo(() => createTranslator(locale), [locale]);
+  const value = React.useMemo(
+    () => createTranslator(locale, timeZone),
+    [locale, timeZone],
+  );
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

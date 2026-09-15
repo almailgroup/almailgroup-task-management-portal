@@ -35,7 +35,7 @@ export function FollowUpPanel({
 }) {
   const router = useRouter();
   const i18n = useI18n();
-  const { t, tm, tag } = i18n;
+  const { t, tm, tag, timeZone } = i18n;
   const [editing, setEditing] = React.useState(false);
   const [when, setWhen] = React.useState(toLocalInput(task.follow_up_at));
   const [note, setNote] = React.useState(task.follow_up_note ?? "");
@@ -99,7 +99,7 @@ export function FollowUpPanel({
             <span className="block text-sm">
               {t("follow.on", { when: relativeDay(task.follow_up_at, i18n) })}
               <span className="ms-1.5 text-xs text-muted-foreground">
-                {formatDateTime(task.follow_up_at, tag)}
+                {formatDateTime(task.follow_up_at, tag, timeZone)}
               </span>
             </span>
             {task.follow_up_note && (

@@ -9,7 +9,7 @@ import {
   type TaskFilter,
 } from "@/lib/task-filters";
 import { getAllTasks, getProjects, getTeam, requireProfile } from "@/lib/data/queries";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, getTimeZone } from "@/lib/i18n/server";
 
 type PageProps = { searchParams: Promise<{ filter?: string }> };
 
@@ -24,11 +24,12 @@ export default async function TasksPage({ searchParams }: PageProps) {
   const { filter: raw } = await searchParams;
   const filter: TaskFilter = isTaskFilter(raw) ? raw : "all";
 
-  const [profile, tasks, projects, team] = await Promise.all([
+  const [profile, tasks, projects, team, timeZone] = await Promise.all([
     requireProfile(),
     getAllTasks(),
     getProjects(),
     getTeam(),
+    getTimeZone(),
   ]);
 
   // Every chip shows its own count, computed from the same predicates the
@@ -36,13 +37,13 @@ export default async function TasksPage({ searchParams }: PageProps) {
   const counts = Object.fromEntries(
     TASK_FILTERS.map((entry) => [
       entry.value,
-      applyTaskFilter(tasks, entry.value).length,
+      applyTaskFilter(tasks, entry.value, timeZone).length,
     ]),
   ) as Record<TaskFilter, number>;
 
   return (
     <TaskBrowser
-      tasks={applyTaskFilter(tasks, filter)}
+      tasks={applyTaskFilter(tasks, filter, timeZone)}
       filter={filter}
       counts={counts}
       projects={projects}

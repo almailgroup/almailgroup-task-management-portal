@@ -4,7 +4,7 @@ import { Geist, Geist_Mono, Noto_Sans_Arabic } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { I18nProvider } from "@/lib/i18n/client";
 import { directionFor } from "@/lib/i18n";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, getTimeZone } from "@/lib/i18n/server";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -62,7 +62,7 @@ export default async function RootLayout({
   // The language is a cookie the selector sets; `lang` and `dir` on the root
   // element are what make the whole layout mirror for Arabic, not just the
   // words. Everything below reads the same cookie through the provider.
-  const locale = await getLocale();
+  const [locale, timeZone] = await Promise.all([getLocale(), getTimeZone()]);
 
   return (
     <html lang={locale} dir={directionFor(locale)} suppressHydrationWarning>
@@ -75,7 +75,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <I18nProvider locale={locale}>
+          <I18nProvider locale={locale} timeZone={timeZone}>
             {children}
             <Toaster />
           </I18nProvider>

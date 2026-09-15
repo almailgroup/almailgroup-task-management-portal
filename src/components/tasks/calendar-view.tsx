@@ -17,12 +17,14 @@ import { isOverdue } from "@/lib/dates";
 import {
   addMonths,
   dayKey,
+  dayKeyIn,
   isSameDay,
   monthGrid,
   monthParam,
   parseMonthParam,
   startOfDay,
   startOfMonth,
+  todayIn,
   weekdayLabels,
 } from "@/lib/calendar";
 import { useI18n } from "@/lib/i18n/client";
@@ -60,11 +62,11 @@ export function CalendarView({
   const router = useRouter();
   const params = useSearchParams();
   const nowMs = useNow();
-  const { t, tag } = useI18n();
+  const { t, tag, timeZone } = useI18n();
   const weekdays = React.useMemo(() => weekdayLabels(tag, "short"), [tag]);
 
   const [month, setMonth] = React.useState<Date>(
-    () => parseMonthParam(params.get("month")) ?? startOfMonth(new Date()),
+    () => parseMonthParam(params.get("month")) ?? startOfMonth(todayIn(timeZone)),
   );
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(null);
@@ -75,7 +77,7 @@ export function CalendarView({
     setMonth(next);
     setSelectedDay(null);
     const url = new URL(window.location.href);
-    if (isSameDay(next, startOfMonth(new Date()))) url.searchParams.delete("month");
+    if (isSameDay(next, startOfMonth(todayIn(timeZone)))) url.searchParams.delete("month");
     else url.searchParams.set("month", monthParam(next));
     window.history.replaceState(window.history.state, "", url);
   };
@@ -95,14 +97,14 @@ export function CalendarView({
         undated += 1;
         continue;
       }
-      const key = dayKey(new Date(task.due_at));
+      const key = dayKeyIn(new Date(task.due_at), timeZone);
       byDay.set(key, [...(byDay.get(key) ?? []), task]);
     }
     for (const list of byDay.values()) {
       list.sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime());
     }
     return { byDay, undated };
-  }, [tasks]);
+  }, [tasks, timeZone]);
 
   const today = nowMs === null ? null : startOfDay(new Date(nowMs));
   const days = monthGrid(month);
@@ -143,7 +145,7 @@ export function CalendarView({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => goTo(startOfMonth(new Date()))}
+              onClick={() => goTo(startOfMonth(todayIn(timeZone)))}
             >
               {t("nav.today")}
             </Button>
