@@ -28,7 +28,12 @@ describe("dictionaries", () => {
   });
 
   /** Read the same in both languages: an address, a product name. */
-  const SAME_IN_BOTH = new Set(["auth.emailPlaceholder", "team.emailPlaceholder"]);
+  const SAME_IN_BOTH = new Set([
+    "auth.emailPlaceholder",
+    "team.emailPlaceholder",
+    // A product name, not a phrase: the same in both, like Google Drive.
+    "nav.assistant",
+  ]);
 
   it("nothing is left empty or untranslated", () => {
     for (const [key, value] of Object.entries(ar) as [string, string][]) {

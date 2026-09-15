@@ -345,7 +345,7 @@ Both hand back:
   and the database helpers return their messages as keys, so one action
   serves every language and the client shows it in the reader's.
 
-The AI assistant answers in the language it is asked in, and understands the
+Almail AI answers in the language it is asked in, and understands the
 tracking questions in both.
 
 To add a language: add its code to `LOCALES`, a dictionary file typed as
@@ -629,7 +629,7 @@ push; loosening a policy fails the build with the rule that moved.
 Ticking an item bumps the parent note's `updated_at` through a trigger, so a
 list you are working through floats to the top of the sidebar.
 
-## AI assistant
+## Almail AI
 
 The in-app assistant, reached from the button above the clock at the foot of
 the sidebar. It answers questions about where work stands: what is overdue,
