@@ -44,6 +44,18 @@ export type MahamTask = {
 export type MahamSnapshot = {
   /** Who is asking, so the answer can say "you" and mean it. */
   viewer: { name: string; role: string };
+  /**
+   * The language to answer in. The panel is read in Arabic as often as in
+   * English, and a model left to infer it from the question will answer an
+   * English word typed into an Arabic interface in English.
+   */
+  locale: string;
+  /**
+   * The reader's IANA zone. Without it "what is due today" is unanswerable
+   * from a list of instants — the same task is today in Dubai and tomorrow
+   * in London.
+   */
+  timeZone: string;
   /** ISO instant the snapshot was taken, for relative phrasing. */
   takenAt: string;
   tasks: MahamTask[];

@@ -29,6 +29,9 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Deployed to Cloudflare, not to Vercel: its own toolchain, and a
+      // default-exported handler object that this config would object to.
+      "worker/**",
     ],
   },
 ];

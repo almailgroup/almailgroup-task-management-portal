@@ -384,6 +384,11 @@ src/
 │   ├── realtime/               # live task subscription
 │   └── supabase/               # clients, types, session middleware
 └── middleware.ts
+
+worker/                         # the Cloudflare Worker fronting Gemini
+├── src/index.ts                # auth, the board as a prompt, the model call
+├── wrangler.toml               # name, model; secrets never live here
+└── README.md                   # deploy it in six steps
 ```
 
 ### How a request flows
@@ -662,8 +667,18 @@ board, and honest about the questions it cannot take. That brain stays on
 afterwards as the fallback when the Worker call fails, so the panel is never
 simply dead.
 
-Set `MAHAM_WORKER_URL` (and ideally `MAHAM_WORKER_SECRET`) and the Server
-Action forwards instead. The Worker receives:
+**The Worker is in [`worker/`](worker/), and its README is the step-by-step:**
+get a key, deploy, set two variables on Vercel, redeploy. It fronts Gemini so
+the API key lives on Cloudflare as a secret and never touches Vercel — where
+anything this app holds is one `NEXT_PUBLIC_` typo away from the browser, and
+the Worker exists precisely so the key never travels.
+
+One thing worth knowing before pointing it at real work: on Gemini's **free**
+tier Google uses what you send to improve its products, and human reviewers
+may read it. Adding billing to the same key moves it to the paid tier, where
+prompts are not used for training. See `worker/README.md`.
+
+The Worker receives:
 
 ```jsonc
 POST <MAHAM_WORKER_URL>
@@ -672,13 +687,15 @@ Authorization: Bearer <MAHAM_WORKER_SECRET>   // only if the secret is set
 {
   "messages": [{ "id": "…", "role": "user", "text": "What is overdue?", "at": "…" }],
   "snapshot": {
-    "viewer":  { "name": "…", "role": "manager" },
-    "takenAt": "2026-09-13T19:00:00.000Z",
-    "tasks":   [{ "id": "…", "title": "…", "status": "todo", "priority": "high",
-                  "project": "Gemellry", "dueAt": "…", "followUpAt": null,
-                  "assignees": ["…"], "createdAt": "…" }],
-    "counts":  { "total": 12, "todo": 4, "inProgress": 3, "inReview": 2, "done": 3,
-                 "overdue": 1, "dueToday": 2, "unassigned": 1, "noDueDate": 4 }
+    "viewer":   { "name": "…", "role": "manager" },
+    "locale":   "ar",                      // the language to answer in
+    "timeZone": "Asia/Dubai",              // whose day "today" means
+    "takenAt":  "2026-09-13T19:00:00.000Z",
+    "tasks":    [{ "id": "…", "title": "…", "status": "todo", "priority": "high",
+                   "project": "Gemellry", "dueAt": "…", "followUpAt": null,
+                   "assignees": ["…"], "createdAt": "…" }],
+    "counts":   { "total": 12, "todo": 4, "inProgress": 3, "inReview": 2, "done": 3,
+                  "overdue": 1, "dueToday": 2, "unassigned": 1, "noDueDate": 4 }
   }
 }
 ```
@@ -687,12 +704,14 @@ and must reply with `{ "text": "…" }`. Anything else — a non-2xx status, an
 empty `text`, or no answer within 20 seconds — falls back to the local brain
 rather than surfacing an error.
 
-The Gemini API key belongs on the Worker, as a Cloudflare secret. It must not
-be added to Vercel: anything this app holds is one `NEXT_PUBLIC_` typo away
-from the browser, and the Worker exists precisely so the key never travels.
+`locale` and `timeZone` are sent because neither can be inferred safely: a
+model left to guess answers an English word typed into an Arabic panel in
+English, and "what is due today" cannot be read off a list of instants without
+knowing whose midnight to measure from.
 
 The shapes above are `src/lib/maham/types.ts`, which is deliberately free of
-React and Supabase imports so the Worker can share the file verbatim.
+React and Supabase imports — the Worker imports that file directly rather than
+keeping a copy, so the two ends cannot drift apart.
 
 ## Signing in
 

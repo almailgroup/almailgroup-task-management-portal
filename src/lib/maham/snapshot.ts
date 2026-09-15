@@ -2,7 +2,7 @@ import "server-only";
 
 import { getAllTasks, getProjects, requireProfile } from "@/lib/data/queries";
 import { summarise } from "@/lib/metrics";
-import { getTimeZone } from "@/lib/i18n/server";
+import { getLocale, getTimeZone } from "@/lib/i18n/server";
 import type { MahamSnapshot, MahamTask } from "@/lib/maham/types";
 
 /**
@@ -18,14 +18,16 @@ import type { MahamSnapshot, MahamTask } from "@/lib/maham/types";
  * assistant and the dashboard can never disagree about how many are overdue.
  */
 export async function buildSnapshot(): Promise<MahamSnapshot> {
-  const [profile, tasks, projects] = await Promise.all([
+  const [profile, tasks, projects, locale, timeZone] = await Promise.all([
     requireProfile(),
     getAllTasks(),
     getProjects(),
+    getLocale(),
+    getTimeZone(),
   ]);
 
   const projectName = new Map(projects.map((project) => [project.id, project.name]));
-  const metrics = summarise(tasks, await getTimeZone());
+  const metrics = summarise(tasks, timeZone);
   const open = tasks.filter((task) => task.status !== "done");
 
   const flattened: MahamTask[] = tasks.map((task) => ({
@@ -42,6 +44,8 @@ export async function buildSnapshot(): Promise<MahamSnapshot> {
 
   return {
     viewer: { name: profile.full_name ?? profile.email, role: profile.role },
+    locale,
+    timeZone,
     takenAt: new Date().toISOString(),
     tasks: flattened,
     counts: {

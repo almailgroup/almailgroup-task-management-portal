@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    // The wire types are the portal's own, imported rather than copied, so the
+    // two cannot drift. They are type-only, so nothing crosses at runtime.
+    "paths": { "@/*": ["../src/*"] },
+    "baseUrl": "."
+  },
+  "include": ["src/**/*.ts"]
+}
