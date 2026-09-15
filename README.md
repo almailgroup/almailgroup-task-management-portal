@@ -747,42 +747,51 @@ keeping a copy, so the two ends cannot drift apart.
 
 ## Glass
 
-The frame and everything that floats above the page are frosted; the content
-is not. That split is the whole design. A task card is read, not looked
-through, and `backdrop-filter` costs a composited pass per element — putting it
-on the dozens of rows that fill a page rather than the handful that frame one
-is both unreadable and slow.
+The sidebar is solid. Everything that floats above the page is frosted: the
+header, the bottom bar, dialogs, menus, popovers, selects, tooltips and the
+panel cards. Content — task cards, rows, inputs, tables — stays opaque, because
+a task card is read rather than looked through, and `backdrop-filter` costs a
+composited pass per element.
 
-So: the rail, the header, the bottom bar, dialogs, menus, popovers, selects,
-tooltips and the panel cards are glass. Task cards, rows, inputs and tables
-keep their solid fill.
+Leaving the rail out is not only taste. It is the largest fixed surface on
+screen, and blurring it was most of the cost: with it solid, scrolling a long
+list measures 16.8ms a frame against 16.6ms with the glass off entirely.
 
-Two `@layer utilities` classes carry it — `.glass` for things above the page,
-`.glass-chrome` for the frame behind it — and both are solid until the
-`@supports (backdrop-filter)` block makes them otherwise, so a browser without
-it keeps the fill these surfaces always had rather than showing text on a
-half-transparent panel. `prefers-reduced-transparency` and Windows'
-forced-colours mode get the same solid treatment.
+Three things make it read as glass, and the blur is the least of them:
+
+- **Transparency.** `--glass` is genuinely see-through. A first attempt sat at
+  0.74 to protect contrast ratios that had been measured against solid fills,
+  and produced a slightly soft panel nobody could tell from the old one.
+- **Grain.** Blur alone is a clean smear, which looks like translucent
+  plastic. Real frosted glass scatters, and scatter is texture — one 160px
+  tile of static SVG noise at 0.18, blended `overlay` on light and `soft-light`
+  on dark. The strength lives in the tile rather than the blend, because at
+  full contrast even `soft-light` reads as a dirty screen.
+- **The lit edge.** A bright cut along the top and a diagonal sheen down the
+  face. A flat translucent rectangle is a window; this is what makes it a pane.
 
 Frosting a flat colour produces that flat colour, so `body::before` lays three
-very soft pools of light behind everything, fixed rather than scrolling, for
-the material to pick up.
+soft pools of light behind everything, fixed rather than scrolling, for the
+material to pick up.
 
-Two numbers decided the tuning, and both were measured against rendered
-pixels rather than reasoned about:
+Both classes are solid until the `@supports (backdrop-filter)` block makes them
+otherwise, so a browser without it keeps the fill these surfaces always had
+rather than showing text on a half-transparent panel.
+`prefers-reduced-transparency` and Windows' forced-colours mode get the same.
 
-- **Contrast.** Every ratio in `globals.css` was measured against a solid
-  fill, and a translucent panel takes some of the page's tone. In dark mode a
-  pane light enough to look like glass lifted the surface under secondary text
-  to 5.24:1 — passing AA, but below the 5.98 this palette deliberately moved
-  away from as washed out. Darker and more opaque brings it to 6.16:1, against
-  7.2:1 on the solid card. Nothing measures below 6.16:1 in either theme.
-- **Frames.** Scrolling a long list under the frosted header ran 19.6ms a
-  frame at a 22px blur against 16.7ms with the blur off — about 51fps rather
-  than 60 — and 17.4ms at 12px, because the radius is what the blur costs. It
-  is 14px, which gives most of that back without looking any thinner. Those
-  figures come from software rendering in a container, so they are the worst
-  case rather than a typical one.
+### What the transparency cost
+
+A pane you can see through takes some of the page's tone, and in dark mode the
+page is the darkest thing there is. Secondary text on a glass card measured
+**4.32:1** against rendered pixels — under AA, and a real failure rather than a
+matter of taste. It is paid for in two places so the pane stays see-through:
+the pane went from 0.5 to 0.56, and `--muted-foreground` from `#b2b4bd` to
+`#c3c5ce`, which keeps the same slight blue offset so the greys stay a family.
+That lands at 5.29:1, and lifts the same text everywhere else it appears.
+
+Nothing measures below 5.29:1 in either theme. The check samples the rendered
+screenshot rather than the CSS, because what a translucent panel composites to
+is not something you can read off a stylesheet.
 
 ## How fast a page change is
 

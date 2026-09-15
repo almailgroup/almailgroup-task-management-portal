@@ -230,7 +230,7 @@ export function AppShell({
       <aside
         style={{ width: "var(--sidebar-width)" }}
         className={cn(
-          "glass-chrome fixed inset-y-0 start-0 z-30 hidden border-0 border-e lg:block",
+          "fixed inset-y-0 start-0 z-30 hidden border-e border-chrome-border bg-chrome lg:block",
           animating && "transition-[width] duration-200 ease-out",
         )}
       >
@@ -287,7 +287,7 @@ export function AppShell({
           />
           <aside
             className={cn(
-              "glass-chrome absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-0 border-e",
+              "absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-e border-chrome-border bg-chrome",
               "transition-[width] duration-200 ease-out",
               assistantOpen ? "w-[22rem]" : "w-72",
             )}

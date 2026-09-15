@@ -84,47 +84,58 @@
 
   /* ---- Glass --------------------------------------------------------------
    *
-   * Frosted surfaces for the chrome and for anything that floats above the
-   * page. Content stays opaque: a task card is read, not looked through, and
-   * blurring one per row is both unreadable and expensive.
+   * Frosted surfaces for anything that floats above the page. The sidebar is
+   * deliberately not one of them: it is the one fixed thing on screen and it
+   * stays solid, so the glass reads against something settled.
    *
-   * The alphas are high — 0.72, not the 0.2 of the usual demo. Every contrast
-   * ratio in this file was measured against a solid fill, and a surface you
-   * can genuinely see through does not keep them. At this weight the tone
-   * behind shows as depth rather than as content, and the text on top stays
-   * where it was measured.
+   * Content stays opaque too. A task card is read, not looked through, and
+   * `backdrop-filter` costs a composited pass per element — on the dozens of
+   * rows that fill a page rather than the handful that frame one it is both
+   * unreadable and slow.
    *
-   * `saturate` is what stops the blur reading as grey gauze: it lifts what
-   * little colour is behind the panel so the material looks like glass rather
-   * than frosted plastic.
+   * Three things make this look like glass, and the blur is only one:
    *
-   * 14px, not the 22 this started at, because the radius is what the blur
-   * costs. Scrolling a long list under the frosted header measured 19.6ms a
-   * frame at 22px against 16.7ms with the blur off — about 51fps instead of
-   * 60 — and 17.4ms at 12px. 14 keeps the material and gives most of that
-   * back. The frosting is not visibly thinner; the frame budget is. */
-  --glass: rgb(255 255 255 / 0.66);
-  --glass-chrome: rgb(238 238 242 / 0.6);
-  --glass-border: rgb(255 255 255 / 0.85);
-  /* The lit top edge. This, more than the blur, is what reads as a pane. */
-  --glass-highlight: rgb(255 255 255 / 0.95);
-  /* The sheen down the face of the pane, brightest where the light lands. */
+   * `--glass` is genuinely see-through. The first attempt sat at 0.74 to
+   * protect contrast ratios measured against solid fills, and the result was
+   * a slightly soft panel that nobody could tell apart from the old one.
+   *
+   * `--glass-grain` is the frost. Blur alone gives a clean smear, which reads
+   * as translucent plastic; real frosted glass scatters, and scatter is
+   * texture. It is one 160px tile of static SVG noise, so it costs a single
+   * small decode and then repeats. The strength lives in the tile's own
+   * opacity rather than in the blend, because at full contrast even
+   * `soft-light` reads as a dirty screen rather than as frost.
+   *
+   * `--glass-sheen` and the lit top edge are the light catching the pane. A
+   * flat translucent rectangle is a window; the bright cut edge is what makes
+   * it a pane of something. */
+  --glass: rgb(255 255 255 / 0.52);
+  --glass-chrome: rgb(255 255 255 / 0.46);
+  --glass-border: rgb(255 255 255 / 0.9);
+  --glass-highlight: rgb(255 255 255 / 1);
   --glass-sheen: linear-gradient(
-    160deg,
-    rgb(255 255 255 / 0.5) 0%,
-    rgb(255 255 255 / 0.08) 32%,
-    rgb(255 255 255 / 0) 62%
+    150deg,
+    rgb(255 255 255 / 0.62) 0%,
+    rgb(255 255 255 / 0.16) 34%,
+    rgb(255 255 255 / 0) 64%
   );
-  --glass-filter: blur(14px) saturate(1.8);
+  /* One tile of static fractal noise, inlined so it costs no request. The
+     turbulence is generated once by the browser at decode and then repeats;
+     `saturate 0` keeps it grey, because a colour cast here would be the only
+     hue in the entire palette. */
+  --glass-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.18'/%3E%3C/svg%3E");
+  --glass-grain-blend: overlay;
+  --glass-filter: blur(16px) saturate(1.9);
 
   /* The wash the glass has to work with.
    *
-   * A blur over a flat colour is that flat colour. Two very soft pools of
-   * light behind everything give the material something to pick up, and they
-   * are kept far below the threshold where they would read as decoration. */
-  --wash-one: rgb(17 18 22 / 0.13);
-  --wash-two: rgb(17 18 22 / 0.09);
-  --wash-three: rgb(255 255 255 / 0.85);
+   * A blur over a flat colour is that flat colour, and the first version of
+   * this was faint enough that there was nothing to see through anything.
+   * These pools are meant to be noticed through a panel and barely noticed
+   * without one. */
+  --wash-one: rgb(17 18 22 / 0.16);
+  --wash-two: rgb(17 18 22 / 0.11);
+  --wash-three: rgb(255 255 255 / 0.9);
 }
 
 .dark {
@@ -145,7 +156,13 @@
   --secondary-foreground: #f2f3f6;
 
   --muted: #43444c;
-  --muted-foreground: #b2b4bd;
+  /* Lifted from #b2b4bd when the panels became glass. A pane you can see
+   * through takes some of the page's tone, and the page is the darkest thing
+   * here — which put this text at 4.32:1 on a glass card, below AA, where it
+   * had been 7.2:1 on the solid one. At #c3c5ce it measures 5.29:1 on glass
+   * and higher everywhere else, and it keeps the same slight blue offset the
+   * old value had so the greys stay a family. */
+  --muted-foreground: #c3c5ce;
   --accent: #4e4f58;
   --accent-foreground: #f2f3f6;
 
@@ -166,32 +183,33 @@
   --chrome: #232429;
   --chrome-border: #3d3e46;
 
-  /* Darker and a shade more opaque than the light theme, and the tone is the
-   * number that was measured rather than chosen.
+  /* Dark glass shows what is behind it far more readily, so the pane is a
+   * touch more opaque than the light theme's and the highlight stays near a
+   * fifth of white — any more and the edge reads as a drawn line rather than
+   * a lit one. The grain has to invert its blend too: `overlay` on a dark
+   * surface crushes to black, so it lightens instead.
    *
-   * A translucent panel takes some of the page's tone, and in dark mode the
-   * page is the darkest thing there is — so a pane light enough to look like
-   * glass lifts the surface under the secondary text and costs contrast. At
-   * rgb(64 65 73 / 0.66) that text measured 5.24:1 against the rendered
-   * pixels, which clears AA but sits below the 5.98 this palette deliberately
-   * moved away from as washed out. Darker and more opaque brings it back to
-   * 6.16:1, against 7.2:1 on the solid card it replaces. The highlight drops
-   * to a tenth of white or it reads as a bright line rather than a lit edge. */
-  --glass: rgb(48 49 56 / 0.74);
-  --glass-chrome: rgb(31 32 37 / 0.68);
-  --glass-border: rgb(255 255 255 / 0.11);
-  --glass-highlight: rgb(255 255 255 / 0.14);
+   * 0.56 rather than the 0.5 that looked best on its own: at 0.5 the
+   * secondary text on a glass card measured 4.32:1 against rendered pixels,
+   * under AA. That is a real failure rather than a matter of taste, and it is
+   * paid for here and in --muted-foreground together so the pane stays
+   * genuinely see-through. */
+  --glass: rgb(66 68 78 / 0.56);
+  --glass-chrome: rgb(46 47 54 / 0.55);
+  --glass-border: rgb(255 255 255 / 0.16);
+  --glass-highlight: rgb(255 255 255 / 0.22);
   --glass-sheen: linear-gradient(
-    160deg,
-    rgb(255 255 255 / 0.07) 0%,
-    rgb(255 255 255 / 0.02) 34%,
-    rgb(255 255 255 / 0) 64%
+    150deg,
+    rgb(255 255 255 / 0.13) 0%,
+    rgb(255 255 255 / 0.04) 36%,
+    rgb(255 255 255 / 0) 66%
   );
-  --glass-filter: blur(14px) saturate(1.5);
+  --glass-grain-blend: soft-light;
+  --glass-filter: blur(16px) saturate(1.6);
 
-  --wash-one: rgb(255 255 255 / 0.1);
-  --wash-two: rgb(255 255 255 / 0.065);
-  --wash-three: rgb(0 0 0 / 0.5);
+  --wash-one: rgb(255 255 255 / 0.12);
+  --wash-two: rgb(255 255 255 / 0.08);
+  --wash-three: rgb(0 0 0 / 0.55);
 }
 
 @theme inline {
@@ -382,19 +400,24 @@
          tracing paper. */
       box-shadow: inset 0 1px 0 0 var(--glass-highlight);
     }
-    /* The sheen rides in `background-image`, over the translucent fill.
-       It was a pseudo-element for one draft, which meant giving the pane
-       `position: relative` to hang it from — and that quietly overrode the
-       `fixed` on the sidebar and the `sticky` on the header, dropping both
-       out of the layout. A background layer has no such reach. */
-    .glass {
-      background-color: var(--glass);
-      background-image: var(--glass-sheen);
-    }
+    /* Grain first, then the sheen, then the fill — `background-image` rather
+       than a pseudo-element, which for one draft meant giving every pane
+       `position: relative` to hang it from and quietly overrode the `sticky`
+       on the header, dropping it out of the layout. A background layer has
+       no such reach.
+
+       The grain is blended rather than laid on top: at full strength it is
+       a dirty screen, and `overlay` on light / `soft-light` on dark lets it
+       modulate what is already there, which is how frost actually behaves. */
+    .glass,
     .glass-chrome {
-      background-color: var(--glass-chrome);
-      background-image: var(--glass-sheen);
+      background-image: var(--glass-grain), var(--glass-sheen);
+      background-size: 140px 140px, auto;
+      background-repeat: repeat, no-repeat;
+      background-blend-mode: var(--glass-grain-blend), normal;
     }
+    .glass { background-color: var(--glass); }
+    .glass-chrome { background-color: var(--glass-chrome); }
   }
 
   /*
