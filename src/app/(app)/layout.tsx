@@ -25,16 +25,23 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // All five together, not the password check and then the rest. Only the
+  // profile actually depends on knowing who is asking; the other three are
+  // scoped by row-level security and could always have been on their way
+  // while the question was being answered. Awaiting the check on its own put
+  // a whole round trip in front of them for nothing.
+  const [mustChangePassword, profile, projects, notifications, unreadCount] =
+    await Promise.all([
+      needsOwnPassword(),
+      requireProfile(),
+      getProjects(),
+      getNotifications(),
+      getUnreadNotificationCount(),
+    ]);
+
   // Nobody works out of an account whose password was handed to them. The
   // page this leads to is outside this layout, so there is nothing to loop on.
-  if (await needsOwnPassword()) redirect("/set-password");
-
-  const [profile, projects, notifications, unreadCount] = await Promise.all([
-    requireProfile(),
-    getProjects(),
-    getNotifications(),
-    getUnreadNotificationCount(),
-  ]);
+  if (mustChangePassword) redirect("/set-password");
 
   return (
     <>

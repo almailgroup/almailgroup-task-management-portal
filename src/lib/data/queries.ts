@@ -1,10 +1,14 @@
 import "server-only";
 
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  VERIFIED_MUST_CHANGE_PASSWORD,
+  VERIFIED_USER,
+} from "@/lib/supabase/middleware";
 import type { Metrics, Workload } from "@/lib/metrics";
 import type {
   CommentWithAuthor,
@@ -63,17 +67,42 @@ function orFail<T>(
 }
 
 /**
- * The signed-in auth user, or null.
+ * The identity the middleware already verified for this request.
  *
- * Cached because `getUser()` is a round trip to the auth server and more than
- * one thing per request wants it — the profile, and the check below.
+ * `getUser()` is a round trip to the auth server, and the middleware makes it
+ * on every request before the render begins — so making it again here put a
+ * second one on the critical path of every page, asking the same question and
+ * waiting for the same answer. The middleware writes what it learned onto the
+ * request instead.
+ *
+ * These headers cannot be forged: the middleware strips them from the incoming
+ * request on every path through it before writing its own, and its matcher
+ * covers every route. Where they are absent — nothing but a context the
+ * middleware did not run in — the question is asked properly below.
  */
-const getAuthUser = cache(async () => {
+const verified = cache(async () => {
+  const sent = await headers();
+  const id = sent.get(VERIFIED_USER);
+  return id
+    ? { id, mustChangePassword: sent.get(VERIFIED_MUST_CHANGE_PASSWORD) === "1" }
+    : null;
+});
+
+/**
+ * The signed-in user's id, or null.
+ *
+ * Cached because more than one thing per request wants it — the profile, and
+ * the password check below.
+ */
+const getUserId = cache(async (): Promise<string | null> => {
+  const known = await verified();
+  if (known) return known.id;
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  return user;
+  return user?.id ?? null;
 });
 
 /**
@@ -84,21 +113,27 @@ const getAuthUser = cache(async () => {
  * the account is already theirs either way.
  */
 export const needsOwnPassword = cache(async (): Promise<boolean> => {
-  const user = await getAuthUser();
+  const known = await verified();
+  if (known) return known.mustChangePassword;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return user?.user_metadata?.must_change_password === true;
 });
 
 /** The signed-in user's profile, or redirect to login. */
 export const requireProfile = cache(async (): Promise<Profile> => {
   const supabase = await createClient();
-  const user = await getAuthUser();
+  const userId = await getUserId();
 
-  if (!user) redirect("/login");
+  if (!userId) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
 
   // The handle_new_user trigger creates this row at signup. Its absence means
@@ -442,7 +477,7 @@ export const getNotificationPreferences = cache(
  */
 export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
   const supabase = await createClient();
-  const user = await getAuthUser();
+  const userId = await getUserId();
 
   /**
    * RLS returns the caller's own lists and the ones shared with them, so this
@@ -496,7 +531,7 @@ export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
       .sort((a, b) =>
         (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email),
       ),
-    mine: note.user_id === user?.id,
+    mine: note.user_id === userId,
   }));
 });
 
@@ -565,16 +600,17 @@ export const getWorkload = cache(async (): Promise<Workload[]> => {
 /** A short, bounded list rather than "every task, then slice(0, n)". */
 export const getMyOpenTasks = cache(
   async (limit = 6): Promise<TaskWithAssignees[]> => {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return [];
+    // `getUserId` reads the id the middleware already verified, so this does
+    // not put a round trip to the auth server in front of its own query. On
+    // the dashboard that round trip was the difference between eleven calls in
+    // two waves and eleven calls in three.
+    const [supabase, userId] = await Promise.all([createClient(), getUserId()]);
+    if (!userId) return [];
 
     const result = await supabase
       .from("tasks")
       .select(TASK_ASSIGNED_TO_SOMEONE)
-      .eq("assignments.user_id", user.id)
+      .eq("assignments.user_id", userId)
       .neq("status", "done")
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(limit);

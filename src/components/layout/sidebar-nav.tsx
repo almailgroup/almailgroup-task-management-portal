@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
@@ -14,6 +14,7 @@ import {
   Sunrise,
   Users,
 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ProjectSwitcher } from "@/components/layout/project-switcher";
@@ -197,6 +198,12 @@ function NavLink({
     <Link
       href={href}
       onClick={onNavigate}
+      // The whole page, not just its skeleton. Left to itself Next fetches a
+      // dynamic route only as far as its loading.tsx, which is why the rail
+      // used to answer a click instantly with a skeleton and then sit on it:
+      // the data had not been asked for until the click. These seven links are
+      // the whole of the app's navigation and they are on screen already.
+      prefetch
       aria-current={active ? "page" : undefined}
       className={cn(
         "relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-150",
@@ -208,8 +215,24 @@ function NavLink({
           : "text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:text-muted-foreground",
       )}
     >
-      {icon}
+      <NavIcon>{icon}</NavIcon>
       <span className="truncate">{label}</span>
     </Link>
   );
+}
+
+/**
+ * The item's own icon, or a spinner while its page is on its way.
+ *
+ * A prefetched page arrives in a few milliseconds and this never appears. It
+ * is for the click that does wait — a cold route, a slow connection — where
+ * the alternative is a rail that looks like it ignored you. It replaces the
+ * icon rather than sitting beside it, so nothing moves.
+ *
+ * `useLinkStatus` only reports for the Link it is rendered inside, so the
+ * spinner can never appear on an item that was not clicked.
+ */
+function NavIcon({ children }: { children: React.ReactNode }) {
+  const { pending } = useLinkStatus();
+  return pending ? <Loader2 className="animate-spin" /> : <>{children}</>;
 }

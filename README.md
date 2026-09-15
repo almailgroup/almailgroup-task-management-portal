@@ -745,6 +745,47 @@ The shapes above are `src/lib/assistant/types.ts`, which is deliberately free of
 React and Supabase imports — the Worker imports that file directly rather than
 keeping a copy, so the two ends cannot drift apart.
 
+## How fast a page change is
+
+Switching pages used to take three sequential round trips to Supabase before
+anything could render, and each one is a network hop from the serverless
+function: verify the session in the middleware, verify it *again* inside the
+render, and only then fetch the page's data. The second and third waves were
+both avoidable.
+
+The middleware already verifies the session on every request, so it now writes
+what it learned onto the request — `x-almail-user` and
+`x-almail-password-change` — and `getAuthUser` reads those instead of asking
+the auth server the same question a second time. Those headers are stripped
+from the incoming request on every path through the middleware before it
+writes its own, and the matcher covers every route, so a header a browser sent
+can never be mistaken for one the middleware wrote. `tests/unit/middleware-identity.test.ts`
+is the test of that, and of the refreshed session cookie surviving the rebuilt
+response — a mistake there is a silent sign-out rather than a slow page.
+
+The authenticated layout then asks for all five of its things at once. Only
+the profile depends on knowing who is asking; the other four are scoped by RLS
+and had been waiting on a question that was nothing to do with them.
+
+Measured against a stubbed Supabase at 120ms a call, which is the shape of the
+problem rather than the shape of any one network: **389ms → 269ms** median to
+render a page on the server, and the dashboard 466ms → 309ms. Three waves down
+to two. The remaining two are the middleware's own verification and then every
+query at once, which is the floor without giving up server-side verification.
+
+The sidebar and the bottom bar also now pass `prefetch` explicitly. Left alone,
+Next fetches a dynamic route only as far as its `loading.tsx`, which is exactly
+why the rail answered a click instantly with a skeleton and then sat on it: the
+data had not been asked for until the click. `staleTimes.dynamic` in
+`next.config.ts` keeps a prefetched page usable for twenty seconds so the work
+is not thrown away the moment it is wanted — a page you have already visited
+comes back in under 100ms with no network at all. What that costs is set out in
+the comment there.
+
+While a page genuinely is on its way, the nav item you clicked shows a spinner
+in place of its own icon — `useLinkStatus` reports only for the link it is
+rendered inside, so it can never appear on an item nobody clicked.
+
 ## Signing in
 
 ### Forgotten passwords

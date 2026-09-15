@@ -24,6 +24,22 @@ const PUBLIC_PREFIXES = [
 ];
 const PUBLIC_EXACT = ["/"];
 
+/**
+ * Headers this middleware writes for the render that follows it.
+ *
+ * The middleware already verifies the session with Supabase on every request.
+ * Doing it again inside the render cost a second round trip to the auth server
+ * on the critical path of every page — the same question, the same answer,
+ * 120ms later. These carry the answer forward instead.
+ *
+ * They are stripped from the incoming request before anything else happens, on
+ * every path through this function, so a header a browser sent can never be
+ * mistaken for one this middleware wrote. The matcher covers every route, so
+ * there is no way into the app that skips the strip.
+ */
+export const VERIFIED_USER = "x-almail-user";
+export const VERIFIED_MUST_CHANGE_PASSWORD = "x-almail-password-change";
+
 function isPublicRoute(pathname: string) {
   if (PUBLIC_EXACT.includes(pathname)) return true;
   return PUBLIC_PREFIXES.some(
@@ -39,7 +55,14 @@ function isPublicRoute(pathname: string) {
  * drop the refreshed auth cookies and silently log users out.
  */
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // First, and on every path out of here: whatever the browser sent under
+  // these names is discarded. Only this function may write them.
+  const headers = new Headers(request.headers);
+  headers.delete(VERIFIED_USER);
+  headers.delete(VERIFIED_MUST_CHANGE_PASSWORD);
+  const forward = { headers };
+
+  let supabaseResponse = NextResponse.next({ request: forward });
 
   // Without credentials there is no session to refresh, and any authenticated
   // page would throw when it built a client. Send those to the landing page,
@@ -65,7 +88,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: forward });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
@@ -95,6 +118,24 @@ export async function updateSession(request: NextRequest) {
     redirectUrl.pathname = "/dashboard";
     redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // Hand the verified identity to the render. `getAuthUser` reads these rather
+  // than asking the auth server the same question a second time.
+  if (user) {
+    headers.set(VERIFIED_USER, user.id);
+    headers.set(
+      VERIFIED_MUST_CHANGE_PASSWORD,
+      user.user_metadata?.must_change_password === true ? "1" : "0",
+    );
+    // The response was built before the headers were known, so rebuild it —
+    // keeping any refreshed auth cookies, which is the whole point of the
+    // dance above.
+    const withIdentity = NextResponse.next({ request: forward });
+    supabaseResponse.cookies
+      .getAll()
+      .forEach((cookie) => withIdentity.cookies.set(cookie));
+    return withIdentity;
   }
 
   return supabaseResponse;

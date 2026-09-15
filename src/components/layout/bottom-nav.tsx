@@ -52,6 +52,9 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
+                // Four links, always on screen: fetch the pages, not just
+                // their skeletons. See the note on the sidebar's NavLink.
+                prefetch
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.6875rem] transition-colors",
