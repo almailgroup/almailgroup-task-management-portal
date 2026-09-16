@@ -746,6 +746,20 @@ Four things about the behaviour:
   the panel closes, and on unmount — the capture stream's tracks stopped one by
   one and the audio context closed, because a `MediaStream` merely dropped
   leaves the browser's recording indicator lit.
+- **The microphone is asked for, once, by `getUserMedia`.** That is the call
+  which raises the permission prompt; on iOS the recogniser never does — it
+  goes through the system speech service and fails at once when it has no
+  permission. The two used to be independent, and the recogniser's failure
+  tore the session down, which cancelled the request that was about to ask. So
+  on an iPhone the prompt never appeared and the panel reported a blocked
+  microphone that nobody had been offered. Now a failure while the prompt is
+  still on screen waits for the answer, and if permission was the only thing
+  missing the recogniser is started again — once, so a refusal cannot loop.
+  Both halves share the one stream rather than asking twice.
+- **A recogniser that stops at the first pause is reopened.** iOS ignores
+  `continuous`. While the person still wants to be listened to, `onend` starts
+  it again rather than ending their sentence for them, bounded so a recogniser
+  that dies instantly cannot spin.
 - **Nothing waits to be told the session ended.** Teardown used to live only in
   the recogniser's `onend`, and Safari does not fire it reliably after a
   refused microphone: the panel sat on "Listening…" with the clock counting and

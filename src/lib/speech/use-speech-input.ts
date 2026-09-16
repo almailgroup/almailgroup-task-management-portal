@@ -128,6 +128,20 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
 
   const recogniser = React.useRef<Recogniser | null>(null);
   const silence = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * True from the moment the microphone is asked for until the answer comes
+   * back. While it is set, nothing may tear the session down — see `onerror`.
+   */
+  const asking = React.useRef(false);
+  /** Set when the recogniser failed while the microphone prompt was still up. */
+  const engineFailed = React.useRef(false);
+  /** One retry once permission arrives, so a refusal cannot loop. */
+  const retried = React.useRef(false);
+  /** True while the person still wants to be listened to. */
+  const wanted = React.useRef(false);
+  /** Guards the restart below against a recogniser that ends instantly. */
+  const restarts = React.useRef(0);
+
   // Fires if a stop request goes unanswered. See `stop`.
   const watchdog = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -183,63 +197,73 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
    * a small fraction of full scale, and a meter that reads 4% while somebody
    * talks does not tell them it is working, which is the entire job.
    */
-  const startMeter = React.useCallback(async () => {
-    if (!navigator.mediaDevices?.getUserMedia) return;
-    try {
-      const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // `stop()` can land while the permission prompt is still open.
-      if (!recogniser.current) {
-        mic.getTracks().forEach((track) => track.stop());
-        return;
+  /**
+   * Measure how loud the room is, sixty times a second.
+   *
+   * Takes a stream rather than opening one: the microphone is asked for once,
+   * in the click, and both halves of this feature share the answer. Asking
+   * twice meant two permission requests racing each other.
+   *
+   * Root mean square over the waveform, which is what a level meter measures —
+   * peak would jump on a consonant and sit at zero through a vowel. The curve
+   * is there because speech at a normal distance from a laptop microphone is
+   * a small fraction of full scale, and a meter that reads 4% while somebody
+   * talks does not tell them it is working, which is the entire job.
+   */
+  const listen = React.useCallback(
+    (mic: MediaStream) => {
+      try {
+        stream.current = mic;
+
+        const Ctx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
+        if (!Ctx) return;
+
+        const ctx = new Ctx();
+        audio.current = ctx;
+        // Safari hands back a suspended context; nothing is measured until it
+        // is resumed, and the meter would sit flat through a whole sentence.
+        if (ctx.state === "suspended") void ctx.resume();
+
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 1024;
+        analyser.smoothingTimeConstant = 0.6;
+        ctx.createMediaStreamSource(mic).connect(analyser);
+
+        const samples = new Uint8Array(analyser.fftSize);
+        let lastBump = 0;
+        const read = () => {
+          analyser.getByteTimeDomainData(samples);
+          let sum = 0;
+          for (let i = 0; i < samples.length; i += 1) {
+            const centred = (samples[i] - 128) / 128;
+            sum += centred * centred;
+          }
+          const rms = Math.sqrt(sum / samples.length);
+          const now = Math.min(1, Math.sqrt(rms) * 1.9);
+          level.current = now;
+
+          // Sound, not words, is what "still talking" means. The recogniser only
+          // reports once it has settled a phrase, so a long or quietly-spoken
+          // sentence could run past the deadline mid-breath and be cut off. The
+          // meter knows there is a voice in the room a great deal sooner.
+          if (now > TALKING && lastBump + BUMP_EVERY_MS < Date.now()) {
+            lastBump = Date.now();
+            keepAlive.current?.();
+          }
+
+          frame.current = requestAnimationFrame(read);
+        };
+        read();
+      } catch {
+        // No Web Audio, or it refused. Dictation carries on without a level.
+        stopMeter();
       }
-      stream.current = mic;
-
-      const Ctx =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!Ctx) return;
-
-      const ctx = new Ctx();
-      audio.current = ctx;
-      if (ctx.state === "suspended") await ctx.resume();
-
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 1024;
-      analyser.smoothingTimeConstant = 0.6;
-      ctx.createMediaStreamSource(mic).connect(analyser);
-
-      const samples = new Uint8Array(analyser.fftSize);
-      let lastBump = 0;
-      const read = () => {
-        analyser.getByteTimeDomainData(samples);
-        let sum = 0;
-        for (let i = 0; i < samples.length; i += 1) {
-          const centred = (samples[i] - 128) / 128;
-          sum += centred * centred;
-        }
-        const rms = Math.sqrt(sum / samples.length);
-        const now = Math.min(1, Math.sqrt(rms) * 1.9);
-        level.current = now;
-
-        // Sound, not words, is what "still talking" means. The recogniser only
-        // reports once it has settled a phrase, so a long or quietly-spoken
-        // sentence could run past the deadline mid-breath and be cut off. The
-        // meter knows there is a voice in the room a great deal sooner.
-        if (now > TALKING && lastBump + BUMP_EVERY_MS < Date.now()) {
-          lastBump = Date.now();
-          keepAlive.current?.();
-        }
-
-        frame.current = requestAnimationFrame(read);
-      };
-      read();
-    } catch {
-      // Refused, or no microphone the meter may have. Dictation carries on
-      // without a level; the meter falls back to showing that it is awake.
-      stopMeter();
-    }
-  }, [stopMeter]);
+    },
+    [stopMeter],
+  );
 
   /**
    * Put everything back, from wherever.
@@ -255,6 +279,9 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
    * thing that clears the listening state.
    */
   const finish = React.useCallback(() => {
+    wanted.current = false;
+    asking.current = false;
+    engineFailed.current = false;
     keepAlive.current = null;
     stopTimer();
     if (watchdog.current) clearTimeout(watchdog.current);
@@ -267,6 +294,9 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
   }, [stopMeter, stopTimer]);
 
   const stop = React.useCallback(() => {
+    // Set first: `onend` restarts the recogniser while this is true, and a
+    // stop that raced the restart would be undone by it.
+    wanted.current = false;
     const engine = recogniser.current;
     if (!engine) {
       // Nothing running, but the UI may still think there is. Clearing is
@@ -296,12 +326,16 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     }, STOP_GRACE_MS);
   }, [finish, stopTimer]);
 
-  const start = React.useCallback(() => {
+  /**
+   * Build a recogniser and set it going.
+   *
+   * Separate from `start` because it is run twice on iOS: once inside the
+   * click, and again if that attempt failed while the microphone prompt was
+   * still on screen. Returns false if it would not start at all.
+   */
+  const launch = React.useCallback(() => {
     const Recognition = recogniserClass();
-    if (!Recognition || recogniser.current) return;
-
-    setError(null);
-    setInterim("");
+    if (!Recognition) return false;
 
     const engine = new Recognition();
     engine.lang = speechLocale(locale);
@@ -311,7 +345,12 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
 
     const bumpSilence = () => {
       if (silence.current) clearTimeout(silence.current);
-      silence.current = setTimeout(() => engine.stop(), SILENCE_MS);
+      silence.current = setTimeout(() => {
+        // The person has stopped talking, so they are done being listened to:
+        // without this the restart below would open it straight back up.
+        wanted.current = false;
+        engine.stop();
+      }, SILENCE_MS);
     };
 
     engine.onresult = (event) => {
@@ -332,12 +371,28 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
 
     engine.onerror = (event) => {
       const key = speechError(event.error);
-      if (key) setError(key);
 
-      // A refused microphone is the end of the session, not a note about it.
-      // Leaving `listening` true here is what left the panel counting up
-      // beside the words "the microphone is blocked".
+      /**
+       * Hold everything while the microphone prompt is still on screen.
+       *
+       * On iOS the recogniser does not raise that prompt — it goes through the
+       * system speech service and fails immediately when it has no permission.
+       * Tearing the session down here also cancelled the `getUserMedia` call
+       * that *was* about to ask, so the prompt never appeared and the button
+       * reported a blocked microphone nobody had been offered. The answer to
+       * that question is seconds away; this waits for it.
+       */
+      if (asking.current) {
+        engineFailed.current = true;
+        return;
+      }
+
+      if (key) setError(key);
       if (event.error !== "no-speech") {
+        // Before aborting, not after: `abort` fires `onend`, and `onend`
+        // reopens the recogniser while this is still set. A failure would
+        // otherwise restart itself straight into the same failure.
+        wanted.current = false;
         try {
           engine.abort();
         } catch {
@@ -347,24 +402,108 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
       }
     };
 
-    engine.onend = () => finish();
+    engine.onend = () => {
+      /**
+       * Some recognisers ignore `continuous` and stop at the first pause —
+       * iOS among them. While the person still wants to be listened to, open
+       * it again rather than ending their sentence for them. Bounded, because
+       * a recogniser that ends the instant it starts would otherwise spin.
+       */
+      if (wanted.current && restarts.current < 40) {
+        restarts.current += 1;
+        try {
+          engine.start();
+          return;
+        } catch {
+          // Would not restart; fall through and close properly.
+        }
+      }
+      finish();
+    };
 
     try {
       engine.start();
     } catch {
       // Chrome throws InvalidStateError if start() is called while a previous
-      // session is still winding down. Nothing to report; the button simply
-      // does not engage.
-      return;
+      // session is still winding down.
+      return false;
     }
 
     recogniser.current = engine;
     keepAlive.current = bumpSilence;
+    bumpSilence();
+    return true;
+  }, [finish, locale]);
+
+  const start = React.useCallback(() => {
+    if (recogniser.current || asking.current) return;
+
+    setError(null);
+    setInterim("");
+    retried.current = false;
+    restarts.current = 0;
+    engineFailed.current = false;
+    wanted.current = true;
+
+    /**
+     * The microphone is asked for first, and synchronously, because this is
+     * the call that raises the permission prompt — on iOS the recogniser never
+     * does. It is not awaited before the recogniser starts: `start()` on a
+     * recogniser wants the user gesture it was called from, and awaiting a
+     * prompt spends that gesture.
+     */
+    asking.current = navigator.mediaDevices?.getUserMedia !== undefined;
+    const answer = asking.current
+      ? navigator.mediaDevices.getUserMedia({ audio: true })
+      : null;
+
+    const started = launch();
+    if (!started && !answer) return;
+
     setListening(true);
     setStartedAt(Date.now());
-    bumpSilence();
-    void startMeter();
-  }, [finish, locale, startMeter]);
+
+    if (!answer) return;
+
+    void answer.then(
+      (mic) => {
+        asking.current = false;
+        if (!wanted.current) {
+          mic.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        listen(mic);
+
+        // Permission has just arrived. If the recogniser failed for the want
+        // of it, that was the only thing wrong: try once more.
+        if (engineFailed.current && !retried.current) {
+          retried.current = true;
+          engineFailed.current = false;
+          setError(null);
+          if (!launch()) finish();
+        }
+      },
+      (refusal: unknown) => {
+        asking.current = false;
+        // A refusal is the answer to the whole question, not a note about the
+        // meter: without a microphone there is nothing for either half to do.
+        const denied =
+          refusal instanceof DOMException &&
+          (refusal.name === "NotAllowedError" ||
+            refusal.name === "SecurityError");
+        setError(denied ? "voice.blocked" : "voice.noMicrophone");
+        // As above: clear the wish before aborting, or `onend` restarts a
+        // recogniser that has just been refused a microphone.
+        wanted.current = false;
+        try {
+          recogniser.current?.abort();
+        } catch {
+          // Nothing running.
+        }
+        finish();
+      },
+    );
+  }, [finish, launch, listen]);
 
   const toggle = React.useCallback(() => {
     if (listening) stop();
