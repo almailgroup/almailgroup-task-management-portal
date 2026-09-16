@@ -29,22 +29,87 @@ export const TaskCard = React.forwardRef<
     className?: string;
   } & React.HTMLAttributes<HTMLDivElement>
 >(function TaskCard({ task, onOpen, move, dragging, className, ...props }, ref) {
+  /**
+   * Whether the pointer wandered between press and release.
+   *
+   * The sensors already stop a click becoming a drag — four pixels for a
+   * mouse, a long press for a thumb. This is the other direction: a browser
+   * fires `click` whenever press and release land on the same element, however
+   * far the pointer travelled in between, so dragging a card and putting it
+   * back opened it.
+   *
+   * It has to watch the whole journey rather than compare the two ends, which
+   * was the first attempt and reported no movement at all for exactly the
+   * gesture it was meant to catch: picking a card up, moving it, and dropping
+   * it where it started.
+   */
+  const pressedAt = React.useRef<{ x: number; y: number } | null>(null);
+  const wandered = React.useRef(false);
+
+  /**
+   * Open, unless that press was really a drag.
+   *
+   * Shared by the card and the title inside it. The title needs it as much as
+   * the card does — picking a card up by its title, moving it and dropping it
+   * back has always opened the task, because the browser sees one press and
+   * one release on the same button and calls that a click.
+   */
+  const openUnlessDragged = () => {
+    const dragged = wandered.current;
+    pressedAt.current = null;
+    wandered.current = false;
+    if (!dragged) onOpen?.();
+  };
+
+  const openFromCard = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!onOpen) return;
+
+    // Anything with its own behaviour keeps it: the status control, and the
+    // title, which opens through its own handler rather than this one.
+    if ((event.target as HTMLElement).closest("button, a, input, [role='menu']")) {
+      return;
+    }
+
+    openUnlessDragged();
+  };
+
   return (
     <div
       ref={ref}
       className={cn(
         "group lift rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-sm)]",
         "hover:border-foreground/30",
+        // The whole card opens the task. Only the title did, which is a small
+        // target on something that looks pressable end to end — and on a phone
+        // it was a game of hitting one line of text.
+        onOpen && "cursor-pointer",
         dragging && "opacity-40",
         className,
       )}
       {...props}
+      onPointerDown={(event) => {
+        pressedAt.current = { x: event.clientX, y: event.clientY };
+        wandered.current = false;
+        props.onPointerDown?.(event);
+      }}
+      onPointerMove={(event) => {
+        const from = pressedAt.current;
+        if (from && Math.hypot(event.clientX - from.x, event.clientY - from.y) > 5) {
+          wandered.current = true;
+        }
+        props.onPointerMove?.(event);
+      }}
+      onClick={(event) => {
+        openFromCard(event);
+        props.onClick?.(event);
+      }}
     >
       <button
         type="button"
-        onClick={onOpen}
-        // Negative margin cancels the padding, so the tappable area grows to a
-        // thumb-friendly height on touch without changing the card's layout.
+        onClick={openUnlessDragged}
+        // Still a real button, so the card can be reached and opened from the
+        // keyboard. The handler above is an addition for pointers, not a
+        // replacement for this.
         className="w-full text-start focus-visible:outline-none pointer-coarse:-my-2 pointer-coarse:py-2"
       >
         <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
