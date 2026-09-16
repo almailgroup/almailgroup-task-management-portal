@@ -83,6 +83,30 @@ const BUMP_EVERY_MS = 400;
  */
 const STOP_GRACE_MS = 600;
 
+/**
+ * The pause before a finished recogniser is opened again.
+ *
+ * Not zero. A recogniser that has just fired `onend` is still letting go of
+ * the microphone, and starting one in the same tick throws `InvalidStateError`
+ * on every engine that does this. Long enough to be past that, short enough
+ * that a breath between sentences is not a gap in the transcript.
+ */
+const REOPEN_MS = 220;
+
+/**
+ * A recogniser that ends sooner than this never really ran.
+ *
+ * The reopen has to be bounded or a broken engine loops forever, and counting
+ * reopens is the wrong bound: someone thinking for five seconds between
+ * sentences produces a run of perfectly ordinary short sessions, and a budget
+ * would end their dictation for them. What is actually pathological is a
+ * recogniser that ends the moment it starts, so that is what is counted.
+ */
+const BARREN_MS = 400;
+
+/** How many of those in a row before giving up. */
+const BARREN_LIMIT = 5;
+
 export type SpeechInput = {
   /** False where the browser has no recogniser; the button is then hidden. */
   supported: boolean;
@@ -139,8 +163,18 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
   const retried = React.useRef(false);
   /** True while the person still wants to be listened to. */
   const wanted = React.useRef(false);
-  /** Guards the restart below against a recogniser that ends instantly. */
-  const restarts = React.useRef(0);
+  /** Consecutive recognisers that ended before they had run. */
+  const barren = React.useRef(0);
+  /** When the running recogniser was started, to tell those apart. */
+  const engineStartedAt = React.useRef(0);
+  /** The pending reopen, so stopping can cancel it. */
+  const reopen = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * `launch` calling itself. A `useCallback` cannot name itself in its own
+   * body, and the reopen below needs the current one, not the one from the
+   * render that built the recogniser that just ended.
+   */
+  const relaunch = React.useRef<() => boolean>(() => false);
 
   // Fires if a stop request goes unanswered. See `stop`.
   const watchdog = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -281,6 +315,8 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
   const finish = React.useCallback(() => {
     wanted.current = false;
     asking.current = false;
+    if (reopen.current) clearTimeout(reopen.current);
+    reopen.current = null;
     engineFailed.current = false;
     keepAlive.current = null;
     stopTimer();
@@ -354,6 +390,7 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     };
 
     engine.onresult = (event) => {
+      barren.current = 0;
       bumpSilence();
       let pending = "";
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
@@ -405,20 +442,40 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     engine.onend = () => {
       /**
        * Some recognisers ignore `continuous` and stop at the first pause —
-       * iOS among them. While the person still wants to be listened to, open
-       * it again rather than ending their sentence for them. Bounded, because
-       * a recogniser that ends the instant it starts would otherwise spin.
+       * iOS among them, which is why dictation there caught one sentence and
+       * then went deaf. While the person still wants to be listened to, open
+       * it again rather than ending their sentence for them.
+       *
+       * A *new* recogniser, after a pause. Restarting the one that just ended,
+       * in the tick it ended in, is the obvious thing to write and does not
+       * work: the instance is spent and the microphone is still being let go
+       * of, so `start()` throws and the session closed on the first pause
+       * exactly as though none of this were here.
        */
-      if (wanted.current && restarts.current < 40) {
-        restarts.current += 1;
-        try {
-          engine.start();
-          return;
-        } catch {
-          // Would not restart; fall through and close properly.
-        }
+      recogniser.current = null;
+      keepAlive.current = null;
+      // The old engine's silence timer still points at the old engine, and
+      // firing would clear the wish to listen in the middle of a sentence.
+      // The new one sets its own the moment it starts.
+      stopTimer();
+
+      barren.current =
+        Date.now() - engineStartedAt.current < BARREN_MS ? barren.current + 1 : 0;
+
+      if (!wanted.current || barren.current >= BARREN_LIMIT) {
+        finish();
+        return;
       }
-      finish();
+
+      if (reopen.current) clearTimeout(reopen.current);
+      reopen.current = setTimeout(() => {
+        reopen.current = null;
+        if (!wanted.current) {
+          finish();
+          return;
+        }
+        if (!relaunch.current()) finish();
+      }, REOPEN_MS);
     };
 
     try {
@@ -431,9 +488,13 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
 
     recogniser.current = engine;
     keepAlive.current = bumpSilence;
+    engineStartedAt.current = Date.now();
     bumpSilence();
     return true;
-  }, [finish, locale]);
+  }, [finish, locale, stopTimer]);
+
+  // Kept fresh so a reopen always runs the current closure.
+  relaunch.current = launch;
 
   const start = React.useCallback(() => {
     if (recogniser.current || asking.current) return;
@@ -441,7 +502,7 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     setError(null);
     setInterim("");
     retried.current = false;
-    restarts.current = 0;
+    barren.current = 0;
     engineFailed.current = false;
     wanted.current = true;
 
@@ -516,6 +577,7 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     () => () => {
       if (silence.current) clearTimeout(silence.current);
       if (watchdog.current) clearTimeout(watchdog.current);
+      if (reopen.current) clearTimeout(reopen.current);
       if (frame.current !== null) cancelAnimationFrame(frame.current);
       stream.current?.getTracks().forEach((track) => track.stop());
       void audio.current?.close().catch(() => {});

@@ -757,9 +757,20 @@ Four things about the behaviour:
   missing the recogniser is started again — once, so a refusal cannot loop.
   Both halves share the one stream rather than asking twice.
 - **A recogniser that stops at the first pause is reopened.** iOS ignores
-  `continuous`. While the person still wants to be listened to, `onend` starts
-  it again rather than ending their sentence for them, bounded so a recogniser
-  that dies instantly cannot spin.
+  `continuous` and ends the session after one phrase, which is what made
+  dictation there catch a sentence and then go deaf. While the person still
+  wants to be listened to, a **new** recogniser is built after a short pause.
+  Restarting the one that just ended, in the tick it ended in, is the obvious
+  thing to write and does not work: the instance is spent and the microphone is
+  still being let go of, so `start()` throws and the session closes on the first
+  pause exactly as though none of this were here.
+
+  The reopening is bounded, but not by counting reopens — somebody thinking for
+  five seconds between sentences produces a run of perfectly ordinary short
+  sessions, and a budget would end their dictation for them. What is counted is
+  recognisers that end *sooner than they could have run*, five in a row, which
+  is the shape of an engine that is broken rather than a person who is
+  thinking.
 - **Nothing waits to be told the session ended.** Teardown used to live only in
   the recogniser's `onend`, and Safari does not fire it reliably after a
   refused microphone: the panel sat on "Listening…" with the clock counting and
