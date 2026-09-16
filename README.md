@@ -460,6 +460,26 @@ feature:
 `created_by` and `comments.user_id` are nullable with `ON DELETE SET NULL`, so
 offboarding a user never cascades away their projects, tasks or comment threads.
 
+## Removing somebody
+
+Delete the account from **Supabase → Authentication → Users**. Everything they
+owned follows: the profile, their assignments, their notifications and their
+notes all cascade, and the things other people can still see — who created a
+project, who uploaded a file — keep the record with the name dropped to null.
+
+This used to fail with a 500, and the database log underneath it said
+`insert or update on table "notifications" violates foreign key constraint
+"notifications_user_id_fkey"`. The cascade was the whole story: deleting the
+account deletes the profile, which deletes their task assignments, and every
+assignment that goes fires the trigger that tells that person they have been
+removed from a task — addressed to the profile that has just been deleted. The
+more work somebody had been given, the more certainly they could not be
+removed. `push_notification` now checks the recipient still exists, which is
+what its own comment always claimed it did.
+
+`20260916000021_notify_missing_recipient.sql` carries the fix, and it has to be
+applied to the project before a delete will go through.
+
 ## Reminders
 
 Each person picks their own channels on **Profile → Task reminders**, and which
