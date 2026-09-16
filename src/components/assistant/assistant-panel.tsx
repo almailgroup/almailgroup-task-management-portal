@@ -80,6 +80,25 @@ export function AssistantPanel({
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
+  /**
+   * Grow the box to the question.
+   *
+   * A one-row textarea scrolls its own content, so anything longer than a line
+   * was written through a slot — the beginning of your own sentence out of
+   * sight while you finished it. Height is reset before it is measured, or it
+   * only ever ratchets upwards and never shrinks back when text is deleted.
+   */
+  React.useEffect(() => {
+    const box = inputRef.current;
+    // Both copies of the panel are mounted and one is `display: none`, where
+    // `scrollHeight` is 0 — measuring there collapsed the field to nothing and
+    // it stayed that way, because the height is only recomputed when the text
+    // changes and there was no field left to type in.
+    if (!box || box.offsetParent === null) return;
+    box.style.height = "auto";
+    box.style.height = `${box.scrollHeight}px`;
+  }, [draft, active]);
+
   /** Only the copy actually rendered — the other is display:none. */
   const onScreen = () => inputRef.current?.offsetParent !== null;
 
@@ -219,7 +238,23 @@ export function AssistantPanel({
           </p>
         )}
 
-        <div className="flex items-end gap-1.5">
+        {/*
+          * One field, not three controls in a row.
+          *
+          * The box and the two buttons each had their own border and their own
+          * rounding, so the foot of the panel read as a pile of parts rather
+          * than somewhere to type. The border is on the container now and the
+          * textarea inside it is bare; the whole thing lights up together when
+          * the caret is in it, which is what makes it read as one control.
+          */}
+        <div
+          className={cn(
+            "flex flex-col gap-1 rounded-2xl border border-input bg-card px-3 py-2",
+            "transition-[border-color,box-shadow]",
+            "focus-within:border-foreground focus-within:shadow-[var(--shadow-xs)]",
+            pending && "opacity-60",
+          )}
+        >
           <Textarea
             ref={inputRef}
             value={draft}
@@ -234,48 +269,76 @@ export function AssistantPanel({
             placeholder={t("assistant.placeholder")}
             rows={1}
             maxLength={2000}
-            className="max-h-28 min-h-[2.25rem] resize-none py-1.5 text-sm"
+            className={cn(
+              "max-h-40 min-h-0 resize-none overflow-y-auto border-0 bg-transparent p-0 text-sm leading-relaxed",
+              // The container carries the focus affordance. Without this the
+              // global focus ring drew a second rounded box inside the first.
+              "shadow-none focus-visible:border-0 focus-visible:shadow-none",
+              "focus-visible:ring-0 focus-visible:ring-offset-0",
+            )}
             aria-label={t("assistant.ask")}
           />
-          {/* Always rendered, never hidden. Hiding it where the browser has
-              no recogniser meant the feature simply was not there on some
-              machines and present on others, with nothing on screen to say
-              why — which is a worse answer than a button that explains
-              itself. `title` carries the reason on a desktop hover, and
-              pressing it says the same thing in the panel. */}
-          <Button
-            type="button"
-            size="icon-sm"
-            variant={voice.listening ? "default" : "ghost"}
-            onClick={voice.supported ? voice.toggle : () => setVoiceNote(true)}
-            disabled={pending}
-            aria-pressed={voice.supported ? voice.listening : undefined}
-            aria-label={t(
-              !voice.supported
-                ? "voice.unsupported"
-                : voice.listening
-                  ? "voice.stop"
-                  : "voice.start",
-            )}
-            title={t(
-              !voice.supported
-                ? "voice.unsupported"
-                : voice.listening
-                  ? "voice.stop"
-                  : "voice.start",
-            )}
-            className={cn(!voice.supported && "opacity-50")}
-          >
-            {voice.listening ? <Square /> : <Mic />}
-          </Button>
-          <Button
-            type="submit"
-            size="icon-sm"
-            disabled={pending || !draft.trim()}
-            aria-label={t("assistant.send")}
-          >
-            {pending ? <Loader2 className="animate-spin" /> : <CornerDownLeft className="rtl:-scale-x-100" />}
-          </Button>
+
+          <div className="flex items-center justify-between gap-1">
+            {/* Always rendered, never hidden. Hiding it where the browser has
+                no recogniser meant the feature simply was not there on some
+                machines and present on others, with nothing on screen to say
+                why — which is a worse answer than a button that explains
+                itself. */}
+            <Button
+              type="button"
+              size="icon-sm"
+              variant={voice.listening ? "default" : "ghost"}
+              onClick={voice.supported ? voice.toggle : () => setVoiceNote(true)}
+              disabled={pending}
+              aria-pressed={voice.supported ? voice.listening : undefined}
+              aria-label={t(
+                !voice.supported
+                  ? "voice.unsupported"
+                  : voice.listening
+                    ? "voice.stop"
+                    : "voice.start",
+              )}
+              title={t(
+                !voice.supported
+                  ? "voice.unsupported"
+                  : voice.listening
+                    ? "voice.stop"
+                    : "voice.start",
+              )}
+              className={cn("-ms-1", !voice.supported && "opacity-40")}
+            >
+              {voice.listening ? <Square /> : <Mic />}
+            </Button>
+
+            <div className="flex items-center gap-2">
+              {/* Only near the limit, and only as a number: a counter that is
+                  always there is noise on a box most questions never fill. */}
+              {draft.length > 1600 && (
+                <span
+                  className={cn(
+                    "text-[0.6875rem] tabular-nums",
+                    draft.length >= 2000 ? "text-warning" : "text-muted-foreground",
+                  )}
+                >
+                  {2000 - draft.length}
+                </span>
+              )}
+              <Button
+                type="submit"
+                size="icon-sm"
+                disabled={pending || !draft.trim()}
+                aria-label={t("assistant.send")}
+                className="-me-1"
+              >
+                {pending ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <CornerDownLeft className="rtl:-scale-x-100" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </form>
     </div>

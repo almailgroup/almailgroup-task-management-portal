@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Plus,
+  MessagesSquare,
   Sparkles,
   Sunrise,
   Users,
@@ -104,6 +105,13 @@ export function SidebarNav({
             icon={<Users />}
             label={t("nav.team")}
             active={pathname === "/team"}
+            onNavigate={onNavigate}
+          />
+          <NavLink
+            href="/chat"
+            icon={<MessagesSquare />}
+            label={t("nav.chat")}
+            active={pathname === "/chat"}
             onNavigate={onNavigate}
           />
         </nav>

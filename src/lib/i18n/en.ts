@@ -844,4 +844,16 @@ export const en = {
   "voice.noLanguage": "This browser cannot recognise that language.",
   "voice.failed": "Something went wrong while listening. Try again.",
   "voice.unsupported": "This browser cannot turn speech into text. Chrome, Edge and Safari can; Firefox cannot.",
+
+  // ---- team chat -----------------------------------------------------------------------
+  "nav.chat": "Team chat",
+  "chat.subtitle": "One room for the whole team. Everyone here can read it.",
+  "chat.placeholder": "Message the team…",
+  "chat.send": "Send",
+  "chat.you": "You",
+  "chat.delete": "Delete message",
+  "chat.empty": "Nothing here yet. Say something and the team will see it.",
+  "chat.emptyMessage": "Write something first.",
+  "chat.tooLong": "That is too long for one message. Break it up.",
+  "chat.notYours": "That message is not yours to delete.",
 } as const;

@@ -21,6 +21,7 @@ import type {
   NotificationPreferences,
   TaskAttachment,
   TaskWithAssignees,
+  TeamMessageWithAuthor,
 } from "@/lib/supabase/database.types";
 
 /**
@@ -543,6 +544,29 @@ export const getMyNotes = cache(async (): Promise<NoteWithItems[]> => {
  * numbers. The function is SECURITY INVOKER, so the counts are filtered by
  * the caller's own RLS exactly as the old query was.
  */
+/**
+ * The team room, oldest last.
+ *
+ * Bounded: a room read from the top would grow without limit and the first
+ * paint would get slower every week. The newest `limit` are fetched — which
+ * means asking for them newest-first — and then reversed, because a
+ * conversation reads downwards.
+ */
+export const getTeamMessages = cache(
+  async (limit = 100): Promise<TeamMessageWithAuthor[]> => {
+    const supabase = await createClient();
+    const result = await supabase
+      .from("team_messages")
+      .select("*, author:profiles(*)")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    const rows = (orFail(result, "the team chat") ?? []) as unknown as
+      TeamMessageWithAuthor[];
+    return rows.reverse();
+  },
+);
+
 export const getTaskCounts = cache(async (): Promise<Metrics> => {
   const supabase = await createClient();
 

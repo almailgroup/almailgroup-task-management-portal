@@ -210,6 +210,34 @@ export type Database = {
           },
         ];
       };
+      team_messages: {
+        Row: {
+          id: string;
+          author_id: string;
+          body: string;
+          created_at: string;
+          edited_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          body: string;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Update: {
+          body?: string;
+          edited_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_author_id_fkey";
+            columns: ["author_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       comments: {
         Row: {
           id: string;
@@ -694,6 +722,11 @@ export type NotificationWithActor = Notification & { actor: Profile | null };
 export type TaskWithAssignees = Task & { assignees: Profile[] };
 
 /** A comment joined with its author (null when the account was removed). */
+export type TeamMessage = Database["public"]["Tables"]["team_messages"]["Row"];
+
+/** A message with whoever wrote it, which is how the room reads. */
+export type TeamMessageWithAuthor = TeamMessage & { author: Profile | null };
+
 export type CommentWithAuthor = Comment & { author: Profile | null };
 
 /** An activity row joined with the profile that caused it. */

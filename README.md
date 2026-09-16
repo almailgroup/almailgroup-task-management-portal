@@ -480,6 +480,38 @@ what its own comment always claimed it did.
 `20260916000021_notify_missing_recipient.sql` carries the fix, and it has to be
 applied to the project before a delete will go through.
 
+## Team chat
+
+One room for the workspace, under **Team chat** in the sidebar. Not a channel
+list and not direct messages: everybody here already works together, and a
+single room everyone can see is the thing a small team actually uses. The
+table is modelled so a `room` column could be added later without moving the
+messages.
+
+Deliberately separate from a task's comments, which belong to that task and are
+part of its record. A message here is conversation, and its author is allowed
+to delete it.
+
+Row-level security is the whole of the access rule and none of it is repeated
+in TypeScript. Everyone signed in reads the room — a shared room whose messages
+some members cannot see is not a shared room. The insert policy requires
+`author_id = auth.uid()`, which is what stops a message being posted under
+somebody else's name. Deleting is the author or an admin.
+
+All of that was checked against a real Postgres before any of the UI was
+written: a second member can read the room, cannot post as somebody else,
+cannot edit or delete their messages, can delete their own, and an admin can
+remove anything. An empty or whitespace-only message is refused by the table.
+
+Worth knowing about the delete: RLS *filters* rather than refuses, so deleting
+somebody else's message removes nothing and reports no error. The action counts
+the rows, because without that a refusal is indistinguishable from success.
+
+The room is server-rendered with the last hundred messages, so it reads before
+any JavaScript runs, then stays live on the same realtime channel the board
+uses. Realtime enforces RLS on everything it forwards, so subscribing cannot
+show what a page load would have hidden.
+
 ## Reminders
 
 Each person picks their own channels on **Profile → Task reminders**, and which
