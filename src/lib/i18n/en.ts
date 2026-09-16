@@ -833,4 +833,14 @@ export const en = {
   "assistant.dismissed": "Left as it was",
   "assistant.badProposal": "That came back in a shape I could not act on. Ask me again.",
   "assistant.unknownAction": "That is not something I can do here.",
+
+  // ---- dictation -----------------------------------------------------------------------
+  "voice.start": "Speak your question",
+  "voice.stop": "Stop listening",
+  "voice.listening": "Listening…",
+  "voice.blocked": "The microphone is blocked. Allow it for this site in your browser settings, then try again.",
+  "voice.noMicrophone": "No microphone found.",
+  "voice.offline": "Speech needs a connection, and I could not reach the service.",
+  "voice.noLanguage": "This browser cannot recognise that language.",
+  "voice.failed": "Something went wrong while listening. Try again.",
 } as const;

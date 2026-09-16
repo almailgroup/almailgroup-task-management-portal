@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Check, CornerDownLeft, Loader2, RotateCcw, Sparkles, X } from "lucide-react";
+import { Check, CornerDownLeft, Loader2, Mic, RotateCcw, Sparkles, Square, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
+import { useSpeechInput } from "@/lib/speech/use-speech-input";
 import type { Assistant } from "@/components/assistant/use-assistant";
 import type { AssistantAction, AssistantMessage } from "@/lib/assistant/types";
 
@@ -44,7 +45,33 @@ export function AssistantPanel({
 }) {
   const { messages, draft, setDraft, pending, send, clear, confirm, dismiss, running } =
     assistant;
-  const { t } = useI18n();
+  const { t, tm } = useI18n();
+
+  /**
+   * Dictation appends to whatever is already in the box rather than replacing
+   * it, so you can type half a question, speak the rest, and fix it by hand
+   * before sending. Nothing is ever sent by voice alone: a transcript is a
+   * guess, and it goes in front of you to approve like anything else would.
+   */
+  const voice = useSpeechInput(
+    React.useCallback(
+      (heard: string) =>
+        // An updater, not `draft + heard`: the recogniser can settle two
+        // phrases inside one tick, and both would read the same stale draft
+        // and the second would eat the first.
+        setDraft((current) => (current ? `${current.trimEnd()} ` : "") + heard),
+      [setDraft],
+    ),
+  );
+
+  // Stop the microphone the moment this copy leaves the screen — closing the
+  // panel or crossing the breakpoint into the drawer should not leave it live.
+  const { listening: hearing, stop: stopHearing } = voice;
+  React.useEffect(() => {
+    if (!active && hearing) stopHearing();
+    // Not `[active, voice]`: the hook returns a fresh object every render, so
+    // depending on it would re-run this on every keystroke.
+  }, [active, hearing, stopHearing]);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
@@ -143,9 +170,38 @@ export function AssistantPanel({
         className="border-t border-chrome-border p-2.5"
         onSubmit={(event) => {
           event.preventDefault();
+          voice.stop();
           send(draft);
         }}
       >
+        {/* Above the box, not inside it: the interim transcript is the
+            engine's current guess and it rewrites itself word by word.
+            Putting that in the textarea would move the caret under anyone
+            trying to correct what has already settled. */}
+        {(voice.listening || voice.error) && (
+          <p
+            aria-live="polite"
+            className="mb-1.5 flex items-start gap-1.5 px-1 text-xs leading-snug text-muted-foreground"
+          >
+            {voice.listening && (
+              <span aria-hidden className="mt-1 flex shrink-0 gap-0.5">
+                {[0, 1, 2].map((bar) => (
+                  <span
+                    key={bar}
+                    className="h-2 w-0.5 animate-pulse rounded-full bg-foreground/70"
+                    style={{ animationDelay: `${bar * 180}ms` }}
+                  />
+                ))}
+              </span>
+            )}
+            <span className="min-w-0">
+              {voice.error
+                ? tm(voice.error)
+                : voice.interim || t("voice.listening")}
+            </span>
+          </p>
+        )}
+
         <div className="flex items-end gap-1.5">
           <Textarea
             ref={inputRef}
@@ -164,6 +220,20 @@ export function AssistantPanel({
             className="max-h-28 min-h-[2.25rem] resize-none py-1.5 text-sm"
             aria-label={t("assistant.ask")}
           />
+          {voice.supported && (
+            <Button
+              type="button"
+              size="icon-sm"
+              variant={voice.listening ? "default" : "ghost"}
+              onClick={voice.toggle}
+              disabled={pending}
+              aria-pressed={voice.listening}
+              aria-label={t(voice.listening ? "voice.stop" : "voice.start")}
+              title={t(voice.listening ? "voice.stop" : "voice.start")}
+            >
+              {voice.listening ? <Square /> : <Mic />}
+            </Button>
+          )}
           <Button
             type="submit"
             size="icon-sm"

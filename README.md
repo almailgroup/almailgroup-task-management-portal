@@ -680,6 +680,41 @@ The card stays in the thread after a decision, showing what was agreed or that
 it was left alone. A thread that silently rewrote itself would leave no way to
 see what you had said yes to.
 
+### Talking to it
+
+The microphone beside the send button dictates into the box. It uses
+`SpeechRecognition`, which is already in the browser: no key, no server, and
+no audio passing through this app's code — what arrives is text. In Chrome the
+recognition itself happens on Google's servers, which is worth knowing and is
+not something this app arranges or can switch off.
+
+Firefox has no recogniser at all, so `supported` is false there and the button
+is not rendered rather than rendered and dead. It also needs a secure context,
+so it works on the deployed site and on localhost, and not over plain HTTP.
+
+The language is asked for explicitly — `ar-AE` in Arabic, `en-US` in English —
+and is deliberately not `localeTag()`. That one is `ar-AE-u-nu-latn`, a
+formatting tag whose Unicode extension picks Latin digits; a recogniser will
+not take it. Dictating Arabic into an engine left on English produces a
+transcript nobody said.
+
+Three things about the behaviour:
+
+- **It appends, and it never sends.** You can type half a question, speak the
+  rest, and correct it before pressing enter. A transcript is a guess, and it
+  goes in front of you like anything else the assistant proposes.
+- **Settled phrases go in the box; the guess sits above it.** Interim results
+  rewrite themselves word by word, and putting those in the textarea moves the
+  caret under anyone trying to fix what has already landed.
+- **The microphone closes itself.** After six seconds of silence, when the
+  panel closes, and when the component unmounts. `continuous` is on so a
+  sentence with a pause in it stays one dictation, which is exactly what would
+  otherwise leave a live microphone behind.
+
+`tests/unit/speech.test.ts` covers the language tags and the error mapping —
+including that "no speech" and a deliberate stop both arrive as errors and
+neither deserves a line of red text.
+
 ### Connecting Gemini
 
 The assistant is named "AI assistant" everywhere it is read. Its code still

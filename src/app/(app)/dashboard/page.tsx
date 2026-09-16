@@ -56,9 +56,7 @@ export default async function DashboardPage() {
   const firstName = profile.full_name?.split(" ")[0];
 
   return (
-    // `glass-lab` is the scope for the glass experiment in globals.css. It
-    // is on this page and nowhere else, so every other page is the control.
-    <PageShell className="glass-lab">
+    <PageShell>
       <PageHeader
         title={firstName ? t("dash.welcome", { name: firstName }) : t("nav.dashboard")}
         description={

@@ -13,7 +13,12 @@ import type { AssistantMessage } from "@/lib/assistant/types";
 export type Assistant = {
   messages: AssistantMessage[];
   draft: string;
-  setDraft: (value: string) => void;
+  /**
+   * Takes an updater as well as a value. Dictation needs it: two settled
+   * phrases can arrive in one tick, and both would read the same stale draft
+   * if all they had was `setDraft(draft + heard)`.
+   */
+  setDraft: React.Dispatch<React.SetStateAction<string>>;
   pending: boolean;
   send: (text: string) => void;
   clear: () => void;

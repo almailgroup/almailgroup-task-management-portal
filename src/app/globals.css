@@ -246,37 +246,6 @@
 }
 
 @layer utilities {
-  /*
-   * Glassmorphism, on the dashboard only, to look at.
-   *
-   * This is the recipe as given — the fill, the radius, the shadow and the
-   * blur, unchanged — scoped to `.glass-lab`, which the dashboard page puts on
-   * its PageShell and nothing else uses. Every other page is untouched, so
-   * flipping between them is the comparison.
-   *
-   * Two notes on what you will see, both consequences of the recipe rather
-   * than of how it is applied here.
-   *
-   * `rgba(255, 255, 255, 0.1)` is designed to sit over something. On a photo
-   * or a colour field it is a veil; on this app's flat page it is a flat 10%
-   * white wash, and `blur(10px)` has nothing behind the panel to blur, so the
-   * frosting has nothing to show. That is why the effect reads more strongly
-   * on the header and menus, where content passes underneath, than on a card
-   * sitting on an empty background.
-   *
-   * It is also a light-on-light fill. In dark mode it lifts the panel off the
-   * page as intended. In light mode a 10% white over a near-white page is
-   * close to invisible, and the border is doing most of the work.
-   */
-  .glass-lab [data-slot="card"],
-  .glass-lab [data-metric] {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-
   /* Thin, unobtrusive scrollbars for the Kanban columns and comment threads. */
   .scrollbar-thin {
     scrollbar-width: thin;
