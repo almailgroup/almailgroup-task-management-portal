@@ -331,16 +331,25 @@ export function NoteEditor({
       </header>
 
       <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col gap-4">
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder={t("notes.titlePlaceholder")}
             maxLength={200}
             aria-label={t("notes.titleLabel")}
+            /* Bordered like every other field in the app, because without one
+               there was nothing on screen to say this was a place you could
+               type: the title and the body read as printed text, and the empty
+               half of the pane read as nothing at all. `border-input` rather
+               than the lighter `border-border` for the same reason the rest of
+               the system uses it — on a control the outline *is* the
+               component, which WCAG asks to reach 3:1 against its surface. */
             className={cn(
-              "w-full bg-transparent text-xl font-semibold tracking-tight outline-none",
+              "w-full rounded-xl border border-input bg-card px-3.5 py-2.5 text-xl font-semibold tracking-tight",
+              "transition-[border-color,box-shadow]",
               "placeholder:font-normal placeholder:text-muted-foreground",
+              "focus-visible:outline-none focus-visible:border-foreground focus-visible:shadow-[var(--shadow-xs)]",
             )}
           />
 
@@ -445,9 +454,14 @@ export function NoteEditor({
             maxLength={20000}
             aria-label={t("notes.bodyLabel")}
             rows={6}
+            /* `flex-1` so the field is the rest of the pane rather than a
+               short box with dead space under it — the part you write in
+               should be the part that is enclosed. */
             className={cn(
-              "min-h-40 w-full resize-none bg-transparent text-[0.9375rem] leading-relaxed outline-none",
+              "min-h-40 w-full flex-1 resize-none rounded-xl border border-input bg-card px-3.5 py-2.5 text-[0.9375rem] leading-relaxed",
+              "transition-[border-color,box-shadow]",
               "placeholder:text-muted-foreground",
+              "focus-visible:outline-none focus-visible:border-foreground focus-visible:shadow-[var(--shadow-xs)]",
             )}
           />
         </div>

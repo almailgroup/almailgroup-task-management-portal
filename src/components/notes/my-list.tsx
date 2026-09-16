@@ -141,7 +141,17 @@ export function MyList({
   const pending = notes.find((n) => n.id === confirmDelete);
 
   return (
-    <div className="flex h-[calc(100svh-3.5rem)] flex-col lg:flex-row">
+    <div
+      className={cn(
+        "flex flex-col lg:flex-row",
+        // The pane is what the shell leaves, not the viewport less a header.
+        // It used to subtract only the header, so on a phone it ran a whole
+        // navigation bar past the bottom of the screen and the last lines of
+        // a long note sat underneath it.
+        "h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))]",
+        "lg:h-[calc(100svh-3.5rem)]",
+      )}
+    >
       {/* ---- List ---------------------------------------------------- */}
       <section
         aria-label={t("notes.yours")}
