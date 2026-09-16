@@ -937,4 +937,20 @@ export const ar: Dictionary = {
   "chat.emptyMessage": "اكتب شيئاً أولاً.",
   "chat.tooLong": "هذه الرسالة طويلة جداً. قسّمها.",
   "chat.notYours": "هذه الرسالة ليست لك لحذفها.",
+
+  // ---- the team room's people and presence ---------------------------------------------
+  "chat.transcript": "الرسائل",
+  "chat.members": "الفريق",
+  "chat.online": "متصل",
+  "chat.offline": "غير متصل",
+  "chat.onlineCount_one": "متصل واحد",
+  "chat.onlineCount_other": "{n} متصلون",
+  "chat.typing": "يكتب…",
+  "chat.isTyping": "{name} يكتب…",
+  "chat.twoTyping": "{a} و{b} يكتبان…",
+  "chat.manyTyping_one": "شخص واحد يكتب…",
+  "chat.manyTyping_other": "{n} أشخاص يكتبون…",
+  "chat.today": "اليوم",
+  "chat.yesterday": "أمس",
+  "chat.showMembers": "إظهار الفريق",
 };

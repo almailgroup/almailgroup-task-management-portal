@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { describeDatabaseError, fail, ok, type ActionResult } from "@/lib/action-result";
+import type { TeamMessage } from "@/lib/supabase/database.types";
 
 /**
  * The team room.
@@ -18,7 +19,18 @@ import { describeDatabaseError, fail, ok, type ActionResult } from "@/lib/action
 /** Matches the database's own check, so the UI can refuse before a round trip. */
 const MAX_LENGTH = 4000;
 
-export async function sendTeamMessage(body: string): Promise<ActionResult<void>> {
+/**
+ * Post a message, and hand the saved row back.
+ *
+ * The row is returned rather than nothing so the sender sees what they wrote
+ * straight away. Everyone else finds out over realtime, but waiting for your
+ * own words to come back from the server is the one case where that round
+ * trip is felt: the box empties, and for a moment it looks like the message
+ * went nowhere. The room drops the duplicate when the broadcast arrives.
+ */
+export async function sendTeamMessage(
+  body: string,
+): Promise<ActionResult<TeamMessage>> {
   const text = body.trim();
   if (!text) return fail("chat.emptyMessage");
   if (text.length > MAX_LENGTH) return fail("chat.tooLong");
@@ -29,14 +41,16 @@ export async function sendTeamMessage(body: string): Promise<ActionResult<void>>
   } = await supabase.auth.getUser();
   if (!user) return fail("action.signedOut");
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("team_messages")
-    .insert({ author_id: user.id, body: text });
+    .insert({ author_id: user.id, body: text })
+    .select("*")
+    .single();
 
   if (error) return fail(describeDatabaseError(error));
 
   revalidatePath("/chat");
-  return ok(undefined);
+  return ok(data as TeamMessage);
 }
 
 export async function deleteTeamMessage(id: string): Promise<ActionResult<void>> {

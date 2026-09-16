@@ -856,4 +856,20 @@ export const en = {
   "chat.emptyMessage": "Write something first.",
   "chat.tooLong": "That is too long for one message. Break it up.",
   "chat.notYours": "That message is not yours to delete.",
+
+  // ---- the team room's people and presence ---------------------------------------------
+  "chat.transcript": "Messages",
+  "chat.members": "Team",
+  "chat.online": "Online",
+  "chat.offline": "Away",
+  "chat.onlineCount_one": "{n} online",
+  "chat.onlineCount_other": "{n} online",
+  "chat.typing": "typing…",
+  "chat.isTyping": "{name} is typing…",
+  "chat.twoTyping": "{a} and {b} are typing…",
+  "chat.manyTyping_one": "{n} person is typing…",
+  "chat.manyTyping_other": "{n} people are typing…",
+  "chat.today": "Today",
+  "chat.yesterday": "Yesterday",
+  "chat.showMembers": "Show the team",
 } as const;

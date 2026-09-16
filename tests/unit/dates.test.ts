@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
 
 import {
   compactAge,
@@ -6,6 +6,7 @@ import {
   describeDayGap,
   describeDayGapDetail,
   formatElapsed,
+  formatTimeOfDay,
   isoFromLocalInput,
   relativeDay,
   toLocalInput,
@@ -146,5 +147,32 @@ describe("describeDayGapDetail", () => {
     expect(describeDayGapDetail(15)).toBe("2 weeks, 1 day");
     expect(describeDayGapDetail(30)).toBe("4 weeks, 2 days");
     expect(describeDayGapDetail(-21)).toBe("3 weeks");
+  });
+});
+
+describe("the time of day on its own", () => {
+  const DUBAI = "Asia/Dubai";
+  const iso = "2026-09-16T04:05:00Z"; // 08:05 in Dubai
+
+  test("reads in the viewer's timezone, not the server's", () => {
+    expect(formatTimeOfDay(iso, "en-AE", DUBAI)).toMatch(/8:05/);
+    expect(formatTimeOfDay(iso, "en-AE", "UTC")).toMatch(/4:05/);
+  });
+
+  test("says which half of the day it is by default", () => {
+    expect(formatTimeOfDay(iso, "en-AE", DUBAI)).toMatch(/AM/i);
+  });
+
+  test("`bare` drops it, and takes nothing else with it", () => {
+    expect(formatTimeOfDay(iso, "en-AE", DUBAI, { bare: true })).toBe("8:05");
+  });
+
+  test("`bare` drops the Arabic marker too, rather than cutting English off a string", () => {
+    // ar-AE-u-nu-latn is what the app asks for: Arabic, Latin digits. The
+    // marker is ص, so a `replace(/AM|PM/)` would have left it in place.
+    const full = formatTimeOfDay(iso, "ar-AE-u-nu-latn", DUBAI);
+    const bare = formatTimeOfDay(iso, "ar-AE-u-nu-latn", DUBAI, { bare: true });
+    expect(full).toContain("ص");
+    expect(bare).toBe("8:05");
   });
 });

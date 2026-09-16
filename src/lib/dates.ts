@@ -90,6 +90,39 @@ export function formatDateTime(
   });
 }
 
+/**
+ * Just the clock time, in the viewer's own timezone.
+ *
+ * For lists that already carry the date somewhere else — the team room puts a
+ * separator between days, so repeating "16 Sep" on every line underneath it
+ * says nothing. Same sourcing rule as `formatDateTime` above.
+ */
+export function formatTimeOfDay(
+  value: string,
+  tag?: string,
+  timeZone?: string,
+  { bare = false }: { bare?: boolean } = {},
+): string {
+  const parts = new Intl.DateTimeFormat(tag, {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+  }).formatToParts(new Date(value));
+
+  if (!bare) return parts.map((part) => part.value).join("");
+
+  // `bare` drops whichever half of the day it is — "8:05" rather than
+  // "8:05 AM" — for somewhere too narrow to hold it, like the gutter of a
+  // chat message whose own block already says. Cutting the string by hand
+  // would only work in English; Arabic writes ص and م, and other locales put
+  // the marker in front. Taking the run from the hour to the minute is the
+  // same answer everywhere.
+  const first = parts.findIndex((part) => part.type === "hour");
+  const last = parts.findLastIndex((part) => part.type === "minute");
+  if (first === -1 || last === -1) return parts.map((part) => part.value).join("");
+  return parts.slice(first, last + 1).map((part) => part.value).join("");
+}
+
 /** Today at a given hour, in the viewer's timezone, as an ISO instant. */
 export function atHourToday(hour: number, daysAhead = 0): string {
   const date = new Date();

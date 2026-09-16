@@ -512,6 +512,41 @@ any JavaScript runs, then stays live on the same realtime channel the board
 uses. Realtime enforces RLS on everything it forwards, so subscribing cannot
 show what a page load would have hidden.
 
+Your own message appears the moment the server accepts it — the insert reads
+the saved row back and the room shows that, rather than waiting for the
+broadcast to come round. When the broadcast does arrive it is dropped as a
+duplicate, matched on the row's id.
+
+### Who is here, and who is typing
+
+Both come from the channel's **presence**, not from a table. Neither is worth a
+row: they are true for a few seconds and then they are not, and a table of them
+would be a table of things that are already wrong. Presence is keyed by the
+profile id, so somebody with the room open in two tabs is here once, and is
+typing if either tab is.
+
+Stopping typing has no event of its own — it is only ever the absence of one —
+so it is a timer: two and a half seconds after the last keystroke, or the
+moment the box is emptied, blurred, or sent from.
+
+The member list sits on the trailing edge of the room: the right in English,
+the left in Arabic, which is the same side of the reading order rather than the
+same side of the screen. Online first, then alphabetical, because the point of
+the column is to answer "who could see this now". Below `lg` there is no room
+for two columns, so the same list opens over the conversation instead of
+squeezing it. The presence dot is greyscale like everything else here — in this
+palette the one colour means late work, and being online is not an alarm.
+
+The room is exactly as tall as the screen leaves it, so the composer stays put
+and the messages are the only thing that scrolls. What is subtracted is what
+the app shell itself puts around a page — the header, and on a phone the
+navigation bar and the home indicator — and everything inside is flexbox's
+arithmetic rather than a guess at how tall a wrapped heading turns out to be.
+
+New messages carry you along only if you were already at the bottom. Nothing is
+more irritating in a chat than being dragged away from what you were reading
+because somebody else said hello.
+
 ## Reminders
 
 Each person picks their own channels on **Profile → Task reminders**, and which

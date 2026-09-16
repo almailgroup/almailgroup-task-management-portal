@@ -23,7 +23,16 @@ vi.mock("@/lib/supabase/server", () => ({
     from: () => ({
       insert: (values: Record<string, unknown>) => {
         inserted = values;
-        return Promise.resolve({ error: dbError });
+        // The action reads the saved row back so the sender sees it at once.
+        return {
+          select: () => ({
+            single: () =>
+              Promise.resolve({
+                error: dbError,
+                data: dbError ? null : { id: "row-1", ...values },
+              }),
+          }),
+        };
       },
       delete: () => ({
         eq: () => Promise.resolve({ error: dbError, count: deletedCount }),
@@ -46,7 +55,7 @@ describe("sendTeamMessage", () => {
   test("posts the message as whoever is signed in", async () => {
     expect(await sendTeamMessage("The meeting moved to 3pm")).toEqual({
       ok: true,
-      data: undefined,
+      data: { id: "row-1", author_id: "me", body: "The meeting moved to 3pm" },
     });
     // Never from the caller: the insert policy would refuse any other id, and
     // this is what keeps the two in step.
