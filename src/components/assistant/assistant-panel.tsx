@@ -67,6 +67,9 @@ export function AssistantPanel({
 
   // Stop the microphone the moment this copy leaves the screen — closing the
   // panel or crossing the breakpoint into the drawer should not leave it live.
+  /** Set when the mic is pressed in a browser that cannot do this. */
+  const [voiceNote, setVoiceNote] = React.useState(false);
+
   const { listening: hearing, stop: stopHearing } = voice;
   React.useEffect(() => {
     if (!active && hearing) stopHearing();
@@ -207,12 +210,12 @@ export function AssistantPanel({
           </div>
         )}
 
-        {voice.error && (
+        {(voice.error || voiceNote) && (
           <p
             aria-live="polite"
             className="mb-1.5 px-1 text-xs leading-snug text-muted-foreground"
           >
-            {tm(voice.error)}
+            {voice.error ? tm(voice.error) : t("voice.unsupported")}
           </p>
         )}
 
@@ -234,20 +237,37 @@ export function AssistantPanel({
             className="max-h-28 min-h-[2.25rem] resize-none py-1.5 text-sm"
             aria-label={t("assistant.ask")}
           />
-          {voice.supported && (
-            <Button
-              type="button"
-              size="icon-sm"
-              variant={voice.listening ? "default" : "ghost"}
-              onClick={voice.toggle}
-              disabled={pending}
-              aria-pressed={voice.listening}
-              aria-label={t(voice.listening ? "voice.stop" : "voice.start")}
-              title={t(voice.listening ? "voice.stop" : "voice.start")}
-            >
-              {voice.listening ? <Square /> : <Mic />}
-            </Button>
-          )}
+          {/* Always rendered, never hidden. Hiding it where the browser has
+              no recogniser meant the feature simply was not there on some
+              machines and present on others, with nothing on screen to say
+              why — which is a worse answer than a button that explains
+              itself. `title` carries the reason on a desktop hover, and
+              pressing it says the same thing in the panel. */}
+          <Button
+            type="button"
+            size="icon-sm"
+            variant={voice.listening ? "default" : "ghost"}
+            onClick={voice.supported ? voice.toggle : () => setVoiceNote(true)}
+            disabled={pending}
+            aria-pressed={voice.supported ? voice.listening : undefined}
+            aria-label={t(
+              !voice.supported
+                ? "voice.unsupported"
+                : voice.listening
+                  ? "voice.stop"
+                  : "voice.start",
+            )}
+            title={t(
+              !voice.supported
+                ? "voice.unsupported"
+                : voice.listening
+                  ? "voice.stop"
+                  : "voice.start",
+            )}
+            className={cn(!voice.supported && "opacity-50")}
+          >
+            {voice.listening ? <Square /> : <Mic />}
+          </Button>
           <Button
             type="submit"
             size="icon-sm"

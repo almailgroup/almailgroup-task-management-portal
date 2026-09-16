@@ -74,6 +74,15 @@ const TALKING = 0.08;
 /** How often sound is allowed to push the deadline back. */
 const BUMP_EVERY_MS = 400;
 
+/**
+ * How long a stop request is given before it is taken by force.
+ *
+ * Long enough for a recogniser that is genuinely winding down to finish and
+ * fire `onend` itself, short enough that a button press that did nothing is
+ * not something you sit and wonder about.
+ */
+const STOP_GRACE_MS = 600;
+
 export type SpeechInput = {
   /** False where the browser has no recogniser; the button is then hidden. */
   supported: boolean;
@@ -119,6 +128,8 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
 
   const recogniser = React.useRef<Recogniser | null>(null);
   const silence = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Fires if a stop request goes unanswered. See `stop`.
+  const watchdog = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The level meter's own plumbing. Separate from the recogniser: the engine
   // hears the words but tells us nothing about how loud they were, so the
@@ -230,10 +241,60 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     }
   }, [stopMeter]);
 
-  const stop = React.useCallback(() => {
+  /**
+   * Put everything back, from wherever.
+   *
+   * This used to live only in `onend`, and every way out of a session went
+   * through it — which was fine right up until a browser did not fire it.
+   * Safari does not, reliably, after a refused microphone: the recogniser was
+   * finished, the panel still said "Listening…", the clock kept counting and
+   * the stop button had nothing left to stop. There was no way out but a
+   * reload.
+   *
+   * So nothing here waits to be told. It is idempotent, and it is the only
+   * thing that clears the listening state.
+   */
+  const finish = React.useCallback(() => {
+    keepAlive.current = null;
     stopTimer();
-    recogniser.current?.stop();
-  }, [stopTimer]);
+    if (watchdog.current) clearTimeout(watchdog.current);
+    watchdog.current = null;
+    stopMeter();
+    recogniser.current = null;
+    setListening(false);
+    setStartedAt(null);
+    setInterim("");
+  }, [stopMeter, stopTimer]);
+
+  const stop = React.useCallback(() => {
+    const engine = recogniser.current;
+    if (!engine) {
+      // Nothing running, but the UI may still think there is. Clearing is
+      // always safe, and is what makes a second press of a stuck button work.
+      finish();
+      return;
+    }
+
+    stopTimer();
+    try {
+      engine.stop();
+    } catch {
+      // Already dead. The watchdog below finishes the job.
+    }
+
+    // `stop()` is a request, not a guarantee: an engine that never truly
+    // started ignores it and never fires `onend`. If the press has not taken
+    // effect shortly, take it by force.
+    if (watchdog.current) clearTimeout(watchdog.current);
+    watchdog.current = setTimeout(() => {
+      try {
+        recogniser.current?.abort();
+      } catch {
+        // Nothing to abort.
+      }
+      finish();
+    }, STOP_GRACE_MS);
+  }, [finish, stopTimer]);
 
   const start = React.useCallback(() => {
     const Recognition = recogniserClass();
@@ -272,17 +333,21 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     engine.onerror = (event) => {
       const key = speechError(event.error);
       if (key) setError(key);
+
+      // A refused microphone is the end of the session, not a note about it.
+      // Leaving `listening` true here is what left the panel counting up
+      // beside the words "the microphone is blocked".
+      if (event.error !== "no-speech") {
+        try {
+          engine.abort();
+        } catch {
+          // Already stopped.
+        }
+        finish();
+      }
     };
 
-    engine.onend = () => {
-      keepAlive.current = null;
-      stopTimer();
-      stopMeter();
-      recogniser.current = null;
-      setListening(false);
-      setStartedAt(null);
-      setInterim("");
-    };
+    engine.onend = () => finish();
 
     try {
       engine.start();
@@ -299,7 +364,7 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     setStartedAt(Date.now());
     bumpSilence();
     void startMeter();
-  }, [locale, startMeter, stopMeter, stopTimer]);
+  }, [finish, locale, startMeter]);
 
   const toggle = React.useCallback(() => {
     if (listening) stop();
@@ -311,6 +376,7 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
   React.useEffect(
     () => () => {
       if (silence.current) clearTimeout(silence.current);
+      if (watchdog.current) clearTimeout(watchdog.current);
       if (frame.current !== null) cancelAnimationFrame(frame.current);
       stream.current?.getTracks().forEach((track) => track.stop());
       void audio.current?.close().catch(() => {});

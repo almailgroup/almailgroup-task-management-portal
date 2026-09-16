@@ -688,9 +688,15 @@ no audio passing through this app's code — what arrives is text. In Chrome the
 recognition itself happens on Google's servers, which is worth knowing and is
 not something this app arranges or can switch off.
 
-Firefox has no recogniser at all, so `supported` is false there and the button
-is not rendered rather than rendered and dead. It also needs a secure context,
-so it works on the deployed site and on localhost, and not over plain HTTP.
+It needs a secure context, so it works on the deployed site and on localhost,
+and not over plain HTTP.
+
+Where the browser has no recogniser the button is still there, disabled, and
+says so when pressed. It used to be hidden, which meant the feature was simply
+absent on some machines and present on others with nothing on screen to
+explain the difference — a worse answer than a button that explains itself.
+The rail and the mobile drawer render the same panel, so it is the browser
+that decides this and never the screen size.
 
 The language is asked for explicitly — `ar-AE` in Arabic, `en-US` in English —
 and is deliberately not `localeTag()`. That one is `ar-AE-u-nu-latn`, a
@@ -730,6 +736,13 @@ Four things about the behaviour:
   the panel closes, and on unmount — the capture stream's tracks stopped one by
   one and the audio context closed, because a `MediaStream` merely dropped
   leaves the browser's recording indicator lit.
+- **Nothing waits to be told the session ended.** Teardown used to live only in
+  the recogniser's `onend`, and Safari does not fire it reliably after a
+  refused microphone: the panel sat on "Listening…" with the clock counting and
+  a stop button that had nothing left to stop, and the only way out was a
+  reload. An error now ends the session itself, `stop()` clears the state
+  whether or not there is an engine left to stop, and a stop request that goes
+  unanswered for 600ms is taken by force.
 
 The meter is verified by driving a stub at the Web Audio boundary rather than
 at the browser's audio hardware, which headless Chromium refuses outright,

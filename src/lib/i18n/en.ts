@@ -843,4 +843,5 @@ export const en = {
   "voice.offline": "Speech needs a connection, and I could not reach the service.",
   "voice.noLanguage": "This browser cannot recognise that language.",
   "voice.failed": "Something went wrong while listening. Try again.",
+  "voice.unsupported": "This browser cannot turn speech into text. Chrome, Edge and Safari can; Firefox cannot.",
 } as const;
