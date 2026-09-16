@@ -231,6 +231,9 @@ export function AppShell({
         style={{ width: "var(--sidebar-width)" }}
         className={cn(
           "fixed inset-y-0 start-0 z-30 hidden border-e border-chrome-border bg-chrome lg:block",
+          // Only ever on screen above `lg`, where a notch is not in play, but
+          // a cover viewport applies to tablets too.
+          "pt-[var(--safe-top)] pb-[var(--safe-bottom)]",
           animating && "transition-[width] duration-200 ease-out",
         )}
       >
@@ -288,11 +291,18 @@ export function AppShell({
           <aside
             className={cn(
               "absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-e border-chrome-border bg-chrome",
+              // Its foot holds the clock and the assistant launcher, and it
+              // runs to the bottom of the screen: without this the home
+              // indicator crosses them.
+              "pb-[var(--safe-bottom)]",
               "transition-[width] duration-200 ease-out",
               assistantOpen ? "w-[22rem]" : "w-72",
             )}
           >
-            <div className="flex h-14 items-center justify-between border-b border-chrome-border px-4">
+            {/* The drawer is `inset-y-0`, so with a cover viewport its own
+                header sits under the status bar. It carries the notch the same
+                way the page header does. */}
+            <div className="flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between border-b border-chrome-border px-4 pt-[var(--safe-top)]">
               <span className="text-sm font-medium tracking-tight">
                 {t("shell.brand")}
               </span>
@@ -333,7 +343,10 @@ export function AppShell({
           animating && "transition-[padding] duration-200 ease-out",
         )}
       >
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
+        {/* `pt` and `h-auto`, not a taller box: with a cover viewport the status
+            bar overlaps the top of the page, so the header carries the notch
+            as padding and keeps its own 3.5rem of content below it. */}
+        <header className="sticky top-0 z-20 flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 pt-[var(--safe-top)] backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <CommandHint />
           </div>
@@ -355,7 +368,7 @@ export function AppShell({
         <main
           id="content"
           tabIndex={-1}
-          className="min-h-[calc(100svh-3.5rem)] pb-[calc(3.5rem+env(safe-area-inset-bottom))] focus:outline-none lg:pb-0"
+          className="min-h-[calc(100svh-3.5rem)] pb-[calc(3.5rem+var(--safe-bottom))] focus:outline-none lg:pb-0"
         >
           {children}
         </main>

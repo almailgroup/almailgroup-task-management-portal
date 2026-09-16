@@ -48,6 +48,16 @@ export const viewport: Viewport = {
   // fixed at the source — this stops the browser doing it uninvited.
   maximumScale: 1,
   userScalable: false,
+  /**
+   * Lets the page reach the edges of the screen, and — the reason it is here —
+   * makes `env(safe-area-inset-*)` report real numbers. Without it every one
+   * of them is `0px`, which is why the navigation bar sat on the iPhone's home
+   * indicator despite having been padded away from it since the day it was
+   * written. Anything that now reaches under the notch or the indicator pads
+   * itself back out: the header at the top, the bar and the page at the
+   * bottom.
+   */
+  viewportFit: "cover",
   // Matches the page grounds, so the browser chrome on a phone blends into
   // the app instead of framing it in a colour the design never uses.
   themeColor: [

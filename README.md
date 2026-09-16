@@ -900,6 +900,29 @@ While a page genuinely is on its way, the nav item you clicked shows a spinner
 in place of its own icon — `useLinkStatus` reports only for the link it is
 rendered inside, so it can never appear on an item nobody clicked.
 
+## Installed on a phone
+
+Added to the home screen, the app runs without Safari's chrome, which means the
+notch and the home indicator are its problem rather than the browser's.
+
+The viewport is `viewport-fit=cover`, and that is the part that was missing:
+without it every `env(safe-area-inset-*)` reports `0px`. The navigation bar had
+been padded away from the home indicator since the day it was written, and the
+padding had always been zero — so the labels sat on the indicator and tapping
+one was as likely to swipe the app away as to open the page.
+
+Two custom properties in `globals.css` hold the standoff, so nothing has to
+repeat the expression: `--safe-bottom`, which is the inset or a small gap,
+whichever is larger, because a bar flush against the edge is unpleasant to tap
+on any phone; and `--safe-top`, the notch or nothing. Everything that reaches
+an edge pads itself back: the page header and the drawer's header carry the
+notch, and the bar, the page and the drawer carry the indicator. Backgrounds
+still run to the edge — it is only the content that stands off.
+
+Measured at 393x852 with an iPhone's insets injected: the last tap target ends
+34px above the bottom of the screen, the first header control starts 72px below
+the top, and both come back to 6px and 13px on a device with no insets at all.
+
 ## Signing in
 
 ### Forgotten passwords

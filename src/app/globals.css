@@ -18,6 +18,17 @@
    * whole system rounds together. */
   --radius: 0.875rem;
 
+  /*
+   * How far the chrome stands off the bottom of the screen.
+   *
+   * On an iPhone the home indicator wants about 34px; `max` keeps a small gap
+   * on everything else, because a bar flush against the edge of a phone is
+   * unpleasant to tap whether or not the hardware demands room.
+   */
+  --safe-bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
+  /* The notch, or nothing. */
+  --safe-top: env(safe-area-inset-top, 0px);
+
   /* Sidebar width. Overwritten before first paint by the script in the
    * authenticated layout when a stored width exists, and by React after
    * hydration; this is the fallback both fall back to. */

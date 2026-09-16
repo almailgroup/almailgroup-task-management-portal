@@ -26,8 +26,10 @@ import { useI18n } from "@/lib/i18n/client";
  */
 const ITEMS = [
   { href: "/today", label: "nav.today", icon: Sunrise },
-  { href: "/dashboard", label: "nav.home", icon: LayoutDashboard },
   { href: "/tasks?filter=all", match: "/tasks", label: "nav.tasks", icon: ListFilter },
+  // Home sits in the middle, where a thumb rests, and where every app that
+  // has a home puts it.
+  { href: "/dashboard", label: "nav.home", icon: LayoutDashboard },
   { href: "/my-list", label: "nav.myList", icon: ListChecks },
 ] as const;
 
@@ -40,8 +42,10 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
       aria-label={t("nav.tasks")}
       className={cn(
         "fixed inset-x-0 bottom-0 z-30 border-t border-chrome-border bg-chrome/90 backdrop-blur-md lg:hidden",
-        // Sits above the home indicator on a phone rather than under it.
-        "pb-[env(safe-area-inset-bottom)]",
+        // Stands off the home indicator rather than sitting on it. This was
+        // `env(safe-area-inset-bottom)` alone, which was the right idea and
+        // resolved to zero, because the viewport was not `cover`.
+        "pb-[var(--safe-bottom)]",
       )}
     >
       <ul className="mx-auto flex max-w-lg items-stretch">
