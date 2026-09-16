@@ -311,13 +311,36 @@ export function TeamChat({
             void send();
           }}
         >
+          {/* One line, not a box with a toolbar under it.
+              A message here is usually a sentence, and the field was three
+              times taller than the sentence it was waiting for — the
+              placeholder sat at the top of a large empty rectangle with the
+              send button marooned in the far corner. Everything is on the same
+              line now, and it grows downwards only when what is being written
+              needs the room. `items-end` is what keeps the buttons at the foot
+              of the field once it does. */}
           <div
             className={cn(
-              "flex flex-col gap-1 rounded-2xl border border-input bg-card px-3 py-2",
+              "flex items-end gap-1 rounded-2xl border border-input bg-card p-1.5",
               "transition-[border-color,box-shadow]",
               "focus-within:border-foreground focus-within:shadow-[var(--shadow-xs)]",
             )}
           >
+            {/* The roster is a column of its own from `lg` up. Below that
+                there is no room for two, so the same list opens over the
+                conversation instead of squeezing it. */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 lg:hidden"
+              aria-label={t("chat.showMembers")}
+              title={t("chat.showMembers")}
+              onClick={() => setRosterOpen(true)}
+            >
+              <Users />
+            </Button>
+
             <Textarea
               ref={boxRef}
               value={draft}
@@ -333,54 +356,44 @@ export function TeamChat({
               rows={1}
               maxLength={MAX_LENGTH}
               className={cn(
-                "max-h-40 min-h-0 resize-none overflow-y-auto border-0 bg-transparent p-0 text-sm leading-relaxed",
+                // 24px of line in 12px of padding is 36px, which is exactly
+                // the height of the buttons beside it, so one line of text
+                // sits on their centre line without being nudged there.
+                "min-h-0 flex-1 resize-none overflow-y-auto px-2 py-1.5 text-sm leading-6",
+                "max-h-40 border-0 bg-transparent",
+                // The container carries the focus affordance. Without this the
+                // global focus ring drew a second rounded box inside the first.
                 "shadow-none focus-visible:border-0 focus-visible:shadow-none",
                 "focus-visible:ring-0 focus-visible:ring-offset-0",
               )}
               aria-label={t("chat.placeholder")}
             />
 
-            <div className="flex items-center justify-between gap-2">
-              {/* The roster is a column of its own from `lg` up. Below that
-                  there is no room for two, so the same list opens over the
-                  conversation instead of squeezing it. */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="-ms-1 lg:invisible"
-                aria-label={t("chat.showMembers")}
-                title={t("chat.showMembers")}
-                onClick={() => setRosterOpen(true)}
-              >
-                <Users />
-              </Button>
-
-              <div className="flex items-center gap-2">
-                {left <= 600 && (
-                  <span
-                    className={cn(
-                      "text-[0.6875rem] tabular-nums",
-                      left <= 0 ? "text-warning" : "text-muted-foreground",
-                    )}
-                  >
-                    {left}
-                  </span>
-                )}
-                <Button
-                  type="submit"
-                  size="icon-sm"
-                  disabled={sending || !draft.trim()}
-                  aria-label={t("chat.send")}
-                  className="-me-1"
-                >
-                  {sending ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <CornerDownLeft className="rtl:-scale-x-100" />
+            {/* Grouped, so the count is centred against the button rather than
+                dropped to the foot of a field that has grown. */}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {left <= 600 && (
+                <span
+                  className={cn(
+                    "text-[0.6875rem] tabular-nums",
+                    left <= 0 ? "text-warning" : "text-muted-foreground",
                   )}
-                </Button>
-              </div>
+                >
+                  {left}
+                </span>
+              )}
+              <Button
+                type="submit"
+                size="icon-sm"
+                disabled={sending || !draft.trim()}
+                aria-label={t("chat.send")}
+              >
+                {sending ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <CornerDownLeft className="rtl:-scale-x-100" />
+                )}
+              </Button>
             </div>
           </div>
         </form>
