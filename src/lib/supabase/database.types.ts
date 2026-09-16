@@ -603,6 +603,11 @@ export type Database = {
         Args: { batch_size?: number };
         Returns: Database["public"]["Tables"]["reminder_queue"]["Row"][];
       };
+      /** The same claim, narrowed to one task, for the assignment path. */
+      claim_task_reminders: {
+        Args: { task: string };
+        Returns: Database["public"]["Tables"]["reminder_queue"]["Row"][];
+      };
       /** Per-assignee open/done/overdue, counted in the database. */
       /** Soft delete: hides the task everywhere, keeps it for 30 days. */
       trash_task: { Args: { task: string }; Returns: boolean };

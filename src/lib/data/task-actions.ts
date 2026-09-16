@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { dispatchForTask } from "@/lib/reminders/dispatch";
 import {
   describeDatabaseError,
   fail,
@@ -124,6 +126,8 @@ export async function createTask(
         "action.assigneesNotSaved",
       );
     }
+
+    notifyAssignees(data.id);
   }
 
   revalidateTaskViews(projectId);
@@ -172,6 +176,20 @@ export async function updateTask(
  * Only the difference is written, so the audit triggers do not log spurious
  * "assignee removed then re-added" pairs on every save.
  */
+/**
+ * Tell the people just assigned, now rather than on the next daily sweep.
+ *
+ * A database trigger has already written their reminders to the queue, so the
+ * work is safe before this runs and nothing here can lose it: `after` runs
+ * once the response has gone, and `dispatchForTask` swallows its own failures
+ * and leaves the rows for the scheduler. The assignment is saved either way —
+ * a Telegram outage must not turn it into a failed action, and the person who
+ * assigned the task should not wait on a provider to see the board update.
+ */
+function notifyAssignees(taskId: string) {
+  after(() => dispatchForTask(taskId));
+}
+
 async function syncAssignees(
   supabase: Awaited<ReturnType<typeof createClient>>,
   taskId: string,
@@ -195,6 +213,8 @@ async function syncAssignees(
       .from("task_assignments")
       .insert(toAdd.map((userId) => ({ task_id: taskId, user_id: userId })));
     if (error) return describeDatabaseError(error);
+
+    notifyAssignees(taskId);
   }
 
   if (toRemove.length > 0) {

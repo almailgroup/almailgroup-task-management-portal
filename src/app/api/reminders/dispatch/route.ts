@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { deliver } from "@/lib/reminders/providers";
+import { sendClaimed } from "@/lib/reminders/dispatch";
 import type { QueuedReminder } from "@/lib/reminders/types";
 
 /**
@@ -15,9 +15,6 @@ import type { QueuedReminder } from "@/lib/reminders/types";
 
 /** How many to attempt per run, so one invocation cannot run past its timeout. */
 const BATCH_SIZE = 40;
-
-/** After this many failed attempts a reminder is given up on. */
-const MAX_ATTEMPTS = 4;
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -90,55 +87,13 @@ async function run(request: NextRequest) {
   }
 
   const queued = (data ?? []) as QueuedReminder[];
-  let sent = 0;
-  let failed = 0;
-  let givenUp = 0;
 
-  for (const reminder of queued) {
-    const result = await deliver(reminder);
-    const attempts = reminder.attempts + 1;
-
-    if (result.ok) {
-      sent += 1;
-      await supabase
-        .from("reminder_queue")
-        .update({
-          status: "sent",
-          attempts,
-          sent_at: new Date().toISOString(),
-          last_error: null,
-          claimed_at: null,
-        })
-        .eq("id", reminder.id);
-      continue;
-    }
-
-    // Stop retrying once it is clearly not going to work, or we have tried enough.
-    const exhausted = !result.retryable || attempts >= MAX_ATTEMPTS;
-    if (exhausted) givenUp += 1;
-    else failed += 1;
-
-    await supabase
-      .from("reminder_queue")
-      .update({
-        status: exhausted ? "failed" : "pending",
-        attempts,
-        last_error: result.error,
-        // Releasing the claim is what lets a retry be picked up again.
-        claimed_at: null,
-        // Back off so a struggling provider is not hammered on every run.
-        scheduled_for: exhausted
-          ? undefined
-          : new Date(Date.now() + attempts * 15 * 60_000).toISOString(),
-      })
-      .eq("id", reminder.id);
-  }
+  // The sending is shared with the assignment path, which claims one task's
+  // rows rather than a batch of everybody's. Only the claiming differs.
+  const tally = await sendClaimed(supabase, queued);
 
   return NextResponse.json({
-    considered: queued.length,
-    sent,
-    retrying: failed,
-    givenUp,
+    ...tally,
     enqueueError: enqueueError ? enqueueError.message : null,
   });
 }

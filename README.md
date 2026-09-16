@@ -503,6 +503,29 @@ times does not.
 Permanent failures (a blocked bot, a bad number) are not retried; transient ones
 back off and are retried up to four times.
 
+### Being assigned something arrives at once
+
+Three of the four kinds are questions about the clock — due soon, overdue,
+follow up — and can only be found by looking at the board against the time, so
+a scheduled sweep is the only thing that could find them. Being handed a task
+is not that: it is an event that has already happened, with a known recipient
+and a message in the queue within milliseconds. It waited for the next sweep
+anyway, because it shared the one conveyor belt, so work assigned at 2pm was
+heard about the following morning.
+
+The assignment path now drains that task's rows itself, through
+`claim_task_reminders`, and leaves the rest of the queue to the scheduler. The
+claiming is the only thing that differs between the two: `sendClaimed` does the
+sending and the bookkeeping for both, so there is one implementation of what
+happens to a claimed row rather than two that drift.
+
+It cannot cost the assignment anything. The trigger has already written the
+rows, so the work is safe before any provider is called; the send runs in
+`after()`, once the response has gone, so nobody waits on Telegram to see the
+board update; and `dispatchForTask` swallows its own failures and leaves the
+rows for the daily sweep, because a provider outage must not turn a saved
+assignment into a failed one.
+
 ### Server environment
 
 All of these are **server secrets** — never prefix them `NEXT_PUBLIC_`, which
