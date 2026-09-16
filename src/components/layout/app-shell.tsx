@@ -26,6 +26,7 @@ import {
 } from "@/lib/sidebar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { useI18n } from "@/lib/i18n/client";
 import { LanguageSelector } from "@/components/layout/language-selector";
 import type {
@@ -57,6 +58,16 @@ export function AppShell({
   const pathname = usePathname();
   const { t } = useI18n();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+
+  // The drawer covers the page; the page should not move under it.
+  const leavingPage = React.useRef(false);
+  useScrollLock(drawerOpen, leavingPage);
+
+  /** Closing because a destination was tapped, rather than dismissed. */
+  const followLink = React.useCallback(() => {
+    leavingPage.current = true;
+    setDrawerOpen(false);
+  }, []);
 
   // Two independent widths, picked by what the rail is currently showing.
   // Modelling it as one width plus a saved copy meant a commit had to guess
@@ -321,7 +332,7 @@ export function AppShell({
                   profile={profile}
                   projects={projects}
                   activeProjectId={activeProjectId}
-                  onNavigate={() => setDrawerOpen(false)}
+                  onNavigate={followLink}
                   onOpenAssistant={openAssistant}
                 />
               </div>

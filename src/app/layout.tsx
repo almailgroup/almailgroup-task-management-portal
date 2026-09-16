@@ -37,6 +37,21 @@ export const metadata: Metadata = {
   description:
     "Plan, assign and track work across Almailgroup projects — projects, tasks, Kanban boards and real-time collaboration.",
   applicationName: "Almailgroup Task Management Portal",
+  /**
+   * Installed to a home screen on iOS.
+   *
+   * `title` is the name under the icon, and without it iOS uses the page
+   * title — "Today · Almailgroup" or whichever page happened to be open when
+   * it was added. `default` keeps the status bar opaque and the web view
+   * below it, which is what the safe-area padding elsewhere is measured
+   * against; `black-translucent` would put the page under the clock and is a
+   * different layout, not a different colour.
+   */
+  appleWebApp: {
+    capable: true,
+    title: "Almailgroup",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {

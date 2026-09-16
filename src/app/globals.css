@@ -213,8 +213,22 @@
     font-family: var(--font-arabic), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   }
 
+  /*
+   * No rubber band.
+   *
+   * Installed to a home screen there is no browser chrome to bounce against,
+   * so dragging past the top of a page swung the whole app down and showed a
+   * band of empty ground above the header — which reads as the layout being
+   * broken rather than as a gesture. It also takes pull-to-refresh with it,
+   * which a standalone app does not have anyway.
+   */
+  html {
+    overscroll-behavior-y: none;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    overscroll-behavior-y: none;
     /* A phone browser reacts to a page that is wider than the screen by
      * zooming the whole thing out until it fits, which makes every page look
      * shrunken because of one stray element. Nothing here is meant to be read
@@ -257,6 +271,21 @@
 }
 
 @layer utilities {
+  /*
+   * Chrome, not text.
+   *
+   * A tap held a fraction too long on a navigation label selected the word, or
+   * raised iOS's copy-and-share sheet over a link, instead of going to the
+   * page. Neither is ever what somebody pressing "Today" wanted. `manipulation`
+   * drops the wait for a second tap, since nothing here zooms.
+   */
+  .chrome-touch {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+
   /* Thin, unobtrusive scrollbars for the Kanban columns and comment threads. */
   .scrollbar-thin {
     scrollbar-width: thin;

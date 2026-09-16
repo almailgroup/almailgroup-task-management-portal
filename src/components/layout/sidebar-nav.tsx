@@ -206,7 +206,7 @@ function NavLink({
       prefetch
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-150",
+        "chrome-touch relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-150",
         "[&_svg]:size-4 [&_svg]:shrink-0",
         active
           // Inverted fill: the current page should be unmistakable at a glance,

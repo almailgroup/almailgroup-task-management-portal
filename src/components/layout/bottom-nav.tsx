@@ -41,7 +41,7 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
     <nav
       aria-label={t("nav.tasks")}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 border-t border-chrome-border bg-chrome/90 backdrop-blur-md lg:hidden",
+        "chrome-touch fixed inset-x-0 bottom-0 z-30 border-t border-chrome-border bg-chrome/90 backdrop-blur-md lg:hidden",
         // Stands off the home indicator rather than sitting on it. This was
         // `env(safe-area-inset-bottom)` alone, which was the right idea and
         // resolved to zero, because the viewport was not `cover`.

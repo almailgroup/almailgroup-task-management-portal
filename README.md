@@ -922,6 +922,26 @@ still run to the edge — it is only the content that stands off.
 Measured at 393x852 with an iPhone's insets injected: the last tap target ends
 34px above the bottom of the screen, the first header control starts 72px below
 the top, and both come back to 6px and 13px on a device with no insets at all.
+Each item in the bar is 79x56pt, above the 44pt Apple asks for.
+
+Three more things a standalone app needs that a page in a browser does not:
+
+- **No rubber band.** There is no browser chrome to bounce against, so dragging
+  past the top swung the whole app down and showed a band of empty ground above
+  the header, which reads as a broken layout rather than as a gesture.
+  `overscroll-behavior-y: none` on the document.
+- **The page holds still under the drawer.** `overflow: hidden` on the body is
+  the usual answer and does nothing on iOS — opening "More" and dragging moved
+  the board behind it, and closing left you somewhere you had not chosen to be.
+  `useScrollLock` fixes the body at its offset and puts the position back.
+  Except when the drawer closes *because a destination was tapped*: the
+  position belongs to the page being left, and restoring it landed the new one
+  part-scrolled. Tapping Calendar arrived 59px down a page that had never been
+  scrolled, which is why `leaving` exists.
+- **Chrome is not text.** A tap held a fraction too long on a navigation label
+  selected the word, or raised the copy-and-share sheet over a link. The
+  `chrome-touch` utility turns off selection, the callout and the wait for a
+  second tap.
 
 ## Signing in
 
