@@ -54,7 +54,7 @@ function recogniserClass(): RecogniserClass | null {
 }
 
 /**
- * How long to keep listening after the last word.
+ * How long to keep listening after the last sound.
  *
  * `continuous` is on so a sentence with a pause in the middle of it is one
  * dictation rather than two, but that also means the recogniser will hold the
@@ -62,6 +62,17 @@ function recogniserClass(): RecogniserClass | null {
  * and is called away should not leave a live microphone behind.
  */
 const SILENCE_MS = 6000;
+
+/**
+ * The level above which somebody is considered to still be talking.
+ *
+ * Well above a quiet room's noise floor and well below ordinary speech, which
+ * the meter reads at around 0.4.
+ */
+const TALKING = 0.08;
+
+/** How often sound is allowed to push the deadline back. */
+const BUMP_EVERY_MS = 400;
 
 export type SpeechInput = {
   /** False where the browser has no recogniser; the button is then hidden. */
@@ -71,6 +82,21 @@ export type SpeechInput = {
   interim: string;
   /** A message key, or null. */
   error: string | null;
+  /**
+   * How loud it is right now, 0 to 1, in a ref rather than in state.
+   *
+   * A meter wants a new number every frame, and sixty renders a second of a
+   * panel containing a chat thread to move some bars is not a trade worth
+   * making. The meter reads this in its own animation frame and writes to the
+   * DOM directly; React never sees it change.
+   *
+   * Stays at 0 when the level could not be measured — a second microphone
+   * stream is a thing a browser is allowed to refuse, and dictation still
+   * works when it does.
+   */
+  level: React.RefObject<number>;
+  /** When listening began, for the elapsed count. Null when idle. */
+  startedAt: number | null;
   start: () => void;
   stop: () => void;
   toggle: () => void;
@@ -89,8 +115,22 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
   const [interim, setInterim] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
+  const [startedAt, setStartedAt] = React.useState<number | null>(null);
+
   const recogniser = React.useRef<Recogniser | null>(null);
   const silence = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The level meter's own plumbing. Separate from the recogniser: the engine
+  // hears the words but tells us nothing about how loud they were, so the
+  // microphone is opened a second time purely to measure it.
+  const level = React.useRef(0);
+  // Set while a session is running, so the level meter can push the silence
+  // deadline back. Held in a ref because the meter loop outlives the render
+  // that started it.
+  const keepAlive = React.useRef<(() => void) | null>(null);
+  const stream = React.useRef<MediaStream | null>(null);
+  const audio = React.useRef<AudioContext | null>(null);
+  const frame = React.useRef<number | null>(null);
   // Kept in a ref so the recogniser's handlers, which are attached once, always
   // call the current one rather than the one from the render that built them.
   const deliver = React.useRef(onText);
@@ -105,6 +145,90 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     if (silence.current) clearTimeout(silence.current);
     silence.current = null;
   }, []);
+
+  /**
+   * Close the microphone the meter opened.
+   *
+   * Every track has to be stopped by hand. A `MediaStream` that is merely
+   * dropped keeps the browser's recording indicator lit, which is alarming
+   * and fair enough.
+   */
+  const stopMeter = React.useCallback(() => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    frame.current = null;
+    stream.current?.getTracks().forEach((track) => track.stop());
+    stream.current = null;
+    void audio.current?.close().catch(() => {});
+    audio.current = null;
+    level.current = 0;
+  }, []);
+
+  /**
+   * Measure how loud the room is, sixty times a second.
+   *
+   * Root mean square over the waveform, which is what a level meter measures —
+   * peak would jump on a consonant and sit at zero through a vowel. The curve
+   * is there because speech at a normal distance from a laptop microphone is
+   * a small fraction of full scale, and a meter that reads 4% while somebody
+   * talks does not tell them it is working, which is the entire job.
+   */
+  const startMeter = React.useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    try {
+      const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // `stop()` can land while the permission prompt is still open.
+      if (!recogniser.current) {
+        mic.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      stream.current = mic;
+
+      const Ctx =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Ctx) return;
+
+      const ctx = new Ctx();
+      audio.current = ctx;
+      if (ctx.state === "suspended") await ctx.resume();
+
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.6;
+      ctx.createMediaStreamSource(mic).connect(analyser);
+
+      const samples = new Uint8Array(analyser.fftSize);
+      let lastBump = 0;
+      const read = () => {
+        analyser.getByteTimeDomainData(samples);
+        let sum = 0;
+        for (let i = 0; i < samples.length; i += 1) {
+          const centred = (samples[i] - 128) / 128;
+          sum += centred * centred;
+        }
+        const rms = Math.sqrt(sum / samples.length);
+        const now = Math.min(1, Math.sqrt(rms) * 1.9);
+        level.current = now;
+
+        // Sound, not words, is what "still talking" means. The recogniser only
+        // reports once it has settled a phrase, so a long or quietly-spoken
+        // sentence could run past the deadline mid-breath and be cut off. The
+        // meter knows there is a voice in the room a great deal sooner.
+        if (now > TALKING && lastBump + BUMP_EVERY_MS < Date.now()) {
+          lastBump = Date.now();
+          keepAlive.current?.();
+        }
+
+        frame.current = requestAnimationFrame(read);
+      };
+      read();
+    } catch {
+      // Refused, or no microphone the meter may have. Dictation carries on
+      // without a level; the meter falls back to showing that it is awake.
+      stopMeter();
+    }
+  }, [stopMeter]);
 
   const stop = React.useCallback(() => {
     stopTimer();
@@ -151,9 +275,12 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     };
 
     engine.onend = () => {
+      keepAlive.current = null;
       stopTimer();
+      stopMeter();
       recogniser.current = null;
       setListening(false);
+      setStartedAt(null);
       setInterim("");
     };
 
@@ -167,9 +294,12 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
     }
 
     recogniser.current = engine;
+    keepAlive.current = bumpSilence;
     setListening(true);
+    setStartedAt(Date.now());
     bumpSilence();
-  }, [locale, stopTimer]);
+    void startMeter();
+  }, [locale, startMeter, stopMeter, stopTimer]);
 
   const toggle = React.useCallback(() => {
     if (listening) stop();
@@ -181,11 +311,14 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
   React.useEffect(
     () => () => {
       if (silence.current) clearTimeout(silence.current);
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+      stream.current?.getTracks().forEach((track) => track.stop());
+      void audio.current?.close().catch(() => {});
       recogniser.current?.abort();
       recogniser.current = null;
     },
     [],
   );
 
-  return { supported, listening, interim, error, start, stop, toggle };
+  return { supported, listening, interim, error, level, startedAt, start, stop, toggle };
 }

@@ -698,7 +698,21 @@ formatting tag whose Unicode extension picks Latin digits; a recogniser will
 not take it. Dictating Arabic into an engine left on English produces a
 transcript nobody said.
 
-Three things about the behaviour:
+While it listens, a voice-note meter sits above the box: a recording dot, a
+waveform that scrolls with what you are saying, the elapsed time, and the
+transcript updating under it. The point of the waveform is to answer the
+question "is this thing on" without anybody having to say a test word — so it
+is a real measurement, not an animation. The microphone is opened a second
+time, purely to measure it: root mean square over the waveform, sixty times a
+second, curved because speech into a laptop microphone is a small fraction of
+full scale and a meter that reads 4% while somebody talks has not done its job.
+
+It renders once. Everything after that is written to the bars' `transform`
+inside an animation frame, and the level lives in a ref — sixty React renders
+a second, of a panel holding the whole conversation, to move some bars is not
+a trade worth making.
+
+Four things about the behaviour:
 
 - **It appends, and it never sends.** You can type half a question, speak the
   rest, and correct it before pressing enter. A transcript is a guess, and it
@@ -706,10 +720,22 @@ Three things about the behaviour:
 - **Settled phrases go in the box; the guess sits above it.** Interim results
   rewrite themselves word by word, and putting those in the textarea moves the
   caret under anyone trying to fix what has already landed.
-- **The microphone closes itself.** After six seconds of silence, when the
-  panel closes, and when the component unmounts. `continuous` is on so a
-  sentence with a pause in it stays one dictation, which is exactly what would
-  otherwise leave a live microphone behind.
+- **Sound keeps it alive, not words.** The six-second deadline is pushed back
+  by anything above the noise floor, because the recogniser only reports once
+  it has settled a phrase — so a long or quietly-spoken sentence used to be cut
+  off mid-breath at six seconds. The meter knows there is a voice in the room a
+  great deal sooner. Driven against a stub, nine seconds of continuous talking
+  now stays open and stops six seconds after the talking does.
+- **The microphone closes itself.** On that deadline, on the stop button, when
+  the panel closes, and on unmount — the capture stream's tracks stopped one by
+  one and the audio context closed, because a `MediaStream` merely dropped
+  leaves the browser's recording indicator lit.
+
+The meter is verified by driving a stub at the Web Audio boundary rather than
+at the browser's audio hardware, which headless Chromium refuses outright,
+fake device or not: everything above that line is this app's code. Silence
+reads 0.12, quiet speech 0.52, loud speech 1.00, and the microphone and audio
+context both come back to zero however the session ends.
 
 `tests/unit/speech.test.ts` covers the language tags and the error mapping —
 including that "no speech" and a deliberate stop both arrive as errors and

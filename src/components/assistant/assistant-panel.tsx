@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
 import { useSpeechInput } from "@/lib/speech/use-speech-input";
+import { Elapsed, VoiceMeter } from "@/components/assistant/voice-meter";
 import type { Assistant } from "@/components/assistant/use-assistant";
 import type { AssistantAction, AssistantMessage } from "@/lib/assistant/types";
 
@@ -178,27 +179,40 @@ export function AssistantPanel({
             engine's current guess and it rewrites itself word by word.
             Putting that in the textarea would move the caret under anyone
             trying to correct what has already settled. */}
-        {(voice.listening || voice.error) && (
+        {voice.listening && (
+          <div className="mb-1.5 flex flex-col gap-1 rounded-xl border border-border bg-muted/60 px-2.5 py-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span
+                aria-hidden
+                className="size-1.5 shrink-0 animate-pulse rounded-full bg-warning-marker"
+              />
+              <VoiceMeter level={voice.level} />
+              {voice.startedAt !== null && <Elapsed since={voice.startedAt} />}
+            </div>
+
+            {/* The transcript, updating as it is spoken and staying until the
+                silence runs out or the stop button is pressed. Settled words
+                have already gone into the box; this is the part still being
+                decided, which is why it is here and not there. */}
+            <p
+              aria-live="polite"
+              className="min-h-4 text-xs leading-snug text-foreground/90"
+            >
+              {voice.interim || (
+                <span className="text-muted-foreground">
+                  {t("voice.listening")}
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+
+        {voice.error && (
           <p
             aria-live="polite"
-            className="mb-1.5 flex items-start gap-1.5 px-1 text-xs leading-snug text-muted-foreground"
+            className="mb-1.5 px-1 text-xs leading-snug text-muted-foreground"
           >
-            {voice.listening && (
-              <span aria-hidden className="mt-1 flex shrink-0 gap-0.5">
-                {[0, 1, 2].map((bar) => (
-                  <span
-                    key={bar}
-                    className="h-2 w-0.5 animate-pulse rounded-full bg-foreground/70"
-                    style={{ animationDelay: `${bar * 180}ms` }}
-                  />
-                ))}
-              </span>
-            )}
-            <span className="min-w-0">
-              {voice.error
-                ? tm(voice.error)
-                : voice.interim || t("voice.listening")}
-            </span>
+            {tm(voice.error)}
           </p>
         )}
 
