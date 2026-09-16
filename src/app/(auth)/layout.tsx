@@ -14,7 +14,7 @@ export default async function AuthLayout({
   return (
     <div className="flex min-h-svh flex-col bg-background">
       <header className="flex h-14 items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 pointer-coarse:min-h-10">
+        <Link href="/" className="flex items-center gap-2.5 pointer-coarse:min-h-11">
           <div className="flex size-6 items-center justify-center rounded bg-primary text-[10px] font-bold text-primary-foreground">
             A
           </div>

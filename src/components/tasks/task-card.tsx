@@ -77,7 +77,7 @@ export const TaskCard = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "group lift rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-sm)]",
+        "group lift rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)] sm:p-4",
         "hover:border-foreground/30",
         // The whole card opens the task. Only the title did, which is a small
         // target on something that looks pressable end to end — and on a phone
@@ -115,16 +115,19 @@ export const TaskCard = React.forwardRef<
         <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
       </button>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      {/* One row, wrapping only when it has to. The status control used to be
+          given a line of its own below this one — forty-odd pixels a card, on
+          every board and every phone — and it wraps here to exactly the same
+          place when the card is too narrow to hold it. */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <PriorityIndicator priority={task.priority} />
         <DueDate dueAt={task.due_at} status={task.status} />
         <ElapsedSinceCreated createdAt={task.created_at} />
-        <span className="ms-auto">
+        <span className="ms-auto flex items-center gap-2">
           <AssigneeStack assignees={task.assignees} max={2} />
+          {move}
         </span>
       </div>
-
-      {move && <div className="mt-3">{move}</div>}
     </div>
   );
 });

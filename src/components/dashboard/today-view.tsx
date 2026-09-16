@@ -30,7 +30,6 @@ import {
 import { formatDateTime, isDueToday, isOverdue } from "@/lib/dates";
 import { initialsFrom } from "@/lib/initials";
 import { relativeDay } from "@/lib/dates";
-import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
 import type {
@@ -165,6 +164,7 @@ export function TodayView({
         icon={<Loader />}
         tasks={inProgress}
         empty={t("today.nothingActive")}
+        sameStatus
         projectName={projectName}
         onOpen={openTask}
         canReschedule={isManager}
@@ -176,6 +176,7 @@ export function TodayView({
           icon={<CalendarCheck />}
           tasks={inReview}
           empty=""
+          sameStatus
           projectName={projectName}
           onOpen={openTask}
           canReschedule={isManager}
@@ -282,6 +283,7 @@ function Section({
   tasks,
   empty,
   emphasis,
+  sameStatus,
   projectName,
   onOpen,
   canReschedule,
@@ -291,6 +293,12 @@ function Section({
   tasks: TaskWithAssignees[];
   empty: string;
   emphasis?: boolean;
+  /**
+   * The section's own membership rule is the status, so a badge on every row
+   * inside it would repeat the heading. Overdue and due-today mix statuses
+   * and do need it.
+   */
+  sameStatus?: boolean;
   projectName: (id: string | null) => string;
   onOpen: (task: TaskWithAssignees) => void;
   canReschedule: boolean;
@@ -307,7 +315,7 @@ function Section({
       <CardHeader>
         <CardTitle
           className={cn(
-            "flex items-center gap-1.5",
+            "flex flex-wrap items-center gap-x-1.5 gap-y-0.5",
             emphasis && tasks.length > 0 && "text-warning",
           )}
         >
@@ -316,48 +324,96 @@ function Section({
           <span className={cn(!(emphasis && tasks.length > 0) && "text-muted-foreground")}>
             {tasks.length}
           </span>
+          {/* An empty section says so on its own heading rather than opening a
+              card to say it. Two quiet sections used to cost most of a phone
+              screen between them, and the work was underneath. */}
+          {tasks.length === 0 && (
+            <span className="font-normal text-muted-foreground">— {empty}</span>
+          )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        {tasks.length === 0 ? (
-          <EmptyState compact title={empty} className="border-0 bg-transparent py-6" />
-        ) : (
-          tasks.map((task) => (
-            <div
+
+      {tasks.length > 0 && (
+        <CardContent className="flex flex-col gap-2">
+          {tasks.map((task) => (
+            <TodayRow
               key={task.id}
-              className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-border bg-card px-3.5 py-3 shadow-[var(--shadow-sm)]"
-            >
-              {/* On a phone the badge, avatars and reschedule button between
-                  them left the title about 100px and it read "Photogra…".
-                  The title takes the row to itself and they drop below it. */}
-              <div className="flex w-full min-w-0 items-center gap-2.5 sm:w-auto sm:flex-1">
-                <PriorityIndicator priority={task.priority} />
-
-                <button
-                  type="button"
-                  onClick={() => onOpen(task)}
-                  className="min-w-0 flex-1 text-start focus-visible:outline-none"
-                >
-                  <span className="block truncate text-[0.9375rem] font-medium">
-                    {task.title}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {projectName(task.project_id)}
-                    {task.due_at && ` · ${formatDateTime(task.due_at, tag, timeZone)}`}
-                  </span>
-                </button>
-              </div>
-
-              <div className="flex w-full items-center justify-end gap-2.5 sm:w-auto">
-                <StatusBadge status={task.status} />
-                <AssigneeStack assignees={task.assignees} max={2} />
-                {canReschedule && <RescheduleMenu task={task} compact />}
-              </div>
-            </div>
-          ))
-        )}
-      </CardContent>
+              task={task}
+              showStatus={!sameStatus}
+              projectName={projectName}
+              onOpen={onOpen}
+              canReschedule={canReschedule}
+              tag={tag}
+              timeZone={timeZone}
+            />
+          ))}
+        </CardContent>
+      )}
     </Card>
+  );
+}
+
+/**
+ * One task, on two lines.
+ *
+ * The badge, the people on it and the reschedule button used to take a third
+ * line of their own, pushed to the right with the rest of it empty — sixty
+ * wasted pixels a row, on the screen with the least of them to spare. The
+ * badge now sits on the same line as the project and the date, which had room
+ * for it, and the whole row opens the task rather than only its title.
+ */
+function TodayRow({
+  task,
+  showStatus,
+  projectName,
+  onOpen,
+  canReschedule,
+  tag,
+  timeZone,
+}: {
+  task: TaskWithAssignees;
+  showStatus: boolean;
+  projectName: (id: string | null) => string;
+  onOpen: (task: TaskWithAssignees) => void;
+  canReschedule: boolean;
+  tag: string;
+  timeZone: string;
+}) {
+  const open = (event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest("button, a, [role='menu']")) return;
+    onOpen(task);
+  };
+
+  return (
+    <div
+      onClick={open}
+      className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 shadow-[var(--shadow-sm)] transition-colors hover:border-foreground/25 sm:px-3.5"
+    >
+      <PriorityIndicator priority={task.priority} />
+
+      <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={() => onOpen(task)}
+          className="block w-full min-w-0 text-start focus-visible:outline-none"
+        >
+          <span className="block truncate text-[0.9375rem] font-medium leading-snug">
+            {task.title}
+          </span>
+        </button>
+        <div className="mt-1 flex items-center gap-2">
+          {showStatus && <StatusBadge status={task.status} />}
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            {projectName(task.project_id)}
+            {task.due_at && ` · ${formatDateTime(task.due_at, tag, timeZone)}`}
+          </span>
+        </div>
+      </div>
+
+      {/* Faces are a nicety; on a phone the row needs the width more. */}
+      <AssigneeStack assignees={task.assignees} max={2} className="hidden sm:flex" />
+      {canReschedule && <RescheduleMenu task={task} compact />}
+    </div>
   );
 }
 

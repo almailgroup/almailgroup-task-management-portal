@@ -118,9 +118,12 @@ export function DueDate({
 export function AssigneeStack({
   assignees,
   max = 3,
+  className,
 }: {
   assignees: Profile[];
   max?: number;
+  /** Lets a caller drop the faces where the row needs the width more. */
+  className?: string;
 }) {
   if (assignees.length === 0) return null;
 
@@ -128,7 +131,7 @@ export function AssigneeStack({
   const overflow = assignees.length - shown.length;
 
   return (
-    <span className="flex items-center -space-x-1.5">
+    <span className={cn("flex items-center -space-x-1.5", className)}>
       {shown.map((person) => (
         <Avatar
           key={person.id}

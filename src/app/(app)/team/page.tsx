@@ -51,7 +51,7 @@ export default async function TeamPage() {
         {team.map((member) => (
           <div
             key={member.id}
-            className="flex flex-wrap items-center justify-between gap-3 p-4"
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 p-3.5 sm:gap-y-3 sm:p-4"
           >
             <div className="flex min-w-0 items-center gap-3">
               <Avatar>

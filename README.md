@@ -480,6 +480,42 @@ what its own comment always claimed it did.
 `20260916000021_notify_missing_recipient.sql` carries the fix, and it has to be
 applied to the project before a delete will go through.
 
+## On a phone
+
+The app is used as a home-screen app on an iPhone, so the phone is a first
+target rather than a reflow of the desktop. Two things were wrong with treating
+it as a reflow.
+
+**The chrome was sized for a 1440px screen.** The same page padding, the same
+prose description under every title, the same wrapping filter bars — at 390px
+that is a screenful of controls before the page shows you any work. Page
+padding is tighter below `sm`, a page description is clamped to two lines
+(they are read once and are noise every time after), a dashboard tile drops
+the caption that restates its own label, an empty section on Today says so on
+its own heading instead of opening a card to say it, and a row of filters
+scrolls sideways rather than wrapping to three lines. Measured at 390px, the
+page heights: Today 3062px → 1931, Tasks 7449 → 4632, General 6688 → 5625,
+Team 1397 → 1034. The first block of content starts 14–35px higher on every
+page.
+
+**Controls were 40px.** Apple's floor is 44, and 40 is close enough to look
+right in a screenshot and still be the wrong button often enough to notice.
+Every control now reaches 44 on a coarse pointer. The checkbox is the
+exception worth explaining: its box stays 18px, because inflating it would
+look like a different control, and the *target* around it grows to 44 through
+a pseudo-element. What a thumb has to hit and what the eye has to read are not
+the same rectangle. Without it, a tap 10px off-centre opened the task instead
+of selecting it — which is exactly the failure the rule exists to prevent.
+
+Rows follow the same rule as the target: a task row, a task card and a Today
+row are tappable end to end, not only on their title.
+
+iOS Safari zooms the page when you focus a field smaller than 16px and never
+zooms back out; every input is 16px on a coarse pointer for that reason alone.
+`viewport-fit=cover` plus `env(safe-area-inset-*)` keeps the navigation bar off
+the home indicator, and any page that fills the screen subtracts the shell's
+own header and navigation bar rather than guessing at a number.
+
 ## Team chat
 
 One room for the workspace, under **Team chat** in the sidebar. Not a channel

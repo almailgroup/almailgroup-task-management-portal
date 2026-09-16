@@ -286,6 +286,47 @@
     touch-action: manipulation;
   }
 
+  /*
+   * A row of chips that scrolls sideways on a phone instead of wrapping.
+   *
+   * Eight filter chips wrapped to three rows at 390px — about 150px of the
+   * screen spent on a control bar before the list it controls. Sideways is
+   * how a phone shows a set of choices too wide for it, and it is one row at
+   * any count. The negative margin lets the row bleed to both screen edges,
+   * so a chip cut off at the right reads as "there is more" rather than as a
+   * layout mistake, and the matching scroll padding keeps a snapped chip
+   * clear of the edge.
+   *
+   * From `sm` up there is room to wrap, and wrapping is easier to scan.
+   */
+  .chip-strip {
+    display: flex;
+    gap: 0.375rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    scroll-padding-inline: 1rem;
+  }
+  .chip-strip::-webkit-scrollbar {
+    display: none;
+  }
+  /* Chips keep their own width; the row scrolls rather than squeezing them. */
+  .chip-strip > * {
+    flex: none;
+    scroll-snap-align: start;
+  }
+
+  @media (min-width: 640px) {
+    .chip-strip {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      margin-inline: 0;
+      padding-inline: 0;
+    }
+  }
+
   /* Thin, unobtrusive scrollbars for the Kanban columns and comment threads. */
   .scrollbar-thin {
     scrollbar-width: thin;

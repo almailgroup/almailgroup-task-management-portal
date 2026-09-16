@@ -20,7 +20,11 @@ export function PageShell({
   return (
     <div
       className={cn(
-        "animate-rise mx-auto flex w-full flex-col gap-4 px-4 py-5 sm:gap-5 sm:px-6 sm:py-6 lg:py-8",
+        // Tighter on a phone. The same padding that frames a page nicely at
+        // 1440px is a fifth of the screen at 390, and it is spent before the
+        // page has shown anything.
+        "animate-rise mx-auto flex w-full flex-col gap-3 px-4 py-3.5",
+        "sm:gap-5 sm:px-6 sm:py-6 lg:py-8",
         width === "narrow" && "max-w-2xl",
         width === "wide" && "max-w-6xl",
         className,
@@ -49,7 +53,7 @@ export function PageHeader({
   meta?: React.ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2.5 sm:gap-y-3">
       {/* basis-full below sm: the actions are shrink-0, so on a phone they won
           the row outright and truncated the page title to a couple of letters.
           They now wrap onto their own line and the title gets the full width. */}
@@ -62,7 +66,11 @@ export function PageHeader({
           {meta}
         </div>
         {description && (
-          <p className="mt-1 max-w-2xl text-[0.8125rem] leading-relaxed text-muted-foreground sm:mt-1.5 sm:text-sm">
+          <p
+            /* Two lines at most on a phone: these are explanations somebody
+               reads once, and a four-line paragraph pushes the work itself
+               off the bottom of the screen every time after that. */
+            className="mt-0.5 line-clamp-2 max-w-2xl text-xs leading-relaxed text-muted-foreground sm:mt-1.5 sm:line-clamp-none sm:text-sm">
             {description}
           </p>
         )}

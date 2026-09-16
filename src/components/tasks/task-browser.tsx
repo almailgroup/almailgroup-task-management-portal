@@ -106,7 +106,7 @@ export function TaskBrowser({
       />
 
       {/* Filter chips double as the legend for the dashboard cards. */}
-      <nav className="flex flex-wrap gap-1.5" aria-label={t("browser.filters")}>
+      <nav className="chip-strip" aria-label={t("browser.filters")}>
         {TASK_FILTERS.map((entry) => {
           const active = entry.value === filter;
           return (
@@ -116,7 +116,7 @@ export function TaskBrowser({
               aria-current={active ? "page" : undefined}
               className={cn(
                 "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all duration-150",
-                "pointer-coarse:min-h-10 pointer-coarse:px-3",
+                "pointer-coarse:min-h-11 pointer-coarse:px-3",
                 active
                   ? "border-transparent bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",

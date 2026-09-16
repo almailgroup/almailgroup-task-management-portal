@@ -386,7 +386,7 @@ export function CommandHint() {
         )
       }
       aria-label={t("shell.search")}
-      className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:min-h-10 pointer-coarse:px-3"
+      className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center pointer-coarse:px-3"
     >
       <Search className="size-4 sm:size-3.5" />
       <span className="hidden sm:inline">{t("shell.search")}</span>

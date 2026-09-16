@@ -52,7 +52,7 @@ export function RoleSelect({
 
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled || pending}>
-      <SelectTrigger size="sm" className="w-[9.5rem]">
+      <SelectTrigger size="sm" className="w-[9rem] sm:w-[9.5rem]">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

@@ -330,7 +330,7 @@ export function TaskTable({
             <li
               key={task.id}
               className={cn(
-                "lift relative rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-sm)]",
+                "lift relative rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)]",
                 isSelected && "border-foreground/40 bg-accent/50",
               )}
             >
@@ -343,15 +343,40 @@ export function TaskTable({
 
               {/* Passes taps through to the overlay behind it. */}
               <div className="pointer-events-none relative">
-                <p className="text-[0.9375rem] font-medium leading-snug">
-                  {task.title}
-                </p>
-                {projectName && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {projectName(task.project_id)}
-                  </p>
-                )}
+                {/* Selecting and rescheduling used to be a footer of their
+                    own, below a divider: fifty pixels of chrome on every card
+                    for two things used now and then. Rescheduling goes beside
+                    the title, which never wraps — put on the meta row it was
+                    pushed onto a line of its own the moment a status and a
+                    date filled that row. */}
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[0.9375rem] font-medium leading-snug">
+                      {task.title}
+                    </p>
+                    {projectName && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {projectName(task.project_id)}
+                      </p>
+                    )}
+                  </div>
+                  {canReschedule && (
+                    <span className="pointer-events-auto -me-1.5 -mt-1.5 shrink-0">
+                      <RescheduleMenu task={task} compact />
+                    </span>
+                  )}
+                </div>
+
                 <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                  {selectable && (
+                    <span className="pointer-events-auto flex items-center">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggle(task.id)}
+                        aria-label={t("table.selectTask", { title: task.title })}
+                      />
+                    </span>
+                  )}
                   <StatusBadge status={task.status} />
                   <PriorityIndicator priority={task.priority} showLabel />
                   <DueDate dueAt={task.due_at} status={task.status} />
@@ -360,24 +385,6 @@ export function TaskTable({
                   </span>
                 </div>
               </div>
-
-              {(selectable || canReschedule) && (
-                <div className="relative mt-3 flex items-center justify-between gap-2 border-t border-border pt-2.5">
-                  {selectable ? (
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggle(task.id)}
-                        aria-label={t("table.selectTask", { title: task.title })}
-                      />
-                      {t("table.select")}
-                    </label>
-                  ) : (
-                    <span />
-                  )}
-                  {canReschedule && <RescheduleMenu task={task} compact />}
-                </div>
-              )}
             </li>
           );
         })}

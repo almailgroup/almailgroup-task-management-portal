@@ -28,7 +28,7 @@ export function AuthFormShell({
           href={footer.href}
           // The only way between sign-in and sign-up: at 18px tall it was a
           // poor thumb target, so it gets real padding on touch.
-          className="font-medium text-foreground underline-offset-4 hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center pointer-coarse:px-2"
+          className="font-medium text-foreground underline-offset-4 hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center pointer-coarse:px-2"
         >
           {footer.linkLabel}
         </Link>

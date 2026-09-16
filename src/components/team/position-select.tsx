@@ -77,7 +77,7 @@ export function PositionSelect({
           placeholder={t("position.typePlaceholder")}
           maxLength={60}
           autoFocus
-          className="h-8 w-[11rem] text-xs"
+          className="h-8 w-[7.5rem] text-xs sm:w-[11rem]"
           aria-label={t("position.custom")}
         />
         <Button type="submit" size="sm" disabled={pending}>
@@ -106,7 +106,7 @@ export function PositionSelect({
           variant="outline"
           size="sm"
           disabled={pending}
-          className="w-[11rem] justify-start font-normal"
+          className="w-[7.5rem] justify-start font-normal sm:w-[11rem]"
         >
           {pending && <Loader2 className="animate-spin" />}
           <span className={cn("truncate", !value && "text-muted-foreground")}>

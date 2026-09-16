@@ -15,6 +15,11 @@ function Checkbox({
       data-slot="checkbox"
       className={cn(
         "peer size-[1.125rem] shrink-0 rounded-md border border-input transition-all duration-150",
+        // The box stays 18px — inflating it would look like a different
+        // control — and the target around it grows to 44 on touch. What a
+        // thumb has to hit and what the eye has to read are not the same
+        // rectangle, and only one of them belongs at Apple's minimum.
+        "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-[13px] pointer-coarse:after:content-['']",
         "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
         "data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
         className,

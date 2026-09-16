@@ -70,7 +70,10 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
     <>
       {/* A disabled button with nothing to explain it is a dead end, and a
           tooltip is no use on a phone, so the reason is on the page. */}
-      <div className="flex flex-col items-end gap-1">
+      {/* Right-aligned beside a page title on a desktop; on a phone it
+          wraps to its own full-width line, where centring the button and
+          its caption read as a mistake. */}
+      <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
         <Button
           size="sm"
           onClick={() => {
@@ -83,7 +86,7 @@ export function AddMemberDialog({ configured }: { configured: boolean }) {
           {t("team.add")}
         </Button>
         {!configured && (
-          <p className="max-w-[15rem] text-end text-xs leading-relaxed text-muted-foreground">
+          <p className="text-start text-xs leading-relaxed text-muted-foreground sm:max-w-[15rem] sm:text-end">
             {t("team.needsKey", { key: MARK })
               .split(MARK)
               .map((part, index) =>

@@ -56,10 +56,13 @@ export function TaskFilterBar({
   const active = filtersActive(filters);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    // A column on a phone, a wrapping row from `sm`. Four controls side by
+    // side wrapped to three lines at 390px; giving the search its own line and
+    // scrolling the rest sideways makes it two.
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       {children}
 
-      <div className="relative min-w-[10rem] flex-1 sm:max-w-xs">
+      <div className="relative w-full sm:min-w-[10rem] sm:max-w-xs sm:flex-1">
         <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={filters.query}
@@ -70,67 +73,71 @@ export function TaskFilterBar({
         />
       </div>
 
-      <Select
-        value={filters.status}
-        onValueChange={(value) => onChange({ status: value as TaskStatus | "all" })}
-      >
-        <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("sort.status")}>
-          <SelectValue placeholder={t("sort.status")} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{t("filter.allStatuses")}</SelectItem>
-          {TASK_STATUSES.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {t(option.label)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* The three narrowing controls travel together: one sideways row on a
+          phone, and ordinary siblings of the bar again from `sm`. */}
+      <div className="chip-strip sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+        <Select
+          value={filters.status}
+          onValueChange={(value) => onChange({ status: value as TaskStatus | "all" })}
+        >
+          <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("sort.status")}>
+            <SelectValue placeholder={t("sort.status")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("filter.allStatuses")}</SelectItem>
+            {TASK_STATUSES.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {t(option.label)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Select
-        value={filters.priority}
-        onValueChange={(value) =>
-          onChange({ priority: value as TaskPriority | "all" })
-        }
-      >
-        <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("sort.priority")}>
-          <SelectValue placeholder={t("sort.priority")} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{t("filter.allPriorities")}</SelectItem>
-          {TASK_PRIORITIES.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {t(option.label)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select
+          value={filters.priority}
+          onValueChange={(value) =>
+            onChange({ priority: value as TaskPriority | "all" })
+          }
+        >
+          <SelectTrigger size="sm" className="w-[8.5rem]" aria-label={t("sort.priority")}>
+            <SelectValue placeholder={t("sort.priority")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("filter.allPriorities")}</SelectItem>
+            {TASK_PRIORITIES.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {t(option.label)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Select
-        value={filters.assignee}
-        onValueChange={(value) => onChange({ assignee: value })}
-      >
-        <SelectTrigger size="sm" className="w-[9.5rem]" aria-label={t("filter.assignee")}>
-          <SelectValue placeholder={t("filter.assignee")} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{t("filter.anyone")}</SelectItem>
-          <SelectItem value="unassigned">{t("filter.unassigned")}</SelectItem>
-          {team.map((person) => (
-            <SelectItem key={person.id} value={person.id}>
-              {person.full_name ?? person.email}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select
+          value={filters.assignee}
+          onValueChange={(value) => onChange({ assignee: value })}
+        >
+          <SelectTrigger size="sm" className="w-[9.5rem]" aria-label={t("filter.assignee")}>
+            <SelectValue placeholder={t("filter.assignee")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("filter.anyone")}</SelectItem>
+            <SelectItem value="unassigned">{t("filter.unassigned")}</SelectItem>
+            {team.map((person) => (
+              <SelectItem key={person.id} value={person.id}>
+                {person.full_name ?? person.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      {active && (
-        <Button variant="ghost" size="sm" onClick={onClear}>
-          {t("common.clear")}
-        </Button>
-      )}
+        {active && (
+          <Button variant="ghost" size="sm" onClick={onClear}>
+            {t("common.clear")}
+          </Button>
+        )}
+      </div>
 
-      <span className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
+      <span className="flex items-center gap-2 text-xs text-muted-foreground sm:ms-auto">
         <span className="tabular-nums">
           {t("browser.countOf", { shown, total })}
         </span>

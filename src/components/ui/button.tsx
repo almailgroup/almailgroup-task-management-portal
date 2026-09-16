@@ -5,10 +5,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  // `pointer-coarse` raises every control to a 40px minimum on touch without
-  // loosening the desktop density: a 32px icon button is comfortable with a
-  // mouse and a poor target for a thumb.
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-[background-color,border-color,color,opacity,transform,box-shadow] duration-150 ease-[var(--ease-spring)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 focus-visible:outline-none pointer-coarse:min-h-10",
+  // `pointer-coarse` raises every control to 44px on touch without loosening
+  // the desktop density: a 36px icon button is comfortable with a mouse and a
+  // poor target for a thumb. 44 is Apple's own floor, and the app is used as a
+  // home-screen app on an iPhone; 40 was close enough to look right in a
+  // screenshot and still the wrong button often enough to notice.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-[background-color,border-color,color,opacity,transform,box-shadow] duration-150 ease-[var(--ease-spring)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 focus-visible:outline-none pointer-coarse:min-h-11 pointer-coarse:min-w-11",
   {
     variants: {
       variant: {
@@ -30,8 +32,8 @@ const buttonVariants = cva(
         default: "h-10 px-4 py-2 [&_svg]:size-4",
         sm: "h-9 rounded-lg px-3.5 text-xs [&_svg]:size-3.5",
         lg: "h-11 rounded-xl px-6 [&_svg]:size-4",
-        icon: "size-9 pointer-coarse:min-w-10 [&_svg]:size-4",
-        "icon-sm": "size-9 rounded-lg pointer-coarse:min-w-10 [&_svg]:size-3.5",
+        icon: "size-9 pointer-coarse:min-w-11 [&_svg]:size-4",
+        "icon-sm": "size-9 rounded-lg pointer-coarse:min-w-11 [&_svg]:size-3.5",
       },
     },
     defaultVariants: {
