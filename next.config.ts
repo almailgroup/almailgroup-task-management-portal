@@ -44,8 +44,20 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
+            /**
+             * `()` is an empty allowlist — nobody, this site included. The
+             * microphone was locked that way from the start, which was right
+             * until the assistant grew a dictation button: a page denied by
+             * policy does not get a permission prompt, it simply fails, so
+             * the microphone never worked and the browser never asked. The
+             * error it produces is `NotAllowedError`, indistinguishable from
+             * somebody pressing Block.
+             *
+             * `(self)` lets this origin ask. Everything else stays shut, and
+             * no embedded frame inherits it.
+             */
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(self), geolocation=()",
           },
         ],
       },

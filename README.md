@@ -691,6 +691,16 @@ not something this app arranges or can switch off.
 It needs a secure context, so it works on the deployed site and on localhost,
 and not over plain HTTP.
 
+It also needs the microphone to be permitted by `Permissions-Policy`, which is
+set in `next.config.ts`. That header shipped as `microphone=()` — an empty
+allowlist, meaning nobody including this site — which was right until the
+assistant grew a dictation button. A page denied by policy is not prompted and
+then refused: it is never prompted at all, and `getUserMedia` fails with
+`NotAllowedError`, which is the same error a person pressing Block produces.
+So the button reported a blocked microphone, correctly, about a permission
+nobody had ever been offered. It is `microphone=(self)` now; camera and
+geolocation stay shut.
+
 Where the browser has no recogniser the button is still there, disabled, and
 says so when pressed. It used to be hidden, which meant the feature was simply
 absent on some machines and present on others with nothing on screen to
@@ -744,11 +754,16 @@ Four things about the behaviour:
   whether or not there is an engine left to stop, and a stop request that goes
   unanswered for 600ms is taken by force.
 
-The meter is verified by driving a stub at the Web Audio boundary rather than
-at the browser's audio hardware, which headless Chromium refuses outright,
-fake device or not: everything above that line is this app's code. Silence
-reads 0.12, quiet speech 0.52, loud speech 1.00, and the microphone and audio
-context both come back to zero however the session ends.
+The meter is verified twice over. Once against a stub at the Web Audio
+boundary, which pins the numbers: silence reads 0.12, quiet speech 0.52, loud
+speech 1.00, and the microphone and audio context both come back to zero
+however the session ends. And once end to end, with Chromium's fake capture
+device fed a WAV of alternating loud and quiet passages, which drives the real
+`getUserMedia`, the real audio graph and the real bars.
+
+That second one was impossible until the header above was fixed, and the
+failure was misread at the time as the container having no audio hardware. It
+was this app refusing its own microphone.
 
 `tests/unit/speech.test.ts` covers the language tags and the error mapping —
 including that "no speech" and a deliberate stop both arrive as errors and
