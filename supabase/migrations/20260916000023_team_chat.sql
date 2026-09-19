@@ -65,6 +65,13 @@ create policy "authors and admins delete messages"
   to authenticated
   using (author_id = auth.uid() or public.is_admin());
 
+-- Row-level security decides *which* rows; the grant decides whether the role
+-- may touch the table at all, and both are needed. Every other table in this
+-- schema grants explicitly rather than leaning on the default privileges of
+-- the `public` schema — this one was the exception, and the symptom was a
+-- room that answered "permission denied for table team_messages".
+grant select, insert, update, delete on public.team_messages to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Realtime
 --
