@@ -82,6 +82,8 @@ export function TaskDialog({
   // plans the work. Members see them, they do not set them.
   const canEditDetails = canComplete;
 
+  /** The dialog itself, so focus can land on it rather than on a field. */
+  const contentRef = React.useRef<HTMLDivElement>(null);
   const [pending, setPending] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<{
@@ -169,7 +171,25 @@ export function TaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        ref={contentRef}
+        className="max-w-2xl"
+        /*
+         * Radix focuses the first field on open, and the browser scrolls it
+         * into view. In a dialog this tall that left it opening 318 pixels
+         * down with the task's own title off the top of the screen — you
+         * tapped a task and could not see which one. It also raised the
+         * keyboard over half a phone, for a field nobody opening a task to
+         * read it wants.
+         *
+         * Focus goes to the dialog itself instead, which is what a screen
+         * reader should announce anyway, and it opens where it starts.
+         */
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          contentRef.current?.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{editing ? t("task.title") : t("palette.newTask")}</DialogTitle>
           <DialogDescription>
@@ -216,7 +236,7 @@ export function TaskDialog({
                 name="description"
                 defaultValue={task?.description ?? ""}
                 placeholder={t("task.descriptionPlaceholder")}
-                rows={4}
+                rows={3}
                 maxLength={20000}
                 aria-invalid={Boolean(errors?.description)}
               />
@@ -290,13 +310,13 @@ export function TaskDialog({
                     picker is still there for anything else — but "tomorrow
                     evening" should not take five taps through a calendar. */}
                 {canEditDetails && (
-                  <div className="flex flex-wrap gap-1.5" aria-label={t("task.quickDates")}>
+                  <div className="chip-strip" aria-label={t("task.quickDates")}>
                     {quickDateOptions(i18n).map((option) => (
                       <button
                         key={option.key}
                         type="button"
                         onClick={() => setDue(option.value())}
-                        className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground pointer-coarse:min-h-9"
+                        className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground pointer-coarse:min-h-11"
                       >
                         {option.label}
                       </button>
@@ -304,7 +324,7 @@ export function TaskDialog({
                     <button
                       type="button"
                       onClick={() => setDue(null)}
-                      className="rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-9"
+                      className="rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:px-3"
                     >
                       {t("task.noDate")}
                     </button>
@@ -323,7 +343,11 @@ export function TaskDialog({
               />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            {/* Pinned to the foot of the dialog while the fields are on
+                screen. The form is tall enough on a phone that Save sat some
+                seven hundred pixels down, and the way you found it was to
+                scroll looking for it. */}
+            <div className="sticky bottom-0 z-10 -mx-5 mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-popover px-5 py-3">
               {editing ? (
                 <Button
                   type="button"

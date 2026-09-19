@@ -106,7 +106,7 @@ export function TaskBrowser({
       />
 
       {/* Filter chips double as the legend for the dashboard cards. */}
-      <nav className="chip-strip" aria-label={t("browser.filters")}>
+      <nav className="chip-strip -mx-4 px-4 scroll-px-4 sm:mx-0 sm:px-0" aria-label={t("browser.filters")}>
         {TASK_FILTERS.map((entry) => {
           const active = entry.value === filter;
           return (

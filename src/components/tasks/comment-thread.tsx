@@ -131,9 +131,23 @@ export function CommentThread({
     };
   }, [supabase, taskId, teamById, t]);
 
+  /** How many comments were here last time, so growth can be told from arrival. */
+  const seen = React.useRef<number | null>(null);
+
   // Keep the newest comment in view as the thread grows.
+  //
+  // Only as it *grows*. The first load is not growth — it is the thread
+  // arriving — and scrolling to it took the whole task dialog with it: the
+  // nearest scrollable ancestor is the dialog, so opening a task scrolled it
+  // three hundred pixels down, past the title of the task you had just
+  // tapped, to a comment box you had not asked for.
   React.useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "nearest" });
+    const count = comments?.length ?? null;
+    if (count === null) return;
+    if (seen.current !== null && count > seen.current) {
+      endRef.current?.scrollIntoView({ block: "nearest" });
+    }
+    seen.current = count;
   }, [comments?.length]);
 
   async function send() {

@@ -56,13 +56,20 @@ export function TaskFilterBar({
   const active = filtersActive(filters);
 
   return (
-    // A column on a phone, a wrapping row from `sm`. Four controls side by
-    // side wrapped to three lines at 390px; giving the search its own line and
-    // scrolling the rest sideways makes it two.
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-      {children}
+    /*
+     * Two rows on a phone, one wrapping row from `sm`.
+     *
+     * Four controls side by side wrapped to three lines at 390px, and the
+     * result count took a fourth to itself with most of it empty. The search
+     * and the count share the first row now and the narrowing controls scroll
+     * along the second. `order` rather than a different tree, because the
+     * desktop order — search, controls, count on the far right — is the one
+     * the DOM already has and is worth keeping.
+     */
+    <div className="flex flex-wrap items-center gap-2">
+      {children && <div className="basis-full sm:basis-auto">{children}</div>}
 
-      <div className="relative w-full sm:min-w-[10rem] sm:max-w-xs sm:flex-1">
+      <div className="relative order-1 min-w-[55%] flex-1 sm:order-none sm:min-w-[10rem] sm:max-w-xs">
         <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={filters.query}
@@ -75,7 +82,7 @@ export function TaskFilterBar({
 
       {/* The three narrowing controls travel together: one sideways row on a
           phone, and ordinary siblings of the bar again from `sm`. */}
-      <div className="chip-strip sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+      <div className="chip-strip order-3 basis-full -mx-4 px-4 scroll-px-4 sm:order-none sm:mx-0 sm:basis-auto sm:px-0 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
         <Select
           value={filters.status}
           onValueChange={(value) => onChange({ status: value as TaskStatus | "all" })}
@@ -137,7 +144,7 @@ export function TaskFilterBar({
         )}
       </div>
 
-      <span className="flex items-center gap-2 text-xs text-muted-foreground sm:ms-auto">
+      <span className="order-2 flex shrink-0 items-center gap-2 text-xs text-muted-foreground sm:order-none sm:ms-auto">
         <span className="tabular-nums">
           {t("browser.countOf", { shown, total })}
         </span>

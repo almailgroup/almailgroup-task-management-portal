@@ -215,6 +215,9 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       className={cn(
         "chrome-touch relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-150",
+        // This is the whole of the navigation inside the phone drawer, and it
+        // was the shortest target left in the app at 36px.
+        "pointer-coarse:min-h-11",
         "[&_svg]:size-4 [&_svg]:shrink-0",
         active
           // Inverted fill: the current page should be unmistakable at a glance,

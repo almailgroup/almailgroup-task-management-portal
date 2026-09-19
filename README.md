@@ -508,7 +508,18 @@ the same rectangle. Without it, a tap 10px off-centre opened the task instead
 of selecting it — which is exactly the failure the rule exists to prevent.
 
 Rows follow the same rule as the target: a task row, a task card and a Today
-row are tappable end to end, not only on their title.
+row are tappable end to end, not only on their title. The navigation inside
+the phone drawer was the last thing under the floor, at 36px.
+
+**The task dialog opened three hundred pixels down.** You tapped a task and
+its title was above the top of the screen. Two things were doing it, and both
+are worth not doing: the dialog focused the title field on open, which on a
+phone raises the keyboard over half the screen for a field nobody opening a
+task to read it wants; and the comment thread brought its newest comment into
+view when it first loaded, and the nearest scrollable ancestor of a comment
+thread is the dialog around it. Focus goes to the dialog itself now, and the
+thread scrolls only when it *grows* — a first load is not growth. A comment
+arriving while you read still pulls itself into view, which is checked.
 
 iOS Safari zooms the page when you focus a field smaller than 16px and never
 zooms back out; every input is 16px on a coarse pointer for that reason alone.
