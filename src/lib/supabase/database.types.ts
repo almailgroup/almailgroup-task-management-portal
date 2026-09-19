@@ -723,6 +723,23 @@ export type Database = {
       in_conversation: { Args: { conversation: string }; Returns: boolean };
       /** Finds the thread with somebody, or opens it. Returns its id. */
       start_direct_conversation: { Args: { other: string }; Returns: string };
+      /** Every thread you are in, with its last line and unread count. */
+      my_conversations: {
+        Args: Record<never, never>;
+        Returns: {
+          id: string;
+          last_message_at: string;
+          other_id: string | null;
+          other_name: string | null;
+          other_email: string | null;
+          other_avatar: string | null;
+          other_title: string | null;
+          last_message: string | null;
+          last_author_id: string | null;
+          unread: number;
+        }[];
+      };
+      unread_direct_count: { Args: Record<never, never>; Returns: number };
       enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
       /** Moves a batch of due reminders to 'sending' and returns them. */
       claim_reminders: {
@@ -803,6 +820,21 @@ export type DirectMessage =
 export type DirectMessageWithAuthor = DirectMessage & { author: Profile | null };
 
 /**
+ * The other person, as the conversation list needs them.
+ *
+ * Not a whole `Profile`: the list draws a name, a picture and a job title,
+ * and asking the database for the rest of a profile per thread is work
+ * nobody looks at.
+ */
+export type ConversationPeer = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  job_title: string | null;
+};
+
+/**
  * A thread as the list shows it: who it is with, what was said last, and how
  * much of it you have not read.
  */
@@ -810,7 +842,7 @@ export type ConversationSummary = {
   id: string;
   lastMessageAt: string;
   /** The other person. Null only if their account has since been deleted. */
-  other: Profile | null;
+  other: ConversationPeer | null;
   lastMessage: string | null;
   lastAuthorId: string | null;
   unread: number;

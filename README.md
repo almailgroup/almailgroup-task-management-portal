@@ -638,6 +638,19 @@ another page is visible without opening anything. A new message also writes a
 notification, which is the only kind in this schema that points at a
 conversation instead of a task.
 
+The list is one round trip. Asked the obvious way it is a query for the
+threads and then two more for each of them — the last thing said and the
+unread count — which is forty-one round trips at twenty conversations, and the
+unread total is wanted by the app shell on *every* page, not just this one.
+`my_conversations()` answers all of it in one statement with a lateral join
+per thread, and `unread_direct_count()` answers the badge with a single
+number. Measured against the mock: ten round trips per page view became two,
+and the two do not grow with the number of conversations.
+
+Both functions are `security invoker`, not definer, so row-level security
+still decides what comes back and neither can return a conversation the caller
+could not have read anyway.
+
 Not built: email or Telegram delivery for a private message. The in-app badge
 and the notification bell are the whole of it.
 

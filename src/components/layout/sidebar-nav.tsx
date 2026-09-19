@@ -207,6 +207,7 @@ function NavLink({
   label,
   active,
   badge = 0,
+  eager = true,
   onNavigate,
 }: {
   href: string;
@@ -215,6 +216,8 @@ function NavLink({
   active?: boolean;
   /** A count worth interrupting for; nothing is drawn at zero. */
   badge?: number;
+  /** Fetch the whole page ahead of the click, not just its skeleton. */
+  eager?: boolean;
   onNavigate?: () => void;
 }) {
   return (
@@ -224,9 +227,15 @@ function NavLink({
       // The whole page, not just its skeleton. Left to itself Next fetches a
       // dynamic route only as far as its loading.tsx, which is why the rail
       // used to answer a click instantly with a skeleton and then sit on it:
-      // the data had not been asked for until the click. These seven links are
-      // the whole of the app's navigation and they are on screen already.
-      prefetch
+      // the data had not been asked for until the click.
+      //
+      // Every page view pays for this: eight nav links and one per project,
+      // each a full render of the shell and that page. Dropping the projects
+      // to Next's own prefetch cut a dashboard load from 79 queries to 55 —
+      // and took clicking a project from 55ms to 1340, which is the lag this
+      // eager prefetch was added to remove. The queries are the cheaper thing
+      // to spend. `eager` stays for a caller that knows better.
+      prefetch={eager ? true : undefined}
       aria-current={active ? "page" : undefined}
       className={cn(
         "chrome-touch relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-150",

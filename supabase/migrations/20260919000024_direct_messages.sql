@@ -330,6 +330,103 @@ grant execute on function public.in_conversation(uuid)            to authenticat
 grant execute on function public.start_direct_conversation(uuid)  to authenticated;
 
 -- ---------------------------------------------------------------------------
+-- The list, in one question
+--
+-- Built naively this is a query for the conversations and then two more for
+-- each of them — the last thing said, and how much of it is unread. Twenty
+-- conversations is forty-one round trips, and the unread total is wanted by
+-- the app shell on *every* page, not just this one. One statement instead,
+-- with a lateral join per thread, which Postgres answers from the indexes
+-- already here.
+--
+-- `security invoker`, not definer: row-level security still applies, so this
+-- cannot return a conversation the caller could not have read anyway. The
+-- explicit `user_id = auth.uid()` join is the belt to that pair of braces.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.my_conversations()
+returns table (
+  id              uuid,
+  last_message_at timestamptz,
+  other_id        uuid,
+  other_name      text,
+  other_email     text,
+  other_avatar    text,
+  other_title     text,
+  last_message    text,
+  last_author_id  uuid,
+  unread          bigint
+)
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  with mine as (
+    select c.id, c.last_message_at, p.last_read_at
+      from public.conversations c
+      join public.conversation_participants p
+        on p.conversation_id = c.id
+       and p.user_id = auth.uid()
+  )
+  select
+    m.id,
+    m.last_message_at,
+    other.id,
+    other.full_name,
+    other.email,
+    other.avatar_url,
+    other.job_title,
+    recent.body,
+    recent.author_id,
+    coalesce(counted.n, 0)
+  from mine m
+  left join lateral (
+    select pr.id, pr.full_name, pr.email, pr.avatar_url, pr.job_title
+      from public.conversation_participants p
+      join public.profiles pr on pr.id = p.user_id
+     where p.conversation_id = m.id
+       and p.user_id <> auth.uid()
+     limit 1
+  ) other on true
+  left join lateral (
+    select d.body, d.author_id
+      from public.direct_messages d
+     where d.conversation_id = m.id
+     order by d.created_at desc
+     limit 1
+  ) recent on true
+  left join lateral (
+    select count(*) as n
+      from public.direct_messages d
+     where d.conversation_id = m.id
+       and d.author_id <> auth.uid()
+       and d.created_at > m.last_read_at
+  ) counted on true
+  order by m.last_message_at desc;
+$$;
+
+-- Just the number, for the badge the shell draws on every page. Counting it
+-- here rather than summing the list above is one small query instead of one
+-- large one, on pages that will never show a conversation.
+create or replace function public.unread_direct_count()
+returns bigint
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select coalesce(count(d.*), 0)
+    from public.conversation_participants p
+    join public.direct_messages d
+      on d.conversation_id = p.conversation_id
+     and d.author_id <> p.user_id
+     and d.created_at > p.last_read_at
+   where p.user_id = auth.uid();
+$$;
+
+grant execute on function public.my_conversations()      to authenticated;
+grant execute on function public.unread_direct_count()   to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Realtime
 --
 -- RLS is enforced on everything realtime forwards, so publishing these does

@@ -572,79 +572,52 @@ export const getTeamMessages = cache(
 /**
  * Every private conversation this person is in, most recent first.
  *
- * Row-level security is the whole of the filter: `conversations` is readable
- * only where `in_conversation(id)`, so asking for all of them returns yours.
- * Nothing here repeats that rule in TypeScript, and nothing here could widen
- * it if it tried.
- *
- * The unread count is messages after your own `last_read_at` that you did not
- * write. Counted per thread rather than in one grouped query because
- * PostgREST cannot group, and a person has tens of conversations, not
- * thousands.
+ * One round trip. Asked the obvious way this is a query for the threads and
+ * then two more for each of them — the last thing said and the unread count —
+ * which is forty-one round trips at twenty conversations. `my_conversations()`
+ * answers all of it in one statement, and runs as the caller, so row-level
+ * security still decides what comes back.
  */
 export const getConversations = cache(async (): Promise<ConversationSummary[]> => {
   const supabase = await createClient();
-  const me = await getUserId();
-  if (!me) return [];
+  const { data, error } = await supabase.rpc("my_conversations");
+  if (error) {
+    orFail({ data: null, error }, "your messages");
+    return [];
+  }
 
-  const result = await supabase
-    .from("conversations")
-    .select(
-      "id, last_message_at, participants:conversation_participants(user_id, last_read_at, profile:profiles(*))",
-    )
-    .order("last_message_at", { ascending: false });
-
-  type Row = {
-    id: string;
-    last_message_at: string;
-    participants: {
-      user_id: string;
-      last_read_at: string;
-      profile: Profile | null;
-    }[];
-  };
-  const rows = (orFail(result, "your messages") ?? []) as unknown as Row[];
-  if (rows.length === 0) return [];
-
-  const summaries = await Promise.all(
-    rows.map(async (row) => {
-      const mine = row.participants.find((p) => p.user_id === me);
-      const other = row.participants.find((p) => p.user_id !== me) ?? null;
-
-      const [latest, unread] = await Promise.all([
-        supabase
-          .from("direct_messages")
-          .select("body, author_id")
-          .eq("conversation_id", row.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from("direct_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("conversation_id", row.id)
-          .neq("author_id", me)
-          .gt("created_at", mine?.last_read_at ?? new Date(0).toISOString()),
-      ]);
-
-      return {
-        id: row.id,
-        lastMessageAt: row.last_message_at,
-        other: other?.profile ?? null,
-        lastMessage: latest.data?.body ?? null,
-        lastAuthorId: latest.data?.author_id ?? null,
-        unread: unread.count ?? 0,
-      } satisfies ConversationSummary;
-    }),
-  );
-
-  return summaries;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    lastMessageAt: row.last_message_at,
+    other: row.other_id
+      ? {
+          id: row.other_id,
+          full_name: row.other_name,
+          email: row.other_email,
+          avatar_url: row.other_avatar,
+          job_title: row.other_title,
+        }
+      : null,
+    lastMessage: row.last_message,
+    lastAuthorId: row.last_author_id,
+    unread: Number(row.unread ?? 0),
+  }));
 });
 
-/** How many private messages are waiting, across every conversation. */
+/**
+ * How many private messages are waiting, across every conversation.
+ *
+ * Its own function rather than a sum of the list above: the app shell draws
+ * this badge on every page, and most of those pages will never show a
+ * conversation. One number is cheaper to ask for than a list to add up.
+ */
 export const getUnreadDirectCount = cache(async (): Promise<number> => {
-  const conversations = await getConversations();
-  return conversations.reduce((total, one) => total + one.unread, 0);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("unread_direct_count");
+  // A badge is not worth failing a page for. Every other read on the shell
+  // would have to succeed for this one to be reached anyway.
+  if (error) return 0;
+  return Number(data ?? 0);
 });
 
 /**
