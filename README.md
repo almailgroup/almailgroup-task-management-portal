@@ -594,6 +594,53 @@ New messages carry you along only if you were already at the bottom. Nothing is
 more irritating in a chat than being dragged away from what you were reading
 because somebody else said hello.
 
+## Private messages
+
+Separate from the team room, and the opposite of it. The room's read policy is
+`using (true)` — everybody signed in sees everything. A conversation is
+readable only by the people in it.
+
+**There is no admin override anywhere in that migration, on purpose.** An
+admin can delete a message from the shared room because somebody has to be
+able to take down what should not have been posted in public. Nothing here is
+public, so that reason does not apply, and "private unless an admin is
+curious" is not private. An admin sees zero conversations, zero messages and
+zero participants, and that is checked against a real Postgres rather than
+asserted here.
+
+Membership lives in `conversation_participants`, which has no idea how many
+people it holds, so private groups can be added later without moving a
+message. The ordered pair on `conversations` exists only to stop two people
+ending up with two threads, and is null for anything that is not a pair.
+
+A conversation is opened through `start_direct_conversation`, never by
+inserting a row: the function decides who is in one, so a client cannot put
+itself somewhere it was not invited, and two people starting a thread with
+each other at the same moment get a single thread — the unique index decides
+it and the loser reads the winner's row.
+
+One trap worth naming. A policy on `conversation_participants` that checks
+membership by selecting from `conversation_participants` is a policy that
+calls itself. `in_conversation()` is `security definer` for that reason
+alone: it steps outside row-level security to answer the one question every
+policy in the file is built on.
+
+Asking for a conversation you are not in returns nothing rather than an
+error, and the page turns that into a 404. A conversation that does not exist
+and one that is not yours look the same from outside — never "it exists, but
+not for you".
+
+The thread is bubbles rather than the room's flat list: a room needs a name on
+every message because anybody might have written it, and two people do not —
+which side it is on says who spoke. Unread counts are per conversation and add
+up to a badge on the sidebar item, so a message that arrives while you are on
+another page is visible without opening anything. A new message also writes a
+notification, which is the only kind in this schema that points at a
+conversation instead of a task.
+
+Not built: email or Telegram delivery for a private message. The in-app badge
+and the notification bell are the whole of it.
+
 ## Reminders
 
 Each person picks their own channels on **Profile → Task reminders**, and which

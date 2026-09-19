@@ -15,6 +15,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { deleteTeamMessage, sendTeamMessage } from "@/lib/data/chat-actions";
+import { DaySeparator } from "@/components/chat/day-separator";
 import { continues, startsNewDay } from "@/lib/chat/grouping";
 import { formatTimeOfDay } from "@/lib/dates";
 import { initialsFrom } from "@/lib/initials";
@@ -541,37 +542,6 @@ function TypingDots() {
         />
       ))}
     </span>
-  );
-}
-
-function DaySeparator({ iso }: { iso: string }) {
-  const { t, tag, timeZone } = useI18n();
-  const dayNumber = (value: Date) =>
-    new Intl.DateTimeFormat("en-CA", { timeZone }).format(value);
-
-  const day = new Date(iso);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
-  const label =
-    dayNumber(day) === dayNumber(today)
-      ? t("chat.today")
-      : dayNumber(day) === dayNumber(yesterday)
-        ? t("chat.yesterday")
-        : new Intl.DateTimeFormat(tag, {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            timeZone,
-          }).format(day);
-
-  return (
-    <div className="sticky top-0 z-10 my-2 flex items-center justify-center py-1">
-      <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground shadow-[var(--shadow-xs)]">
-        {label}
-      </span>
-    </div>
   );
 }
 

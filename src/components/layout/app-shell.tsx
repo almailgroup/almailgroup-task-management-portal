@@ -45,6 +45,7 @@ export function AppShell({
   projects,
   notifications,
   unreadCount,
+  unreadMessages,
   activeProjectId,
   children,
 }: {
@@ -52,6 +53,8 @@ export function AppShell({
   projects: Project[];
   notifications: Notification[];
   unreadCount: number;
+  /** Private messages waiting, for the badge on the Messages item. */
+  unreadMessages: number;
   activeProjectId?: string;
   children: React.ReactNode;
 }) {
@@ -274,6 +277,7 @@ export function AppShell({
               profile={profile}
               projects={projects}
               activeProjectId={activeProjectId}
+              unreadMessages={unreadMessages}
               onOpenAssistant={openAssistant}
             />
           </div>
@@ -332,6 +336,7 @@ export function AppShell({
                   profile={profile}
                   projects={projects}
                   activeProjectId={activeProjectId}
+                  unreadMessages={unreadMessages}
                   onNavigate={followLink}
                   onOpenAssistant={openAssistant}
                 />

@@ -11,6 +11,7 @@ import {
   ListChecks,
   Plus,
   MessagesSquare,
+  Send,
   Sparkles,
   Sunrise,
   Users,
@@ -32,12 +33,15 @@ export function SidebarNav({
   profile,
   projects,
   activeProjectId,
+  unreadMessages = 0,
   onNavigate,
   onOpenAssistant,
 }: {
   profile: Profile;
   projects: Project[];
   activeProjectId?: string;
+  /** Private messages waiting; shown as a count beside the Messages item. */
+  unreadMessages?: number;
   onNavigate?: () => void;
   /** Hands the rail over to the assistant; owned by AppShell, which resizes it. */
   onOpenAssistant: () => void;
@@ -112,6 +116,14 @@ export function SidebarNav({
             icon={<MessagesSquare />}
             label={t("nav.chat")}
             active={pathname === "/chat"}
+            onNavigate={onNavigate}
+          />
+          <NavLink
+            href="/messages"
+            icon={<Send />}
+            label={t("nav.messages")}
+            active={pathname.startsWith("/messages")}
+            badge={unreadMessages}
             onNavigate={onNavigate}
           />
         </nav>
@@ -194,12 +206,15 @@ function NavLink({
   icon,
   label,
   active,
+  badge = 0,
   onNavigate,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   active?: boolean;
+  /** A count worth interrupting for; nothing is drawn at zero. */
+  badge?: number;
   onNavigate?: () => void;
 }) {
   return (
@@ -228,6 +243,18 @@ function NavLink({
     >
       <NavIcon>{icon}</NavIcon>
       <span className="truncate">{label}</span>
+      {badge > 0 && (
+        <span
+          className={cn(
+            "ms-auto flex min-w-5 shrink-0 items-center justify-center rounded-full px-1 text-[0.625rem] font-semibold tabular-nums",
+            active
+              ? "bg-primary-foreground text-primary"
+              : "bg-primary text-primary-foreground",
+          )}
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </Link>
   );
 }

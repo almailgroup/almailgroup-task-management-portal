@@ -10,6 +10,7 @@ import {
   CircleCheck,
   Eye,
   MessageSquare,
+  Send,
   UserMinus,
   UserPlus,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const ICONS: Record<NotificationType, React.ComponentType<{ className?: string }
   task_mentioned: AtSign,
   task_review_requested: Eye,
   task_completed: CircleCheck,
+  direct_message: Send,
 };
 
 /**
@@ -178,11 +180,15 @@ export function NotificationBell({
           <ul className="scrollbar-thin max-h-96 overflow-y-auto">
             {items.map((notification) => {
               const Icon = ICONS[notification.type] ?? Bell;
-              const href = notification.project_id
-                ? `/projects/${notification.project_id}`
-                : notification.task_id
-                  ? "/general"
-                  : "/dashboard";
+              // A private message points at the conversation it came from;
+              // everything else at whatever it is about.
+              const href = notification.conversation_id
+                ? `/messages/${notification.conversation_id}`
+                : notification.project_id
+                  ? `/projects/${notification.project_id}`
+                  : notification.task_id
+                    ? "/general"
+                    : "/dashboard";
 
               return (
                 <li key={notification.id}>

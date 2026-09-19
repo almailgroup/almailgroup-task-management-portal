@@ -21,6 +21,8 @@ import type {
   NotificationPreferences,
   TaskAttachment,
   TaskWithAssignees,
+  ConversationSummary,
+  DirectMessageWithAuthor,
   TeamMessageWithAuthor,
 } from "@/lib/supabase/database.types";
 
@@ -564,6 +566,138 @@ export const getTeamMessages = cache(
     const rows = (orFail(result, "the team chat") ?? []) as unknown as
       TeamMessageWithAuthor[];
     return rows.reverse();
+  },
+);
+
+/**
+ * Every private conversation this person is in, most recent first.
+ *
+ * Row-level security is the whole of the filter: `conversations` is readable
+ * only where `in_conversation(id)`, so asking for all of them returns yours.
+ * Nothing here repeats that rule in TypeScript, and nothing here could widen
+ * it if it tried.
+ *
+ * The unread count is messages after your own `last_read_at` that you did not
+ * write. Counted per thread rather than in one grouped query because
+ * PostgREST cannot group, and a person has tens of conversations, not
+ * thousands.
+ */
+export const getConversations = cache(async (): Promise<ConversationSummary[]> => {
+  const supabase = await createClient();
+  const me = await getUserId();
+  if (!me) return [];
+
+  const result = await supabase
+    .from("conversations")
+    .select(
+      "id, last_message_at, participants:conversation_participants(user_id, last_read_at, profile:profiles(*))",
+    )
+    .order("last_message_at", { ascending: false });
+
+  type Row = {
+    id: string;
+    last_message_at: string;
+    participants: {
+      user_id: string;
+      last_read_at: string;
+      profile: Profile | null;
+    }[];
+  };
+  const rows = (orFail(result, "your messages") ?? []) as unknown as Row[];
+  if (rows.length === 0) return [];
+
+  const summaries = await Promise.all(
+    rows.map(async (row) => {
+      const mine = row.participants.find((p) => p.user_id === me);
+      const other = row.participants.find((p) => p.user_id !== me) ?? null;
+
+      const [latest, unread] = await Promise.all([
+        supabase
+          .from("direct_messages")
+          .select("body, author_id")
+          .eq("conversation_id", row.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("direct_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", row.id)
+          .neq("author_id", me)
+          .gt("created_at", mine?.last_read_at ?? new Date(0).toISOString()),
+      ]);
+
+      return {
+        id: row.id,
+        lastMessageAt: row.last_message_at,
+        other: other?.profile ?? null,
+        lastMessage: latest.data?.body ?? null,
+        lastAuthorId: latest.data?.author_id ?? null,
+        unread: unread.count ?? 0,
+      } satisfies ConversationSummary;
+    }),
+  );
+
+  return summaries;
+});
+
+/** How many private messages are waiting, across every conversation. */
+export const getUnreadDirectCount = cache(async (): Promise<number> => {
+  const conversations = await getConversations();
+  return conversations.reduce((total, one) => total + one.unread, 0);
+});
+
+/**
+ * One thread, newest `limit` messages, oldest first for reading.
+ *
+ * Returns null when the conversation is not yours: RLS answers an empty set
+ * rather than an error, and the page turns that into a 404 rather than an
+ * empty room that looks like it belongs to you.
+ */
+export const getDirectMessages = cache(
+  async (
+    conversationId: string,
+    limit = 100,
+  ): Promise<DirectMessageWithAuthor[] | null> => {
+    const supabase = await createClient();
+
+    const conversation = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("id", conversationId)
+      .maybeSingle();
+    if (!conversation.data) return null;
+
+    const result = await supabase
+      .from("direct_messages")
+      .select("*, author:profiles(*)")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    const rows = (orFail(result, "this conversation") ?? []) as unknown as
+      DirectMessageWithAuthor[];
+    return rows.reverse();
+  },
+);
+
+/** Who a conversation is with. Null when it is not yours to see. */
+export const getConversationPartner = cache(
+  async (conversationId: string): Promise<Profile | null> => {
+    const supabase = await createClient();
+    const me = await getUserId();
+    if (!me) return null;
+
+    const result = await supabase
+      .from("conversation_participants")
+      .select("user_id, profile:profiles(*)")
+      .eq("conversation_id", conversationId)
+      .neq("user_id", me)
+      .limit(1)
+      .maybeSingle();
+
+    return ((result.data as unknown as { profile: Profile | null } | null)
+      ?.profile) ?? null;
   },
 );
 

@@ -39,7 +39,8 @@ export type NotificationType =
   | "task_commented"
   | "task_mentioned"
   | "task_review_requested"
-  | "task_completed";
+  | "task_completed"
+  | "direct_message";
 
 /** `task_activity.action` — stored as text with a check constraint. */
 export type TaskActivityAction =
@@ -232,6 +233,93 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "team_messages_author_id_fkey";
+            columns: ["author_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversations: {
+        Row: {
+          id: string;
+          created_at: string;
+          last_message_at: string;
+          member_low: string | null;
+          member_high: string | null;
+        };
+        /** Opened through `start_direct_conversation`, never inserted directly. */
+        Insert: never;
+        Update: never;
+        Relationships: [
+          // Both point at profiles, which is exactly the ambiguity an embed
+          // hint exists to resolve — declared so the check can see them.
+          {
+            foreignKeyName: "conversations_member_low_fkey";
+            columns: ["member_low"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_member_high_fkey";
+            columns: ["member_high"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversation_participants: {
+        Row: {
+          conversation_id: string;
+          user_id: string;
+          last_read_at: string;
+        };
+        Insert: never;
+        Update: { last_read_at?: string };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey";
+            columns: ["conversation_id"];
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      direct_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          author_id: string;
+          body: string;
+          created_at: string;
+          edited_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          author_id: string;
+          body: string;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Update: {
+          body?: string;
+          edited_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "direct_messages_author_id_fkey";
             columns: ["author_id"];
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -475,6 +563,7 @@ export type Database = {
           body: string | null;
           task_id: string | null;
           project_id: string | null;
+          conversation_id: string | null;
           read_at: string | null;
           created_at: string;
         };
@@ -491,6 +580,12 @@ export type Database = {
             foreignKeyName: "notifications_project_id_fkey";
             columns: ["project_id"];
             referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_conversation_id_fkey";
+            columns: ["conversation_id"];
+            referencedRelation: "conversations";
             referencedColumns: ["id"];
           },
           {
@@ -625,6 +720,9 @@ export type Database = {
       can_view_note: { Args: { note: string }; Returns: boolean };
       owns_note: { Args: { note: string }; Returns: boolean };
       can_view_task: { Args: { task: string }; Returns: boolean };
+      in_conversation: { Args: { conversation: string }; Returns: boolean };
+      /** Finds the thread with somebody, or opens it. Returns its id. */
+      start_direct_conversation: { Args: { other: string }; Returns: string };
       enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
       /** Moves a batch of due reminders to 'sending' and returns them. */
       claim_reminders: {
@@ -694,6 +792,29 @@ export type NotificationPreferences =
   Database["public"]["Tables"]["notification_preferences"]["Row"];
 export type ReminderQueueRow =
   Database["public"]["Tables"]["reminder_queue"]["Row"];
+
+export type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
+export type ConversationParticipant =
+  Database["public"]["Tables"]["conversation_participants"]["Row"];
+export type DirectMessage =
+  Database["public"]["Tables"]["direct_messages"]["Row"];
+
+/** A message with whoever wrote it, which is what the thread renders. */
+export type DirectMessageWithAuthor = DirectMessage & { author: Profile | null };
+
+/**
+ * A thread as the list shows it: who it is with, what was said last, and how
+ * much of it you have not read.
+ */
+export type ConversationSummary = {
+  id: string;
+  lastMessageAt: string;
+  /** The other person. Null only if their account has since been deleted. */
+  other: Profile | null;
+  lastMessage: string | null;
+  lastAuthorId: string | null;
+  unread: number;
+};
 
 export type PersonalNote =
   Database["public"]["Tables"]["personal_notes"]["Row"];
