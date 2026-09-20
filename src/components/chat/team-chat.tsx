@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { deleteTeamMessage, sendTeamMessage } from "@/lib/data/chat-actions";
 import { DaySeparator } from "@/components/chat/day-separator";
+import { PersonMenu } from "@/components/people/person-menu";
 import { continues, startsNewDay } from "@/lib/chat/grouping";
 import { formatTimeOfDay } from "@/lib/dates";
 import { initialsFrom } from "@/lib/initials";
@@ -273,6 +274,7 @@ export function TeamChat({
                   {newDay && <DaySeparator iso={message.created_at} />}
                   <Message
                     message={message}
+                    me={profile}
                     mine={message.author_id === profile.id}
                     canRemove={
                       message.author_id === profile.id || profile.role === "admin"
@@ -477,52 +479,58 @@ function Roster({
           const name = person.full_name ?? person.email;
 
           return (
-            <li
-              key={person.id}
-              className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5"
-            >
-              <span className="relative shrink-0">
-                <Avatar className={cn("size-7", !online && "opacity-55")}>
-                  <AvatarImage src={person.avatar_url ?? undefined} alt="" />
-                  <AvatarFallback className="text-[0.625rem]">
-                    {initialsFrom(person.full_name, person.email)}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Ringed in the card's own colour so the dot reads as sitting
-                    on the avatar rather than behind it. Greyscale, because in
-                    this palette the one colour means late work and nothing
-                    else — being online is not an alarm. */}
-                <span
-                  aria-hidden
-                  className={cn(
-                    "absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full ring-2 ring-card",
-                    online ? "bg-foreground" : "bg-muted-foreground/35",
-                  )}
-                />
-              </span>
-
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[0.8125rem] font-medium leading-tight">
-                  {name}
-                  {person.id === me.id && (
-                    <span className="font-normal text-muted-foreground">
-                      {" · "}
-                      {t("chat.you")}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "block truncate text-[0.6875rem] leading-tight",
-                    typing ? "text-foreground" : "text-muted-foreground",
-                  )}
+            <li key={person.id}>
+              {/* The roster is a list of people, so it answers the same way
+                  every other list of people in the app now does. */}
+              <PersonMenu person={person} me={me}>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-start transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {typing
-                    ? t("chat.typing")
-                    : (person.job_title ??
-                      t(online ? "chat.online" : "chat.offline"))}
-                </span>
-              </span>
+                  <span className="relative shrink-0">
+                    <Avatar className={cn("size-7", !online && "opacity-55")}>
+                      <AvatarImage src={person.avatar_url ?? undefined} alt="" />
+                      <AvatarFallback className="text-[0.625rem]">
+                        {initialsFrom(person.full_name, person.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* Ringed in the card's own colour so the dot reads as
+                        sitting on the avatar rather than behind it. Greyscale,
+                        because in this palette the one colour means late work
+                        and nothing else — being online is not an alarm. */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full ring-2 ring-card",
+                        online ? "bg-foreground" : "bg-muted-foreground/35",
+                      )}
+                    />
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[0.8125rem] font-medium leading-tight">
+                      {name}
+                      {person.id === me.id && (
+                        <span className="font-normal text-muted-foreground">
+                          {" · "}
+                          {t("chat.you")}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        "block truncate text-[0.6875rem] leading-tight",
+                        typing ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {typing
+                        ? t("chat.typing")
+                        : (person.job_title ??
+                          t(online ? "chat.online" : "chat.offline"))}
+                    </span>
+                  </span>
+                </button>
+              </PersonMenu>
             </li>
           );
         })}
@@ -551,8 +559,32 @@ function firstName(person: Profile | undefined): string | null {
   return name.split(" ")[0] || name;
 }
 
+/**
+ * Makes a face or a name open the person menu, when there is a person behind
+ * it. A deleted account leaves its messages in the room; those stay text.
+ */
+function PersonFace({
+  person,
+  me,
+  children,
+}: {
+  person: Profile | null;
+  me: Profile;
+  children: React.ReactNode;
+}) {
+  if (!person) return <>{children}</>;
+  return (
+    <PersonMenu person={person} me={me}>
+      <button type="button" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md">
+        {children}
+      </button>
+    </PersonMenu>
+  );
+}
+
 function Message({
   message,
+  me,
   mine,
   canRemove,
   grouped,
@@ -561,6 +593,8 @@ function Message({
   timeZone,
 }: {
   message: TeamMessageWithAuthor;
+  /** Who is reading, so the menu knows whether this is them. */
+  me: Profile;
   mine: boolean;
   canRemove: boolean;
   grouped: boolean;
@@ -593,21 +627,26 @@ function Message({
             {gutter}
           </time>
         ) : (
-          <Avatar className="size-8">
-            <AvatarImage src={message.author?.avatar_url ?? undefined} alt="" />
-            <AvatarFallback className="text-[0.6875rem]">
-              {initialsFrom(message.author?.full_name, message.author?.email)}
-            </AvatarFallback>
-          </Avatar>
+          <PersonFace person={message.author} me={me}>
+            <Avatar className="size-8">
+              <AvatarImage src={message.author?.avatar_url ?? undefined} alt="" />
+              <AvatarFallback className="text-[0.6875rem]">
+                {initialsFrom(message.author?.full_name, message.author?.email)}
+              </AvatarFallback>
+            </Avatar>
+          </PersonFace>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
         {!grouped && (
           <div className="flex items-baseline gap-2">
-            <span className="truncate text-sm font-semibold leading-5">
-              {mine ? t("chat.you") : name}
-            </span>
+            {/* Whoever said it is a person, and a person answers a click. */}
+            <PersonFace person={message.author} me={me}>
+              <span className="truncate text-sm font-semibold leading-5 hover:underline">
+                {mine ? t("chat.you") : name}
+              </span>
+            </PersonFace>
             <time
               dateTime={message.created_at}
               className="shrink-0 text-[0.6875rem] text-muted-foreground"

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  ArrowRight,
   CalendarCheck,
   CalendarClock,
   CircleAlert,
@@ -141,6 +142,7 @@ export function TodayView({
       <Section
         title={t("meta.overdue")}
         icon={<CircleAlert />}
+        href="/tasks?filter=overdue"
         tasks={overdue}
         empty={t("today.nothingLate")}
         emphasis
@@ -152,6 +154,7 @@ export function TodayView({
       <Section
         title={t("today.dueToday")}
         icon={<CalendarClock />}
+        href="/tasks?filter=due_today"
         tasks={dueToday}
         empty={t("today.nothingDue")}
         projectName={projectName}
@@ -162,6 +165,7 @@ export function TodayView({
       <Section
         title={t("status.in_progress")}
         icon={<Loader />}
+        href="/tasks?filter=in_progress"
         tasks={inProgress}
         empty={t("today.nothingActive")}
         sameStatus
@@ -174,6 +178,7 @@ export function TodayView({
         <Section
           title={t("today.waitingReview")}
           icon={<CalendarCheck />}
+          href="/tasks?filter=in_review"
           tasks={inReview}
           empty=""
           sameStatus
@@ -284,6 +289,7 @@ function Section({
   empty,
   emphasis,
   sameStatus,
+  href,
   projectName,
   onOpen,
   canReschedule,
@@ -299,11 +305,13 @@ function Section({
    * and do need it.
    */
   sameStatus?: boolean;
+  /** The whole of this list, which the heading opens. */
+  href?: string;
   projectName: (id: string | null) => string;
   onOpen: (task: TaskWithAssignees) => void;
   canReschedule: boolean;
 }) {
-  const { tag, timeZone } = useI18n();
+  const { t, tag, timeZone } = useI18n();
   return (
     <Card
       className={cn(
@@ -329,6 +337,18 @@ function Section({
               screen between them, and the work was underneath. */}
           {tasks.length === 0 && (
             <span className="font-normal text-muted-foreground">— {empty}</span>
+          )}
+          {/* Today shows what is urgent about a list that lives on /tasks.
+              The heading is the way to the rest of it. */}
+          {href && tasks.length > 0 && (
+            <Link
+              href={href}
+              aria-label={t("card.openList")}
+              className="ms-auto flex items-center gap-1 text-xs font-normal text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {t("card.seeAll")}
+              <ArrowRight className="size-3 rtl:-scale-x-100" />
+            </Link>
           )}
         </CardTitle>
       </CardHeader>

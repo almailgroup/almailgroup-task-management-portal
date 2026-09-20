@@ -896,4 +896,21 @@ export const en = {
   "dm.deleted": "Message deleted.",
   "nav.messages": "Messages",
   "bell.direct_message": "New message",
+
+  // ---- clicking on a person -------------------------------------------------------------
+  "person.open": "Options for {name}",
+  "person.viewProfile": "View profile",
+  "person.messagePrivately": "Message privately",
+  "person.copyEmail": "Copy email address",
+  "person.emailCopied": "Email address copied.",
+  "person.emailThem": "Send an email",
+  "person.theirTasks": "See their open tasks",
+  "person.you": "This is you",
+  "person.role": "Role",
+  "person.position": "Position",
+  "person.email": "Email",
+  "person.noPosition": "No position set",
+  "person.joined": "Joined",
+  "card.openList": "Open this list",
+  "card.seeAll": "See all",
 } as const;

@@ -977,4 +977,21 @@ export const ar: Dictionary = {
   "dm.deleted": "تم حذف الرسالة.",
   "nav.messages": "الرسائل",
   "bell.direct_message": "رسالة جديدة",
+
+  // ---- clicking on a person -------------------------------------------------------------
+  "person.open": "خيارات {name}",
+  "person.viewProfile": "عرض الملف",
+  "person.messagePrivately": "مراسلة خاصة",
+  "person.copyEmail": "نسخ البريد الإلكتروني",
+  "person.emailCopied": "تم نسخ البريد الإلكتروني.",
+  "person.emailThem": "إرسال بريد إلكتروني",
+  "person.theirTasks": "عرض مهامه المفتوحة",
+  "person.you": "هذا أنت",
+  "person.role": "الدور",
+  "person.position": "المنصب",
+  "person.email": "البريد الإلكتروني",
+  "person.noPosition": "لا منصب محدد",
+  "person.joined": "انضم في",
+  "card.openList": "افتح هذه القائمة",
+  "card.seeAll": "عرض الكل",
 };

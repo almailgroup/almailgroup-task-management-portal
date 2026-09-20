@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowRight,
   CalendarClock,
   CircleAlert,
   CircleCheck,
@@ -125,19 +126,26 @@ export default async function DashboardPage() {
             {t("dash.inProgressNote", { n: metrics.inProgress })}
           </p>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("dash.overallProgress")}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <ProgressBar
-                value={metrics.completionRate}
-                label={t("dash.overallCompletion")}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t("dash.completeOf", { done: metrics.done, total: metrics.total })}
-              </p>
-            </CardContent>
+          {/* A card that summarises a list should open that list. This one
+              is about every task there is. */}
+          <Card className="lift transition-colors hover:border-foreground/25">
+            <Link href="/tasks?filter=all" className="block focus-visible:outline-none">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between gap-2">
+                  {t("dash.overallProgress")}
+                  <ArrowRight className="size-3.5 text-muted-foreground rtl:-scale-x-100" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <ProgressBar
+                  value={metrics.completionRate}
+                  label={t("dash.overallCompletion")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("dash.completeOf", { done: metrics.done, total: metrics.total })}
+                </p>
+              </CardContent>
+            </Link>
           </Card>
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -145,15 +153,19 @@ export default async function DashboardPage() {
               title={t("dash.assignedToYou")}
               tasks={myTasks}
               empty={t("dash.nothingAssigned")}
+              href="/my-list"
+              seeAll={t("card.seeAll")}
             />
             <TaskListCard
               title={t("dash.needsAttention")}
               tasks={attention}
               empty={t("dash.noOverdue")}
+              href="/tasks?filter=overdue"
+              seeAll={t("card.seeAll")}
             />
           </div>
 
-          <WorkloadCard workload={workload} />
+          <WorkloadCard workload={workload} me={profile} />
         </>
       )}
     </PageShell>
@@ -164,15 +176,31 @@ function TaskListCard({
   title,
   tasks,
   empty,
+  href,
+  seeAll,
 }: {
   title: string;
   tasks: TaskWithAssignees[];
   empty: string;
+  /** Where the whole of this list lives; the heading links to it. */
+  href: string;
+  seeAll: string;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="flex items-center justify-between gap-2">
+          {title}
+          {/* Six rows of what may be forty. The way to the rest should not be
+              somewhere else on the page. */}
+          <Link
+            href={href}
+            className="flex items-center gap-1 text-xs font-normal text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {seeAll}
+            <ArrowRight className="size-3 rtl:-scale-x-100" />
+          </Link>
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {tasks.length === 0 ? (

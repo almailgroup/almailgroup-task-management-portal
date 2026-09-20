@@ -9,10 +9,25 @@ import { initialsFrom } from "@/lib/initials";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/dashboard/metric-card";
 import { useI18n } from "@/lib/i18n/client";
+import { PersonMenu } from "@/components/people/person-menu";
 import type { Workload } from "@/lib/metrics";
+import type { Profile } from "@/lib/supabase/database.types";
 
-/** Per-person workload, sized relative to the busiest member. */
-export function WorkloadCard({ workload }: { workload: Workload[] }) {
+/**
+ * Per-person workload, sized relative to the busiest member.
+ *
+ * Each row is a person, so each row opens what clicking a person opens
+ * anywhere else in the app. It used to be the one card on the dashboard made
+ * entirely of faces and names that answered nothing.
+ */
+export function WorkloadCard({
+  workload,
+  me,
+}: {
+  workload: Workload[];
+  /** Who is looking, so a row does not offer to message them themselves. */
+  me: Profile;
+}) {
   const { t } = useI18n();
   const busiest = Math.max(1, ...workload.map((entry) => entry.open));
 
@@ -28,7 +43,11 @@ export function WorkloadCard({ workload }: { workload: Workload[] }) {
           </p>
         ) : (
           workload.map(({ profile, open, done, overdue }) => (
-            <div key={profile.id} className="flex items-center gap-3">
+            <PersonMenu key={profile.id} person={profile} me={me}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-lg p-1 text-start transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
               <Avatar className="size-7">
                 {profile.avatar_url && (
                   <AvatarImage src={profile.avatar_url} alt="" />
@@ -62,7 +81,8 @@ export function WorkloadCard({ workload }: { workload: Workload[] }) {
                   {t("dash.completedCount", { n: done })}
                 </p>
               </div>
-            </div>
+              </button>
+            </PersonMenu>
           ))
         )}
       </CardContent>

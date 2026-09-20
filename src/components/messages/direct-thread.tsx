@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DaySeparator } from "@/components/chat/day-separator";
+import { PersonMenu } from "@/components/people/person-menu";
 import { continues, startsNewDay } from "@/lib/chat/grouping";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -228,19 +229,26 @@ export function DirectThread({
           </Link>
         </Button>
 
-        <Avatar className="size-8 shrink-0">
-          <AvatarImage src={partner?.avatar_url ?? undefined} alt="" />
-          <AvatarFallback className="text-[0.6875rem]">
-            {initialsFrom(partner?.full_name, partner?.email)}
-          </AvatarFallback>
-        </Avatar>
+        {/* The person you are talking to, which is a person: their profile
+            is one tap from the conversation rather than back on the team
+            page. */}
+        <PersonHeader person={partner} me={me}>
+          <Avatar className="size-8 shrink-0">
+            <AvatarImage src={partner?.avatar_url ?? undefined} alt="" />
+            <AvatarFallback className="text-[0.6875rem]">
+              {initialsFrom(partner?.full_name, partner?.email)}
+            </AvatarFallback>
+          </Avatar>
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-tight">{name}</p>
-          <p className="truncate text-[0.6875rem] leading-tight text-muted-foreground">
-            {partnerTyping ? t("chat.typing") : (partner?.job_title ?? "")}
-          </p>
-        </div>
+          <span className="min-w-0 flex-1 text-start">
+            <span className="block truncate text-sm font-semibold leading-tight">
+              {name}
+            </span>
+            <span className="block truncate text-[0.6875rem] leading-tight text-muted-foreground">
+              {partnerTyping ? t("chat.typing") : (partner?.job_title ?? "")}
+            </span>
+          </span>
+        </PersonHeader>
 
         {/* Said once, at the top, rather than on every message. */}
         <span
@@ -369,6 +377,35 @@ export function DirectThread({
         </div>
       </form>
     </div>
+  );
+}
+
+/**
+ * The header block, as a menu trigger when there is somebody behind it.
+ * A deleted account leaves the conversation; that stays text.
+ */
+function PersonHeader({
+  person,
+  me,
+  children,
+}: {
+  person: Profile | null;
+  me: Profile;
+  children: React.ReactNode;
+}) {
+  const body = (
+    <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>
+  );
+  if (!person) return body;
+  return (
+    <PersonMenu person={person} me={me}>
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-0.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {children}
+      </button>
+    </PersonMenu>
   );
 }
 

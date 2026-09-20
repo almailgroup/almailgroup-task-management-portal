@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { AddMemberDialog } from "@/components/team/add-member-dialog";
 import { MemberActions } from "@/components/team/member-actions";
+import { PersonMenu } from "@/components/people/person-menu";
 import { RoleSelect } from "@/components/team/role-select";
 import { PositionSelect } from "@/components/team/position-select";
 import { Users } from "lucide-react";
@@ -53,34 +54,41 @@ export default async function TeamPage() {
             key={member.id}
             className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 p-3.5 sm:gap-y-3 sm:p-4"
           >
-            <div className="flex min-w-0 items-center gap-3">
-              <Avatar>
-                {member.avatar_url && (
-                  <AvatarImage src={member.avatar_url} alt="" />
-                )}
-                <AvatarFallback>
-                  {initialsFrom(member.full_name, member.email)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="truncate text-[0.9375rem] font-medium">
-                  {member.full_name ?? member.email}
-                  {member.id === profile.id && (
-                    <span className="ms-1.5 text-xs font-normal text-muted-foreground">
-                      {t("common.you")}
-                    </span>
+            {/* The name and the face are the target. A person in a list
+                reads as something you can act on, and this one was text. */}
+            <PersonMenu person={member} me={profile}>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-start transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Avatar>
+                  {member.avatar_url && (
+                    <AvatarImage src={member.avatar_url} alt="" />
                   )}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {member.email}
-                </p>
-                {!isAdmin && member.job_title && (
-                  <p className="truncate text-xs text-muted-foreground">
-                    {member.job_title}
+                  <AvatarFallback>
+                    {initialsFrom(member.full_name, member.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-[0.9375rem] font-medium">
+                    {member.full_name ?? member.email}
+                    {member.id === profile.id && (
+                      <span className="ms-1.5 text-xs font-normal text-muted-foreground">
+                        {t("common.you")}
+                      </span>
+                    )}
                   </p>
-                )}
-              </div>
-            </div>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {member.email}
+                  </p>
+                  {!isAdmin && member.job_title && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {member.job_title}
+                    </p>
+                  )}
+                </div>
+              </button>
+            </PersonMenu>
 
             {isAdmin ? (
               <div className="flex flex-wrap items-center gap-2">

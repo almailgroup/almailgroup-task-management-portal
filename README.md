@@ -594,6 +594,34 @@ New messages carry you along only if you were already at the bottom. Nothing is
 more irritating in a chat than being dragged away from what you were reading
 because somebody else said hello.
 
+## Clicking on a person
+
+A name and a face read as something you can act on. Almost none of them were:
+the team list, the room's roster, a message's author, the workload card and
+the header of a conversation were all text you could click at without result.
+
+One menu now sits behind all of them — view their profile, message them
+privately, copy their address, send them an email — so the answer is the same
+wherever you found the person, and the caller decides what the target is
+rather than having a button bolted on beside it. Messaging yourself is not
+offered, because it is not a conversation and the database refuses it anyway.
+Somebody whose account has been deleted leaves their messages in the room;
+those stay text, because there is no longer a person behind them.
+
+The profile it opens is a better view of what was already on screen, not a new
+disclosure: the team page lists every field it shows.
+
+The same principle for cards. A card that summarises a list opens that list —
+overall progress goes to every task, "needs attention" to the overdue ones,
+and each heading on Today to its own filter, which the task browser already
+understood. Six rows of what may be forty should not make the way to the rest
+somewhere else on the page.
+
+Checked by walking the app and asking which blocks a reasonable person would
+try clicking and nothing was listening to. The team page went from six to
+none, the room from ten to three, and the three left are the page heading and
+two continuation lines that have no name or face on them to click.
+
 ## Private messages
 
 Separate from the team room, and the opposite of it. The room's read policy is
