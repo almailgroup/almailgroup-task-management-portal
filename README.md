@@ -594,6 +594,37 @@ New messages carry you along only if you were already at the bottom. Nothing is
 more irritating in a chat than being dragged away from what you were reading
 because somebody else said hello.
 
+## The assistant in Arabic
+
+It answers in the language of the question, not the language of the interface.
+Somebody running the portal in English who types in Arabic is speaking Arabic,
+and answering them in English is the assistant not listening.
+
+Which language that is gets decided by the script the question *starts* in
+rather than by counting letters. The board here is bilingual — Arabic
+questions about tasks titled in English, English questions about projects
+named in Arabic — and those two are mirror images, around a third of one
+script and two thirds of the other. No ratio separates them. Which script
+somebody opened their sentence in does, because that is the language they are
+speaking; the other one is a name they are quoting. A question with no letters
+at all falls back to the interface language.
+
+For Arabic the model is asked for **Kuwaiti**, not Modern Standard — شنو rather
+than ماذا, وايد rather than كثير, باجر for tomorrow — with two rules that
+matter more than the vocabulary: do not caricature it, and never translate a
+name. A task called "Ship the catalogue" is called that wherever the reader
+looks for it.
+
+That instruction lives in the Cloudflare Worker, so it takes a Worker deploy,
+not just a portal one. The two can go in either order: a Worker that gets no
+`replyIn` falls back to the interface language.
+
+The offline brain — what answers when the Worker cannot be reached — now
+recognises Kuwaiti as well as standard Arabic, because "شنو المتأخر" and
+"ما هي المهام المتأخرة" are the same question and only one of them was
+understood. Its sentences still come from the dictionary, so they are standard
+Arabic; it is the floor, not the feature.
+
 ## Clicking on a person
 
 A name and a face read as something you can act on. Almost none of them were:

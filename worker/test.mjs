@@ -149,15 +149,68 @@ test("dates reach the model in the reader's zone, already resolved", async () =>
   assert.match(prompt, /It is now Sep 15, 2026, 2:00 p\.m\. in Asia\/Dubai/);
 });
 
+const promptSent = () => sent.body.systemInstruction.parts[0].text;
+
 test("the answer's language is stated rather than guessed", async () => {
   gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
   await ask();
-  assert.match(sent.body.systemInstruction.parts[0].text, /Answer in this language: English/);
+  assert.match(promptSent(), /Answer in English\./);
 
   snapshot.locale = "ar";
   await ask();
-  assert.match(sent.body.systemInstruction.parts[0].text, /Answer in this language: Arabic/);
+  assert.match(promptSent(), /Kuwaiti Arabic/);
   snapshot.locale = "en";
+});
+
+/**
+ * The portal decides the language from the question, because the interface
+ * language is a setting somebody chose once and the question is what they are
+ * speaking now. `replyIn` is that decision, and it wins.
+ */
+test("replyIn beats the interface language, both ways round", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+
+  snapshot.locale = "en";
+  snapshot.replyIn = "ar";
+  await ask();
+  assert.match(promptSent(), /Kuwaiti Arabic/, "English interface, Arabic question");
+
+  snapshot.locale = "ar";
+  snapshot.replyIn = "en";
+  await ask();
+  assert.match(promptSent(), /Answer in English\./, "Arabic interface, English question");
+
+  delete snapshot.replyIn;
+  snapshot.locale = "en";
+});
+
+/** An older portal does not send it; the interface language still decides. */
+test("a snapshot without replyIn falls back to the interface language", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+  snapshot.replyIn = "nonsense";
+  snapshot.locale = "ar";
+  await ask();
+  assert.match(promptSent(), /Kuwaiti Arabic/);
+  delete snapshot.replyIn;
+  snapshot.locale = "en";
+});
+
+/**
+ * Kuwaiti, not Modern Standard — and not at the cost of the board. A task
+ * called "Chase customs" is called that wherever the reader looks for it.
+ */
+test("the Arabic instruction asks for the dialect and protects names", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+  snapshot.replyIn = "ar";
+  await ask();
+  const prompt = promptSent();
+  assert.match(prompt, /not\s+Modern Standard Arabic/i);
+  assert.match(prompt, /شنو/);
+  assert.match(prompt, /Never translate a name/i);
+  assert.match(prompt, /Latin digits/i);
+  // The board itself is still there, in the reader's own zone.
+  assert.match(prompt, /Chase customs/);
+  delete snapshot.replyIn;
 });
 
 test("the budget leaves room to think and still answer", async () => {

@@ -264,3 +264,23 @@ asked twice while a wrong key is not.
 cp .dev.vars.example .dev.vars   # then fill it in; it is gitignored
 npm run dev
 ```
+
+## Arabic
+
+The portal decides which language to answer in from the question itself, not
+from the interface language, and sends that as `snapshot.replyIn`. Somebody
+running the portal in English who types in Arabic is speaking Arabic.
+
+For Arabic the system prompt asks for **Kuwaiti**, not Modern Standard: the
+people using this work together in an office in Kuwait, and newsreader Arabic
+reads as a form letter. Task titles, project names and people's names are
+never translated — the reader has to be able to find them on the board — and
+numbers stay in Latin digits, as the rest of the portal writes them.
+
+A snapshot without `replyIn` — an older portal — falls back to the interface
+language, so the two can be deployed in either order.
+
+**This lives in the Worker, so changing it means redeploying the Worker.**
+Updating the portal alone changes which language is asked for, not how it is
+written.
+

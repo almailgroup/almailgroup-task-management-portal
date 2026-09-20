@@ -7,6 +7,7 @@
  * dropped in without touching the UI.
  */
 
+import type { Locale } from "@/lib/i18n";
 import type {
   TaskPriority,
   TaskStatus,
@@ -47,11 +48,20 @@ export type AssistantSnapshot = {
   /** Who a task can be assigned to, by id. */
   team: { id: string; name: string }[];
   /**
-   * The language to answer in. The panel is read in Arabic as often as in
-   * English, and a model left to infer it from the question will answer an
-   * English word typed into an Arabic interface in English.
+   * The interface language — a setting somebody chose once, not what they
+   * have just typed. It decides the reply only when the question itself says
+   * nothing: see `replyIn`.
    */
-  locale: string;
+  locale: Locale;
+  /**
+   * The language to answer in, worked out from the question.
+   *
+   * The panel is read in Arabic as often as in English, and the two do not
+   * follow the interface: somebody running it in English types a question in
+   * Arabic and is owed an Arabic answer. Absent from a snapshot built for the
+   * local brain, which is handed its translator directly.
+   */
+  replyIn?: Locale;
   /**
    * The reader's IANA zone. Without it "what is due today" is unanswerable
    * from a list of instants — the same task is today in Dubai and tomorrow

@@ -16,6 +16,11 @@ import type { AssistantAnswer, AssistantSnapshot, AssistantTask } from "@/lib/as
  * inside the Worker itself. It answers in the asker's language: the intents
  * are matched against words from both, and every sentence comes from the
  * dictionary.
+ *
+ * The Arabic words below are Kuwaiti as well as standard, because that is how
+ * the people using this write. Somebody typing "شنو المتأخر" and somebody
+ * typing "ما هي المهام المتأخرة" are asking the same thing, and only one of
+ * them was being understood.
  */
 
 type Speaker = Pick<Translator, "t" | "tn" | "tag" | "timeZone">;
@@ -75,7 +80,19 @@ export function answerLocally(
 
   // Overdue ------------------------------------------------------------
   if (
-    matches(q, ["overdue"], ["late"], ["past", "due"], ["behind"], ["متأخر"], ["تأخر"], ["فات"])
+    matches(
+      q,
+      ["overdue"],
+      ["late"],
+      ["past", "due"],
+      ["behind"],
+      ["متأخر"],
+      ["تأخر"],
+      ["فات"],
+      ["متأخرة"],
+      ["مأخر"],
+      ["طفس"],
+    )
   ) {
     const overdue = tasks.filter((task) => isOverdue(task.dueAt, task.status));
     if (overdue.length === 0) {
@@ -85,7 +102,17 @@ export function answerLocally(
   }
 
   // Due today ----------------------------------------------------------
-  if (matches(q, ["due", "today"], ["today"], ["due", "now"], ["اليوم"])) {
+  if (
+    matches(
+      q,
+      ["due", "today"],
+      ["today"],
+      ["due", "now"],
+      ["اليوم"],
+      ["هاليوم"],
+      ["هاللحين"],
+    )
+  ) {
     const today = open.filter((task) => isDueToday(task.dueAt, i18n.timeZone));
     // A task due at 09:00 this morning is both due today and overdue. It
     // belongs under today's heading, once — so the overdue section below
@@ -114,7 +141,19 @@ export function answerLocally(
 
   // Review queue -------------------------------------------------------
   if (
-    matches(q, ["review"], ["waiting"], ["approve"], ["approval"], ["مراجعة"], ["اعتماد"], ["موافقة"], ["ينتظر"])
+    matches(
+      q,
+      ["review"],
+      ["waiting"],
+      ["approve"],
+      ["approval"],
+      ["مراجعة"],
+      ["اعتماد"],
+      ["موافقة"],
+      ["ينتظر"],
+      ["مراجعه"],
+      ["منتظر"],
+    )
   ) {
     const inReview = tasks.filter((task) => task.status === "in_review");
     if (inReview.length === 0) {
@@ -134,6 +173,9 @@ export function answerLocally(
       ["غير مسند"],
       ["بدون مكلف"],
       ["لا أحد"],
+      ["محد"],
+      ["ماكو أحد"],
+      ["ما عليه"],
     )
   ) {
     const unassigned = open.filter((task) => task.assignees.length === 0);
@@ -146,7 +188,9 @@ export function answerLocally(
   }
 
   // Follow-ups ---------------------------------------------------------
-  if (matches(q, ["follow"], ["chase"], ["remind"], ["متابع"], ["تذكير"])) {
+  if (
+    matches(q, ["follow"], ["chase"], ["remind"], ["متابع"], ["تذكير"], ["تابع"])
+  ) {
     const followUps = open
       .filter((task) => task.followUpAt !== null)
       .sort((a, b) => (a.followUpAt ?? "").localeCompare(b.followUpAt ?? ""));
@@ -173,6 +217,11 @@ export function answerLocally(
       ["أولوي"],
       ["مهامي"],
       ["تالي"],
+      ["اشتغل"],
+      ["وش أسوي"],
+      ["شنو أسوي"],
+      ["شسوي"],
+      ["الجاي"],
     )
   ) {
     const weight = (task: AssistantTask) => {
@@ -211,6 +260,10 @@ export function answerLocally(
       ["تقدم"],
       ["عدد"],
       ["أين", "نحن"],
+      ["چم"],
+      ["شلون"],
+      ["الوضع"],
+      ["وين", "وصلنا"],
     )
   ) {
     const lines = [
@@ -231,7 +284,19 @@ export function answerLocally(
 
   // Capabilities -------------------------------------------------------
   if (
-    matches(q, ["help"], ["what", "can", "you"], ["who", "are", "you"], ["مساعدة"], ["ماذا", "تستطيع"], ["من", "أنت"])
+    matches(
+      q,
+      ["help"],
+      ["what", "can", "you"],
+      ["who", "are", "you"],
+      ["مساعدة"],
+      ["ماذا", "تستطيع"],
+      ["من", "أنت"],
+      ["ساعدني"],
+      ["شنو تسوي"],
+      ["وش تسوي"],
+      ["منو انت"],
+    )
   ) {
     return answer(
       t(modelConfigured ? "brain.helpOffline" : "brain.help", {

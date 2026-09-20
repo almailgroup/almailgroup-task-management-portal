@@ -357,6 +357,32 @@ function read(data) {
 }
 
 /**
+ * How to answer somebody who wrote in Arabic.
+ *
+ * Kuwaiti, not Modern Standard: the people using this work together in an
+ * office in Kuwait, and an assistant that replies in newsreader Arabic reads
+ * as a form letter. A handful of markers is enough to place the dialect —
+ * the last line matters as much as the list, because a model handed dialect
+ * words will otherwise use every one of them in every sentence.
+ *
+ * Names are the exception. A task called "Ship the catalogue" is called that
+ * on the board, and translating it means the reader cannot find it.
+ */
+const KUWAITI = [
+  "Answer in Kuwaiti Arabic — the everyday spoken Arabic of Kuwait, not",
+  "Modern Standard Arabic. Write the way a colleague in the office would say",
+  "it: شنو rather than ماذا, شلون rather than كيف, وايد rather than كثير,",
+  "هاللحين for now, باجر for tomorrow, ما في or ماكو for there is none, and",
+  "راح or بـ for the future rather than سوف.",
+  "Keep it natural and plain. Do not force dialect words in where they do not",
+  "belong, and do not write a caricature — short, ordinary sentences.",
+  "Task titles, project names and people's names stay exactly as they are",
+  "written on the board below. Never translate a name: the reader has to be",
+  "able to find it.",
+  "Write numbers and dates in Latin digits, as the rest of the portal does.",
+]
+
+/**
  * The board, written out for the model.
  *
  * Dates are resolved to the reader's own zone here rather than sent as
@@ -368,6 +394,13 @@ function read(data) {
  */
 function brief(snapshot) {
   const { viewer, counts, tasks, timeZone, locale, takenAt } = snapshot;
+  // What the portal worked out from the question itself. An older portal does
+  // not send it, and the interface language is the next best guess.
+  const replyIn = snapshot.replyIn === "ar" || snapshot.replyIn === "en"
+    ? snapshot.replyIn
+    : locale === "ar"
+      ? "ar"
+      : "en";
   const projects = snapshot.projects ?? [];
   const team = snapshot.team ?? [];
   const when = (/** @type {string | null} */ iso) =>
@@ -424,7 +457,7 @@ function brief(snapshot) {
     "You are the assistant inside the Almailgroup task portal. You answer questions",
     "about where work stands, from the board below and from nothing else.",
     "",
-    `Answer in this language: ${locale === "ar" ? "Arabic" : "English"}.`,
+    ...(replyIn === "ar" ? KUWAITI : ["Answer in English."]),
     `The reader is ${viewer.name} (${viewer.role}). It is now ${when(takenAt)} in ${timeZone};`,
     "that clock decides what counts as today, overdue and this week.",
     "",

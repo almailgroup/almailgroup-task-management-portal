@@ -2,8 +2,10 @@
 
 import { buildSnapshot } from "@/lib/assistant/snapshot";
 import { answerLocally } from "@/lib/assistant/local-brain";
+import { answerLanguage } from "@/lib/assistant/language";
 import { previewOf } from "@/lib/assistant/preview";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { createTranslator } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import type { AssistantAnswer, AssistantMessage } from "@/lib/assistant/types";
 
@@ -29,6 +31,16 @@ export async function askAssistant(
   const [snapshot, i18n] = await Promise.all([buildSnapshot(), getI18n()]);
   const endpoint = process.env.ALMAIL_AI_WORKER_URL;
 
+  /*
+   * The language of the question, not of the interface.
+   *
+   * Somebody on the English interface who types in Arabic is speaking
+   * Arabic. Decided here rather than in the Worker so the local brain and
+   * Gemini answer in the same language as each other, from one rule.
+   */
+  const replyIn = answerLanguage(question, snapshot.locale);
+  const speaker = replyIn === snapshot.locale ? i18n : createTranslator(replyIn);
+
   if (!endpoint) {
     // Whoever is asking cannot act on this; whoever runs the workspace can,
     // and until now had nothing to act on. Both ways of ending up with a
@@ -39,7 +51,7 @@ export async function askAssistant(
         "so the answer came from the local brain. Environment variables are " +
         "fixed when a deployment is built: adding one means redeploying.",
     );
-    return ok(answerLocally(question, snapshot, i18n));
+    return ok(answerLocally(question, snapshot, speaker));
   }
 
   try {
@@ -52,7 +64,7 @@ export async function askAssistant(
           ? { authorization: `Bearer ${process.env.ALMAIL_AI_WORKER_SECRET}` }
           : {}),
       },
-      body: JSON.stringify({ messages, snapshot }),
+      body: JSON.stringify({ messages, snapshot: { ...snapshot, replyIn } }),
       // A chat turn that has not answered in 20s is not going to.
       signal: AbortSignal.timeout(20_000),
     });
@@ -94,6 +106,6 @@ export async function askAssistant(
     console.error("[assistant] the Worker call failed, answering locally:", error);
     // `true`: a model is configured, it just did not answer. Saying otherwise
     // would send whoever asked to re-check settings that are fine.
-    return ok(answerLocally(question, snapshot, i18n, true));
+    return ok(answerLocally(question, snapshot, speaker, true));
   }
 }
