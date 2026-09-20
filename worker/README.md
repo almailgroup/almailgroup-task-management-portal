@@ -277,6 +277,20 @@ reads as a form letter. Task titles, project names and people's names are
 never translated — the reader has to be able to find them on the board — and
 numbers stay in Latin digits, as the rest of the portal writes them.
 
+The board itself is written in the answer's language, not only the
+instructions. A model reaches for the words it was shown: leave `in_review`,
+`high priority` and `Sep 17, 2026` in the table and they come back out in the
+middle of an Arabic sentence, because they are the only name it was given for
+the thing. None of that is data — it is the Worker describing the board — so
+it is written in Arabic when the answer is, using the portal's own wording so
+the two never call the same status different things. Dates use month names
+rather than 17/09, because digits alone invite the model to do arithmetic on
+them.
+
+Names are the exception, and stay exactly as they are on the board: a task
+called "Chase customs" is called that on the card somebody will go looking at,
+and a translated title is not on any of them.
+
 A snapshot without `replyIn` — an older portal — falls back to the interface
 language, so the two can be deployed in either order.
 

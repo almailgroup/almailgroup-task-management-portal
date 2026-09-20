@@ -615,6 +615,15 @@ matter more than the vocabulary: do not caricature it, and never translate a
 name. A task called "Ship the catalogue" is called that wherever the reader
 looks for it.
 
+The board the model reads from is written in the answer's language too, which
+is the part that is easy to miss. A model reaches for the words it was shown,
+so `in_review`, `high priority` and `Sep 17, 2026, 5:00 p.m.` left in the
+table come back out in the middle of an Arabic sentence — none of it data,
+all of it the Worker describing the board. It is Arabic when the answer is,
+in the portal's own wording, with dates as month names rather than 17/09
+because digits alone invite the model to do arithmetic on them. Names are the
+exception and stay as written: a translated title is on no card.
+
 That instruction lives in the Cloudflare Worker, so it takes a Worker deploy,
 not just a portal one. The two can go in either order: a Worker that gets no
 `replyIn` falls back to the interface language.

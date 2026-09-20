@@ -73,7 +73,10 @@ function ask(overrides = {}) {
       },
       body: JSON.stringify({
         messages: [{ id: "1", role: "user", text: "What is overdue?", at: snapshot.takenAt }],
-        snapshot,
+        // Overridden per call rather than by mutating the shared object: a
+        // test that sets `replyIn` and then fails used to leave it set, and
+        // the next test inherited it and failed for somebody else's reason.
+        snapshot: { ...snapshot, ...overrides.snapshot },
       }),
     }),
     { ...env, ...overrides.env },
@@ -145,8 +148,44 @@ test("dates reach the model in the reader's zone, already resolved", async () =>
   const prompt = sent.body.systemInstruction.parts[0].text;
   // 13:00 UTC is 17:00 in Dubai. Sent as an instant, the model would have to
   // do that arithmetic itself, which is a way of finding out that it cannot.
-  assert.match(prompt, /Chase customs \| todo \| high priority \| Sep 14, 2026, 5:00/);
-  assert.match(prompt, /It is now Sep 15, 2026, 2:00 p\.m\. in Asia\/Dubai/);
+  // Month names rather than 14/09, for the same reason: digits invite it.
+  assert.match(
+    prompt,
+    /Chase customs \| to do \| high priority \| September 14, 2026 at 5:00/,
+  );
+  assert.match(prompt, /It is now September 15, 2026 at 2:00 p\.m\. in Asia\/Dubai/);
+});
+
+/**
+ * The board is a list of words the model will reach for, so in an Arabic
+ * answer they have to be Arabic ones. "in_review" and "Sep 14" are not data —
+ * they are this file describing the board — and left in English they come
+ * back out in the middle of an Arabic sentence.
+ */
+test("an Arabic answer is given an Arabic board to read from", async () => {
+  gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+  await ask({ snapshot: { replyIn: "ar" } });
+  const prompt = sent.body.systemInstruction.parts[0].text;
+
+  assert.match(prompt, /قيد المراجعة|للتنفيذ/, "statuses in Arabic");
+  assert.match(prompt, /أولوية عالية/, "priorities in Arabic");
+  assert.match(prompt, /17 سبتمبر 2026|14 سبتمبر 2026/, "dates in Arabic");
+  assert.doesNotMatch(prompt, /high priority/, "no English priority left over");
+  assert.doesNotMatch(prompt, /Sep \d+, 2026/, "no English date left over");
+
+  // Names are the exception, and they survive: a task called "Chase customs"
+  // is called that on the card the reader will go looking at.
+  assert.match(prompt, /Chase customs/);
+  assert.match(prompt, /Sara/);
+
+  // Latin digits on the board, as the rest of the portal writes them. Only
+  // the board: the instruction itself says "17, not ١٧", and that ١٧ is the
+  // point of the sentence.
+  const board = prompt.split("\n").filter((line) => line.startsWith("- t"));
+  assert.ok(board.length > 0, "the board is in there somewhere");
+  for (const line of board) {
+    assert.doesNotMatch(line, /[٠-٩]/, `Arabic-Indic digits in: ${line}`);
+  }
 });
 
 const promptSent = () => sent.body.systemInstruction.parts[0].text;
@@ -156,10 +195,8 @@ test("the answer's language is stated rather than guessed", async () => {
   await ask();
   assert.match(promptSent(), /Answer in English\./);
 
-  snapshot.locale = "ar";
-  await ask();
+  await ask({ snapshot: { locale: "ar" } });
   assert.match(promptSent(), /Kuwaiti Arabic/);
-  snapshot.locale = "en";
 });
 
 /**
@@ -170,29 +207,18 @@ test("the answer's language is stated rather than guessed", async () => {
 test("replyIn beats the interface language, both ways round", async () => {
   gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
 
-  snapshot.locale = "en";
-  snapshot.replyIn = "ar";
-  await ask();
+  await ask({ snapshot: { locale: "en", replyIn: "ar" } });
   assert.match(promptSent(), /Kuwaiti Arabic/, "English interface, Arabic question");
 
-  snapshot.locale = "ar";
-  snapshot.replyIn = "en";
-  await ask();
+  await ask({ snapshot: { locale: "ar", replyIn: "en" } });
   assert.match(promptSent(), /Answer in English\./, "Arabic interface, English question");
-
-  delete snapshot.replyIn;
-  snapshot.locale = "en";
 });
 
 /** An older portal does not send it; the interface language still decides. */
 test("a snapshot without replyIn falls back to the interface language", async () => {
   gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
-  snapshot.replyIn = "nonsense";
-  snapshot.locale = "ar";
-  await ask();
+  await ask({ snapshot: { replyIn: "nonsense", locale: "ar" } });
   assert.match(promptSent(), /Kuwaiti Arabic/);
-  delete snapshot.replyIn;
-  snapshot.locale = "en";
 });
 
 /**
@@ -201,16 +227,14 @@ test("a snapshot without replyIn falls back to the interface language", async ()
  */
 test("the Arabic instruction asks for the dialect and protects names", async () => {
   gemini({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
-  snapshot.replyIn = "ar";
-  await ask();
+  await ask({ snapshot: { replyIn: "ar" } });
   const prompt = promptSent();
   assert.match(prompt, /not\s+Modern Standard Arabic/i);
   assert.match(prompt, /شنو/);
-  assert.match(prompt, /Never translate a name/i);
+  assert.match(prompt, /never translate a name|translated title is not on any/i);
   assert.match(prompt, /Latin digits/i);
   // The board itself is still there, in the reader's own zone.
   assert.match(prompt, /Chase customs/);
-  delete snapshot.replyIn;
 });
 
 test("the budget leaves room to think and still answer", async () => {

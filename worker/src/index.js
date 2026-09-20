@@ -357,6 +357,75 @@ function read(data) {
 }
 
 /**
+ * The words the board table is written in.
+ *
+ * The model copies what it is shown. Leave "in_review", "high priority" and
+ * "Sep 17, 2026, 5:00 p.m." in the table and they come back out in the middle
+ * of an Arabic sentence, because they are the only name it was given for the
+ * thing. None of that is data — it is this file describing the board — so it
+ * is written in whichever language the answer is.
+ *
+ * The Arabic is the portal's own wording, so the assistant and the interface
+ * never call the same status two different things.
+ */
+const WORDS = {
+  en: {
+    date: "en-CA",
+    status: {
+      todo: "to do",
+      in_progress: "in progress",
+      in_review: "in review",
+      done: "done",
+    },
+    priority: {
+      low: "low priority",
+      medium: "medium priority",
+      high: "high priority",
+      urgent: "urgent priority",
+    },
+    noDue: "no due date",
+    general: "General",
+    unassigned: "unassigned",
+    followUp: "follow up",
+    header: "id | title | status | priority | due | project | assignees",
+    board: (/** @type {number} */ shown, /** @type {number} */ total) =>
+      `The board (${shown} of ${total} tasks):`,
+    more: (/** @type {number} */ n) =>
+      `…and ${n} more not listed. Say so if it matters.`,
+    projects: "Projects (id | name):",
+    people: "People (id | name):",
+  },
+  ar: {
+    // Kuwait, and Latin digits — the same numerals the rest of the portal
+    // writes, so a date in an answer matches the date on the card.
+    date: "ar-KW-u-nu-latn",
+    status: {
+      todo: "للتنفيذ",
+      in_progress: "قيد التنفيذ",
+      in_review: "قيد المراجعة",
+      done: "منجزة",
+    },
+    priority: {
+      low: "أولوية منخفضة",
+      medium: "أولوية متوسطة",
+      high: "أولوية عالية",
+      urgent: "أولوية عاجلة",
+    },
+    noDue: "بدون موعد",
+    general: "المهام العامة",
+    unassigned: "غير مسندة",
+    followUp: "متابعة",
+    header: "المعرّف | العنوان | الحالة | الأولوية | الموعد | المشروع | المكلفون",
+    board: (/** @type {number} */ shown, /** @type {number} */ total) =>
+      `البورد (${shown} من ${total} مهمة):`,
+    more: (/** @type {number} */ n) =>
+      `…و${n} غيرها ما هي مذكورة. قل جذي إذا كان له دخل.`,
+    projects: "المشاريع (المعرّف | الاسم):",
+    people: "الناس (المعرّف | الاسم):",
+  },
+};
+
+/**
  * How to answer somebody who wrote in Arabic.
  *
  * Kuwaiti, not Modern Standard: the people using this work together in an
@@ -376,10 +445,17 @@ const KUWAITI = [
   "راح or بـ for the future rather than سوف.",
   "Keep it natural and plain. Do not force dialect words in where they do not",
   "belong, and do not write a caricature — short, ordinary sentences.",
-  "Task titles, project names and people's names stay exactly as they are",
-  "written on the board below. Never translate a name: the reader has to be",
-  "able to find it.",
-  "Write numbers and dates in Latin digits, as the rest of the portal does.",
+  "Everything you write is Arabic — every status, every priority, every date,",
+  "every word joining them. The board below is already written in Arabic for",
+  "you; use its words rather than the English ones you may know for them, and",
+  "never leave an English word in an Arabic sentence because it came to mind",
+  "first.",
+  "The one exception is a name. Task titles, project names and people's names",
+  "stay exactly as they are written on the board: the reader has to be able to",
+  "find the thing you are talking about, and a translated title is not on any",
+  "card. Do not transliterate them either.",
+  "Numbers stay in Latin digits — 17, not ١٧ — as the rest of the portal",
+  "writes them.",
 ]
 
 /**
@@ -403,27 +479,33 @@ function brief(snapshot) {
       : "en";
   const projects = snapshot.projects ?? [];
   const team = snapshot.team ?? [];
+  const words = WORDS[replyIn];
+  // Month names rather than 17/09 — a model reading digits alone is one step
+  // from doing arithmetic on them.
   const when = (/** @type {string | null} */ iso) =>
     iso
-      ? new Intl.DateTimeFormat("en-CA", {
+      ? new Intl.DateTimeFormat(words.date, {
           timeZone,
-          dateStyle: "medium",
-          timeStyle: "short",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
         }).format(new Date(iso))
-      : "no due date";
+      : words.noDue;
 
   const shown = tasks.slice(0, MAX_TASKS);
   const lines = shown.map((task) => {
     const bits = [
       task.id,
       task.title,
-      task.status,
-      `${task.priority} priority`,
+      words.status[task.status] ?? task.status,
+      words.priority[task.priority] ?? task.priority,
       when(task.dueAt),
-      task.project ?? "General",
-      task.assignees.length ? task.assignees.join(", ") : "unassigned",
+      task.project ?? words.general,
+      task.assignees.length ? task.assignees.join("، ") : words.unassigned,
     ];
-    if (task.followUpAt) bits.push(`follow up ${when(task.followUpAt)}`);
+    if (task.followUpAt) bits.push(`${words.followUp} ${when(task.followUpAt)}`);
     return `- ${bits.join(" | ")}`;
   });
 
@@ -470,23 +552,25 @@ function brief(snapshot) {
     "- Refer to tasks by their title, as the reader sees them. Ids are for tools.",
     ...powers,
     "",
+    // The labels here are in the answer's language for the same reason the
+    // board's are: whatever the model is shown is what it reaches for.
     "Counts already worked out for you — use these rather than recounting:",
-    `total ${counts.total}, to do ${counts.todo}, in progress ${counts.inProgress},`,
-    `in review ${counts.inReview}, done ${counts.done}, overdue ${counts.overdue},`,
-    `due today ${counts.dueToday}, unassigned ${counts.unassigned},`,
-    `without a due date ${counts.noDueDate}.`,
+    `${words.status.todo} ${counts.todo}, ${words.status.in_progress} ${counts.inProgress},`,
+    `${words.status.in_review} ${counts.inReview}, ${words.status.done} ${counts.done},`,
+    `${replyIn === "ar" ? "متأخرة" : "overdue"} ${counts.overdue},`,
+    `${replyIn === "ar" ? "تستحق اليوم" : "due today"} ${counts.dueToday},`,
+    `${words.unassigned} ${counts.unassigned}, ${words.noDue} ${counts.noDueDate},`,
+    `${replyIn === "ar" ? "الإجمالي" : "total"} ${counts.total}.`,
     "",
-    `The board (${shown.length} of ${tasks.length} tasks):`,
-    "id | title | status | priority | due | project | assignees",
+    words.board(shown.length, tasks.length),
+    words.header,
     ...lines,
-    tasks.length > shown.length
-      ? `…and ${tasks.length - shown.length} more not listed. Say so if it matters.`
-      : "",
+    tasks.length > shown.length ? words.more(tasks.length - shown.length) : "",
     ...(viewer.canManage && projects.length
-      ? ["", "Projects (id | name):", ...projects.map((p) => `- ${p.id} | ${p.name}`)]
+      ? ["", words.projects, ...projects.map((p) => `- ${p.id} | ${p.name}`)]
       : []),
     ...(viewer.canManage && team.length
-      ? ["", "People (id | name):", ...team.map((p) => `- ${p.id} | ${p.name}`)]
+      ? ["", words.people, ...team.map((p) => `- ${p.id} | ${p.name}`)]
       : []),
   ]
     .filter(Boolean)
