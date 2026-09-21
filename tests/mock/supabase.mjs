@@ -66,6 +66,8 @@ const FK = {
   direct_messages: { conversation_id: "conversations", author_id: "profiles" },
   conversation_participants: { conversation_id: "conversations", user_id: "profiles" },
   reminder_queue: { task_id: "tasks", user_id: "profiles" },
+  push_subscriptions: { user_id: "profiles" },
+  notification_preferences: { user_id: "profiles" },
 };
 
 // ---------------------------------------------------------------------------

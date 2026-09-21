@@ -24,7 +24,7 @@ export type RepeatUnit = "day" | "week" | "month" | "year";
 
 export type AttachmentKind = "file" | "link";
 
-export type ReminderChannel = "email" | "telegram" | "whatsapp";
+export type ReminderChannel = "email" | "telegram" | "whatsapp" | "push";
 export type ReminderKind = "assigned" | "due_soon" | "overdue" | "follow_up";
 export type ReminderStatus =
   | "pending"
@@ -448,6 +448,8 @@ export type Database = {
           email_enabled: boolean;
           telegram_enabled: boolean;
           whatsapp_enabled: boolean;
+          /** Reminders to the devices in push_subscriptions. */
+          push_enabled: boolean;
           telegram_chat_id: string | null;
           whatsapp_number: string | null;
           telegram_link_code: string | null;
@@ -464,6 +466,7 @@ export type Database = {
           email_enabled?: boolean;
           telegram_enabled?: boolean;
           whatsapp_enabled?: boolean;
+          push_enabled?: boolean;
           telegram_chat_id?: string | null;
           whatsapp_number?: string | null;
           telegram_link_code?: string | null;
@@ -481,6 +484,62 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      /** One row per device that has agreed to notifications. */
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          /** The push service's address for this device. Unique everywhere. */
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          created_at: string;
+          last_used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string | null;
+          last_used_at?: string | null;
+        };
+        Update: {
+          user_agent?: string | null;
+          last_used_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      /**
+       * The VAPID pair, one row forever.
+       *
+       * Reachable only with the service role: row-level security is on and
+       * there are no policies, so a user session sees nothing here.
+       */
+      web_push_keys: {
+        Row: {
+          id: boolean;
+          public_key: string;
+          private_key: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          public_key: string;
+          private_key: string;
+        };
+        Update: { public_key?: string; private_key?: string };
+        Relationships: [];
       };
       /** Outbound reminders. Written by the scheduler, drained by the dispatcher. */
       reminder_queue: {
@@ -823,6 +882,15 @@ export type NotificationPreferences =
   Database["public"]["Tables"]["notification_preferences"]["Row"];
 export type ReminderQueueRow =
   Database["public"]["Tables"]["reminder_queue"]["Row"];
+
+export type PushSubscriptionRow =
+  Database["public"]["Tables"]["push_subscriptions"]["Row"];
+
+/** What the profile page shows about a device. Never the keys. */
+export type PushDevice = Pick<
+  PushSubscriptionRow,
+  "endpoint" | "user_agent" | "created_at"
+>;
 
 export type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 export type ConversationParticipant =

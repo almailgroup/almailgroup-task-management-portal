@@ -7,13 +7,16 @@ import { UserCog } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { ChangePassword } from "@/components/profile/change-password";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { PushDevices } from "@/components/profile/push-devices";
 import { ReminderSettings } from "@/components/profile/reminder-settings";
 import { roleMeta } from "@/lib/constants";
 import { getI18n } from "@/lib/i18n/server";
 import {
   getNotificationPreferences,
+  getPushDevices,
   requireProfile,
 } from "@/lib/data/queries";
+import { publicPushKey } from "@/lib/push/keys";
 import { configuredChannels } from "@/lib/reminders/providers";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -23,9 +26,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ProfilePage() {
   const { t } = await getI18n();
-  const [profile, preferences] = await Promise.all([
+  const [profile, preferences, devices, pushKey] = await Promise.all([
     requireProfile(),
     getNotificationPreferences(),
+    getPushDevices(),
+    // Null when there is no service-role key to reach the table with. The UI
+    // then says push is unavailable rather than offering a switch that
+    // cannot work.
+    publicPushKey().catch(() => null),
   ]);
   const role = roleMeta(profile.role);
 
@@ -76,6 +84,7 @@ export default async function ProfilePage() {
               email={profile.email}
               available={available}
               botUsername={botUsername}
+              devices={<PushDevices devices={devices} publicKey={pushKey} />}
             />
           </CardContent>
         </Card>

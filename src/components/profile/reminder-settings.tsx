@@ -32,11 +32,18 @@ export function ReminderSettings({
   email,
   available,
   botUsername,
+  devices,
 }: {
   preferences: NotificationPreferences;
   email: string;
   available: { email: boolean; telegram: boolean; whatsapp: boolean };
   botUsername: string | null;
+  /**
+   * The push devices block, passed in rather than rendered here: it is the
+   * one channel that is not a field on this form — it is a permission the
+   * browser grants, per device, and it saves itself.
+   */
+  devices?: React.ReactNode;
 }) {
   const router = useRouter();
   const { t, tm } = useI18n();
@@ -228,6 +235,8 @@ export function ReminderSettings({
           </div>
         )}
       </Channel>
+
+      {devices}
 
       <Separator />
 

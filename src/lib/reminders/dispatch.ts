@@ -53,6 +53,16 @@ export async function sendClaimed(
       continue;
     }
 
+    // A device the push service says is gone: unsubscribed, app deleted,
+    // browser data cleared. Removing the row is the only thing that stops
+    // every future reminder queueing a message to nowhere.
+    if (!result.ok && result.gone) {
+      await supabase
+        .from("push_subscriptions")
+        .delete()
+        .eq("endpoint", reminder.recipient);
+    }
+
     // Stop retrying once it is clearly not going to work, or we have tried enough.
     const exhausted = !result.retryable || attempts >= MAX_ATTEMPTS;
     if (exhausted) givenUp += 1;

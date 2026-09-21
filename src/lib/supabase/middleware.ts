@@ -21,6 +21,10 @@ const PUBLIC_PREFIXES = [
   // secrets — so redirecting them to /login would silently stop reminders.
   "/api/reminders",
   "/api/telegram",
+  // The page the service worker shows when there is no connection. It holds
+  // nothing private, and gating it would mean the one page meant to work
+  // without the network needs the network to check a session.
+  "/offline",
 ];
 const PUBLIC_EXACT = ["/"];
 

@@ -6,6 +6,8 @@ import { I18nProvider } from "@/lib/i18n/client";
 import { directionFor } from "@/lib/i18n";
 import { getLocale, getTimeZone } from "@/lib/i18n/server";
 import { Toaster } from "@/components/ui/sonner";
+import { OfflineBar } from "@/components/offline/offline-bar";
+import { ServiceWorkerRegistrar } from "@/components/offline/service-worker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -120,8 +122,10 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <I18nProvider locale={locale} timeZone={timeZone}>
+            <OfflineBar />
             {children}
             <Toaster />
+            <ServiceWorkerRegistrar />
           </I18nProvider>
         </ThemeProvider>
       </body>

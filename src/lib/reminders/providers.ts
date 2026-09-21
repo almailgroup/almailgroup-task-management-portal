@@ -1,5 +1,9 @@
 import "server-only";
 
+import webpush from "web-push";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import { pushSubject, vapidKeys } from "@/lib/push/keys";
 import type { DeliveryResult, QueuedReminder } from "./types";
 
 /**
@@ -176,6 +180,71 @@ async function sendWhatsApp(reminder: QueuedReminder): Promise<DeliveryResult> {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * A push to one device.
+ *
+ * The recipient here is not an address a person reads — it is the endpoint
+ * the browser handed over when they agreed, and the payload is encrypted to
+ * keys only that browser holds. The push service forwards an opaque blob and
+ * cannot read it.
+ *
+ * 404 and 410 are the push service saying this device is gone: unsubscribed,
+ * app deleted, browser data cleared. That is not a failure to retry, it is a
+ * row to remove, which the dispatcher does on `gone`.
+ */
+async function sendPush(reminder: QueuedReminder): Promise<DeliveryResult> {
+  const keys = await vapidKeys();
+  if (!keys) {
+    return { ok: false, error: "No push keys.", retryable: false };
+  }
+  // The keys belong to the device, not to the message, so they are looked up
+  // rather than copied into every queued row. A row whose device has since
+  // been removed is gone, not broken.
+  const supabase = createAdminClient();
+  const device = await supabase
+    .from("push_subscriptions")
+    .select("p256dh, auth")
+    .eq("endpoint", reminder.recipient)
+    .maybeSingle();
+
+  if (!device.data) {
+    return { ok: false, error: "gone", retryable: false, gone: true };
+  }
+
+  webpush.setVapidDetails(pushSubject(), keys.publicKey, keys.privateKey);
+
+  try {
+    await webpush.sendNotification(
+      {
+        endpoint: reminder.recipient,
+        keys: { p256dh: device.data.p256dh, auth: device.data.auth },
+      },
+      JSON.stringify({
+        title: reminder.subject ?? "Almailgroup",
+        body: reminder.body,
+        // Straight to the thing it is about, or to the day's work.
+        url: reminder.task_id ? `/tasks?filter=all&task=${reminder.task_id}` : "/today",
+        // One line per task in the shade rather than four.
+        tag: reminder.task_id ?? "almail",
+      }),
+      { TTL: 60 * 60 * 12 },
+    );
+    return { ok: true };
+  } catch (error) {
+    const status = (error as { statusCode?: number }).statusCode;
+    if (status === 404 || status === 410) {
+      return { ok: false, error: "gone", retryable: false, gone: true };
+    }
+    return {
+      ok: false,
+      error: `Push ${status ?? "?"}: ${
+        error instanceof Error ? error.message.slice(0, 160) : "failed"
+      }`,
+      retryable: status === undefined || status === 429 || status >= 500,
+    };
+  }
+}
+
 export async function deliver(reminder: QueuedReminder): Promise<DeliveryResult> {
   try {
     switch (reminder.channel) {
@@ -185,6 +254,8 @@ export async function deliver(reminder: QueuedReminder): Promise<DeliveryResult>
         return await sendTelegram(reminder);
       case "whatsapp":
         return await sendWhatsApp(reminder);
+      case "push":
+        return await sendPush(reminder);
       default:
         return { ok: false, error: "Unknown channel.", retryable: false };
     }
@@ -208,5 +279,8 @@ export function configuredChannels() {
         process.env.TWILIO_AUTH_TOKEN &&
         process.env.TWILIO_WHATSAPP_FROM,
     ),
+    // Nothing to configure: the keys are generated on first use and kept in
+    // the database, so this channel is available wherever the app runs.
+    push: true,
   };
 }

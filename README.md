@@ -1296,6 +1296,86 @@ Three more things a standalone app needs that a page in a browser does not:
   `chrome-touch` utility turns off selection, the callout and the wait for a
   second tap.
 
+## When the connection drops
+
+Installed to a home screen there is no address bar to explain a failure, so a
+dropped connection used to look like the app being broken: a page that never
+arrived, a save that quietly did nothing.
+
+A service worker (`public/sw.js`) fixes the first half. A page is always
+fetched from the network; when there is no network it serves `/offline`,
+which is cached at install and says what has happened. Build assets are
+cached too — they are content-hashed, so if one is in the cache it is still
+correct.
+
+**It deliberately caches no pages.** Every page here is somebody's private
+workspace and a cache is shared by everyone who uses the device: cache
+`/today` and the next person to open the app on a shared phone reads it,
+signed in or not. Two things are kept — the offline page and the immutable
+assets — and nothing else.
+
+The second half is a line across the top of the app whenever the browser says
+it is offline, because an interface that looks fine and silently stops saving
+is worse than one that says so. It is monochrome: amber in this app means
+late work, not "something is wrong".
+
+Two rules in the routing exist only for this. `/offline` is public —
+otherwise the one page meant to work without the network would need the
+network to check a session. And `sw.js` is excluded from the middleware
+matcher: a browser fetches a worker on its own schedule, sometimes with no
+cookie, and a 307 to `/login` cannot be registered as a service worker. The
+app would have had no worker and no offline page, and the browser would not
+have tried again for a day.
+
+## Notifications on the device itself
+
+Reminders could reach somebody by email, Telegram or WhatsApp — three
+different apps, none of them the one the work is in. The portal can now buzz
+the phone it is installed on. iOS has allowed this since 16.4, for installed
+web apps only, which is exactly how this one is used; on iPhone the control
+says so rather than failing silently if the app has not been added to the
+home screen.
+
+Push is **per device, not per person**. Saying yes on the phone does not make
+the laptop buzz, and turning the phone off leaves the laptop alone. The
+profile page lists the devices that have agreed, names the one you are
+holding, and lets any of them be removed.
+
+It is a fourth channel on the existing queue rather than a parallel system,
+so everything the other three already have — deduplication, retries with a
+backoff, giving up after four attempts — applies unchanged. The lateral join
+that fans a reminder out to channels now carries its own recipient: the other
+three have exactly one address each, a person may have three devices.
+
+The dedupe key gains the endpoint **for push only**, so every key already in
+the queue keeps its exact spelling and nothing that has been sent is sent
+again by the deploy that adds this.
+
+A push service answering 404 or 410 means the device is gone — app deleted,
+browser data cleared, permission revoked. That is not a transient failure to
+retry for hours; the row is removed, which is the only thing that stops every
+future reminder queueing a message to nowhere.
+
+### The keys, and why they are not in an environment variable
+
+A push has to be signed with the same key pair the browser subscribed with,
+so it has to outlive a deployment. The usual answer is an environment
+variable, which means somebody generates a secret, copies it out of a
+terminal and pastes it into a dashboard — handling that ends with the private
+half in a chat log.
+
+Instead the pair is generated on first use and kept in `web_push_keys`: one
+row, forever, in a table with row-level security on and **no policies at
+all**. Nothing holding a user's session can read it; only the service role
+the dispatcher runs as. The public half is handed to the browser by the app.
+Nobody ever has to see the private one, which is the point.
+
+`supabase/tests/web-push.sql` checks the parts that are easy to get wrong:
+one person with two devices is queued twice, a second sweep queues nothing
+again, a registered device whose owner has the channel off is not queued at
+all, the email keys are byte-identical to what they were, and a signed-in
+session reading the key table gets nothing.
+
 ## Signing in
 
 ### Forgotten passwords
@@ -1398,9 +1478,12 @@ button press.
 
 What they cover: creating a task and finding it after a reload, an admin
 closing one, a member being offered In Review but not Done, a manager being
-offered Done, opening and adding to a private thread, a thread that is not
-yours reading as missing, a calendar day opening whether or not anything is
-due, and the command palette knowing every destination the sidebar has.
+offered Done, a repeat rule surviving a save, a repeat with no date being
+refused in words, opening and adding to a private thread, a thread that is
+not yours reading as missing, a calendar day opening whether or not anything
+is due, the command palette knowing every destination the sidebar has, and
+the service worker registering, caching the offline page and serving it when
+the network is cut.
 
 Point `BASE_URL` at a staging deployment to run the same specs against real
 data instead; nothing in them depends on the mock being the thing answering.

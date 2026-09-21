@@ -153,7 +153,27 @@ export function seed() {
     comments: [],
     task_activity: [],
     task_attachments: [],
-    notification_preferences: [],
+    notification_preferences: [
+      {
+        user_id: IDS.admin,
+        email_enabled: true,
+        telegram_enabled: false,
+        whatsapp_enabled: false,
+        push_enabled: false,
+        telegram_chat_id: null,
+        whatsapp_number: null,
+        telegram_link_code: null,
+        remind_assigned: true,
+        remind_due_soon: true,
+        remind_overdue: true,
+        remind_follow_up: true,
+        due_soon_lead_hours: 24,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ],
+    push_subscriptions: [],
+    web_push_keys: [],
     reminder_queue: [],
   };
 }

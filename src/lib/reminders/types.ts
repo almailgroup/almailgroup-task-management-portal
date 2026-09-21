@@ -3,7 +3,7 @@ export type QueuedReminder = {
   id: string;
   user_id: string;
   task_id: string | null;
-  channel: "email" | "telegram" | "whatsapp";
+  channel: "email" | "telegram" | "whatsapp" | "push";
   kind: "assigned" | "due_soon" | "overdue" | "follow_up";
   recipient: string;
   subject: string | null;
@@ -20,6 +20,12 @@ export type QueuedReminder = {
  */
 export type DeliveryResult =
   | { ok: true; detail?: string }
-  | { ok: false; error: string; retryable: boolean };
+  /**
+   * `gone` is the third answer, and only push gives it: the push service
+   * saying this device no longer exists. An address that bounces might come
+   * back; a device that has been wiped will not, and the row for it should
+   * go rather than sit in the queue being retried.
+   */
+  | { ok: false; error: string; retryable: boolean; gone?: boolean };
 
 export type Channel = QueuedReminder["channel"];

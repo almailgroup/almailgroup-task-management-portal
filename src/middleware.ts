@@ -18,7 +18,13 @@ export const config = {
      * session cookie. Redirecting it to /login made the portal
      * un-installable — the extension-based rule above did not catch it
      * because .webmanifest was not in the list.
+     *
+     * `sw.js` is the same story with worse consequences. A service worker is
+     * fetched by the browser on its own schedule, sometimes with no cookie at
+     * all; a 307 to /login would be registered as the worker, and a redirect
+     * cannot be one. The app would then have no worker and no offline page,
+     * and the browser would not try again for a day.
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };

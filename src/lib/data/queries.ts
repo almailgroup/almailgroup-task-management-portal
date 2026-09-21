@@ -23,6 +23,7 @@ import type {
   TaskWithAssignees,
   ConversationSummary,
   DirectMessageWithAuthor,
+  PushDevice,
   TeamMessageWithAuthor,
 } from "@/lib/supabase/database.types";
 
@@ -578,6 +579,24 @@ export const getTeamMessages = cache(
  * answers all of it in one statement, and runs as the caller, so row-level
  * security still decides what comes back.
  */
+/**
+ * The devices this person has turned notifications on for.
+ *
+ * Only the three columns the profile page shows: the keys a push is
+ * encrypted with are of no use to the browser that already has them, and
+ * every column not selected is one that cannot leak.
+ */
+export const getPushDevices = cache(async (): Promise<PushDevice[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("push_subscriptions")
+    .select("endpoint, user_agent, created_at")
+    .order("created_at", { ascending: true });
+
+  if (error) return [];
+  return (data ?? []) as PushDevice[];
+});
+
 export const getConversations = cache(async (): Promise<ConversationSummary[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("my_conversations");
