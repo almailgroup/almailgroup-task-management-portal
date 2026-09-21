@@ -12,10 +12,13 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  MessageSquare,
+  MessagesSquare,
   Moon,
   Plus,
   Search,
   StickyNote,
+  Send,
   Sunrise,
   User,
   Users,
@@ -24,6 +27,7 @@ import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 import { createNote } from "@/lib/data/note-actions";
+import { listPeople, startConversation, type PersonHit } from "@/lib/data/dm-actions";
 import { searchTasks, type TaskSearchHit } from "@/lib/data/task-actions";
 import { statusMeta } from "@/lib/constants";
 import { isSearchable } from "@/lib/search";
@@ -59,7 +63,7 @@ type Entry = {
  */
 export function CommandPalette({ projects }: { projects: Project[] }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, tm } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -104,6 +108,40 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
     };
   }, [query]);
 
+  /**
+   * Teammates, fetched the first time the palette opens rather than with the
+   * page: the shell renders on every navigation and most of them never open
+   * this. A handful of rows filter fine in the browser after that.
+   */
+  const [people, setPeople] = React.useState<PersonHit[]>([]);
+  React.useEffect(() => {
+    if (!open || people.length > 0) return;
+    let current = true;
+    listPeople().then((found) => {
+      if (current) setPeople(found);
+    });
+    return () => {
+      current = false;
+    };
+  }, [open, people.length]);
+
+  /**
+   * A person is a destination here, and the destination is the thread with
+   * them: there is no page for a profile, and messaging is what you came to
+   * the palette with their name for.
+   */
+  const messagePerson = React.useCallback(
+    async (id: string) => {
+      const outcome = await startConversation(id);
+      if (!outcome.ok) {
+        toast.error(tm(outcome.error));
+        return;
+      }
+      router.push(`/messages/${outcome.data}`);
+    },
+    [router, tm],
+  );
+
   const newNote = React.useCallback(async () => {
     const outcome = await createNote();
     if (!outcome.ok) {
@@ -136,10 +174,20 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       { id: "my-list", label: t("nav.myList"), href: "/my-list", icon: ListChecks, group: t("palette.group.goTo") },
       { id: "tasks", label: t("palette.allTasks"), href: "/tasks?filter=all", icon: Search, group: t("palette.group.goTo") },
       { id: "team", label: t("nav.team"), href: "/team", icon: Users, group: t("palette.group.goTo") },
+      { id: "chat", label: t("nav.chat"), href: "/chat", icon: MessagesSquare, group: t("palette.group.goTo") },
+      { id: "messages", label: t("nav.messages"), href: "/messages", icon: Send, group: t("palette.group.goTo") },
       { id: "profile", label: t("shell.profile"), href: "/profile", icon: User, group: t("palette.group.goTo") },
       { id: "overdue", label: t("palette.overdue"), href: "/tasks?filter=overdue", icon: Search, group: t("palette.group.filters") },
       { id: "due-today", label: t("palette.dueToday"), href: "/tasks?filter=due_today", icon: Search, group: t("palette.group.filters") },
       { id: "in-review", label: t("palette.inReview"), href: "/tasks?filter=in_review", icon: Search, group: t("palette.group.filters") },
+      ...people.map((person) => ({
+        id: `person-${person.id}`,
+        label: person.full_name ?? person.email,
+        hint: person.job_title ?? person.email,
+        run: () => messagePerson(person.id),
+        icon: MessageSquare,
+        group: t("palette.group.people"),
+      })),
       ...projects.map((project) => ({
         id: `project-${project.id}`,
         label: project.name,
@@ -149,7 +197,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         group: t("palette.group.projects"),
       })),
     ],
-    [projects, resolvedTheme, setTheme, newNote, t],
+    [projects, people, messagePerson, resolvedTheme, setTheme, newNote, t],
   );
 
   const results = React.useMemo(() => {

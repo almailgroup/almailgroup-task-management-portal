@@ -6,6 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 import { describeDatabaseError, fail, ok, type ActionResult } from "@/lib/action-result";
 import type { DirectMessage } from "@/lib/supabase/database.types";
 
+/** A teammate, as the command palette needs them. */
+export type PersonHit = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  job_title: string | null;
+};
+
 /**
  * Private messages.
  *
@@ -128,4 +136,30 @@ export async function markConversationRead(
 
   revalidatePath("/messages");
   return ok(undefined);
+}
+
+/**
+ * Everyone but you, for the command palette.
+ *
+ * The palette searches tasks on the server because no one page holds them
+ * all; people are a different shape — a handful of rows that change rarely —
+ * so they come back whole once and are filtered in the browser after that.
+ *
+ * Row-level security decides who is on this list, same as the team page.
+ */
+export async function listPeople(): Promise<PersonHit[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, job_title")
+    .neq("id", user.id)
+    .order("full_name");
+
+  if (error) return [];
+  return (data ?? []) as PersonHit[];
 }

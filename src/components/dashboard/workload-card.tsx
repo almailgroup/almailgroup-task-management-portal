@@ -1,10 +1,15 @@
 "use client";
 
+import Link from "next/link";
+import { Plus, Users } from "lucide-react";
+
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { initialsFrom } from "@/lib/initials";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/dashboard/metric-card";
@@ -38,9 +43,23 @@ export function WorkloadCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {workload.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("dash.noAssigned")}
-          </p>
+          // Nothing assigned is the one state this card cannot illustrate,
+          // and a line of grey text about it is a dead end on the page people
+          // open first. The way out of it is the work itself.
+          <EmptyState
+            compact
+            icon={<Users />}
+            title={t("dash.noAssigned")}
+            description={t("dash.noAssignedHint")}
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link href="/general?new=1">
+                  <Plus />
+                  {t("palette.newTask")}
+                </Link>
+              </Button>
+            }
+          />
         ) : (
           workload.map(({ profile, open, done, overdue }) => (
             <PersonMenu key={profile.id} person={profile} me={me}>

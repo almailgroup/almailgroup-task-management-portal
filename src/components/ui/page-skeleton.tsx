@@ -96,3 +96,32 @@ export function FormSkeleton() {
     </div>
   );
 }
+
+/**
+ * The two panes of Messages, at the height the shell itself uses.
+ *
+ * Not a ListSkeleton: this route is not a page inside the shell's padding,
+ * it is a full-height split, and a centred list of rows would jump sideways
+ * the moment the real thing arrived.
+ */
+export function MessagesSkeleton() {
+  return (
+    <div className="flex h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))] flex-col lg:h-[calc(100svh-3.5rem)] lg:flex-row">
+      <div className="flex min-h-0 flex-col gap-2 border-border p-3 lg:w-80 lg:shrink-0 lg:border-e xl:w-96">
+        <Skeleton className="h-9 rounded-lg" />
+        {Array.from({ length: 7 }).map((_, index) => (
+          <Skeleton key={index} className="h-14 rounded-lg" />
+        ))}
+      </div>
+      <div className="hidden min-h-0 flex-1 flex-col gap-3 p-4 lg:flex">
+        <Skeleton className="h-10 w-48 rounded-lg" />
+        <div className="flex flex-1 flex-col justify-end gap-3">
+          <Skeleton className="h-12 w-2/3 rounded-2xl" />
+          <Skeleton className="h-12 w-1/2 self-end rounded-2xl" />
+          <Skeleton className="h-12 w-3/5 rounded-2xl" />
+        </div>
+        <Skeleton className="h-11 rounded-xl" />
+      </div>
+    </div>
+  );
+}
