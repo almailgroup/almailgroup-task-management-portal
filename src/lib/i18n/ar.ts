@@ -387,7 +387,6 @@ export const ar: Dictionary = {
   "cal.gridLabel": "المهام حسب تاريخ الاستحقاق",
   "cal.dayLabel": "{date}، {n} مستحقة",
   "cal.more": "+{n} أخرى",
-  "cal.selectedSection": "مهام اليوم المحدد",
   "cal.nothingThatDay": "لا شيء مستحق في ذلك اليوم.",
   "clock.openCalendar": "فتح التقويم",
   "clock.openCalendarWith": "{time}، {date}. فتح التقويم",

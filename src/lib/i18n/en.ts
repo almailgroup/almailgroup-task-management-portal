@@ -348,7 +348,6 @@ export const en = {
   "cal.gridLabel": "Tasks by due date",
   "cal.dayLabel": "{date}, {n} due",
   "cal.more": "+{n} more",
-  "cal.selectedSection": "Tasks on the selected day",
   "cal.nothingThatDay": "Nothing due that day.",
   "clock.openCalendar": "Open calendar",
   "clock.openCalendarWith": "{time}, {date}. Open calendar",

@@ -5,6 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import {
@@ -44,9 +51,15 @@ import type {
  * on the local day they are due, overdue ones are marked, and anything with
  * no date is counted at the top rather than silently left out.
  *
- * On a wide screen each square lists its tasks. On a phone the squares are
- * too small for text, so they show a count and tapping one lists that day
- * below the grid.
+ * Every square answers a click, empty ones included: it opens that day in a
+ * dialog, which lists what is due and says plainly when nothing is. A square
+ * is too small to be the answer on its own — on a phone it fits a count and
+ * nothing else, and on a desktop it fits three titles out of however many
+ * there are.
+ *
+ * On a wide screen the titles inside a square are still their own buttons and
+ * open the task directly, because that is the shorter path when you can
+ * already see the one you want.
  */
 export function CalendarView({
   tasks,
@@ -62,20 +75,28 @@ export function CalendarView({
   const router = useRouter();
   const params = useSearchParams();
   const nowMs = useNow();
-  const { t, tag, timeZone } = useI18n();
+  const { t, tn, tag, timeZone } = useI18n();
   const weekdays = React.useMemo(() => weekdayLabels(tag, "short"), [tag]);
 
   const [month, setMonth] = React.useState<Date>(
     () => parseMonthParam(params.get("month")) ?? startOfMonth(todayIn(timeZone)),
   );
+  // The day survives the close, so the dialog still has a date and a list to
+  // draw while it animates out. The next open overwrites it.
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
+  const [dayOpen, setDayOpen] = React.useState(false);
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  const openDay = (day: Date) => {
+    setSelectedDay(day);
+    setDayOpen(true);
+  };
 
   // The month is part of the address, so it survives a reload and can be sent.
   const goTo = (next: Date) => {
     setMonth(next);
-    setSelectedDay(null);
+    setDayOpen(false);
     const url = new URL(window.location.href);
     if (isSameDay(next, startOfMonth(todayIn(timeZone)))) url.searchParams.delete("month");
     else url.searchParams.set("month", monthParam(next));
@@ -117,6 +138,7 @@ export function CalendarView({
   const selectedTasks = selectedDay ? (byDay.get(dayKey(selectedDay)) ?? []) : [];
 
   function openTask(task: TaskWithAssignees) {
+    setDayOpen(false);
     setActiveTask(task);
     setDialogOpen(true);
   }
@@ -179,7 +201,7 @@ export function CalendarView({
             const key = dayKey(day);
             const list = byDay.get(key) ?? [];
             const isToday = today !== null && isSameDay(day, today);
-            const selected = selectedDay !== null && isSameDay(day, selectedDay);
+            const selected = dayOpen && selectedDay !== null && isSameDay(day, selectedDay);
             const weekend = day.getDay() === 0 || day.getDay() === 6;
             const late = list.filter((task) => isOverdue(task.due_at, task.status)).length;
 
@@ -189,45 +211,46 @@ export function CalendarView({
                 role="gridcell"
                 aria-selected={selected}
                 className={cn(
-                  "flex min-h-[4.25rem] flex-col border-b border-e border-border p-1 sm:min-h-[6.5rem] sm:p-1.5 [&:nth-child(7n)]:border-e-0",
+                  "relative flex min-h-[4.25rem] flex-col border-b border-e border-border p-1 sm:min-h-[6.5rem] sm:p-1.5 [&:nth-child(7n)]:border-e-0",
                   !inMonth(day) && "bg-muted/30 text-muted-foreground",
                   weekend && inMonth(day) && "bg-muted/15",
                   selected && "bg-accent",
                 )}
               >
-                {/* On a phone the square itself is the control; on a desktop
-                    the tasks inside it are, so the square is plain. */}
+                {/* The whole square is the control, laid underneath what it
+                    holds so an empty corner answers a click too. The titles
+                    below sit on top of it and keep their own. */}
                 <button
                   type="button"
-                  onClick={() => setSelectedDay(selected ? null : day)}
+                  onClick={() => openDay(day)}
                   aria-label={t("cal.dayLabel", {
                     date: day.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long" }),
                     n: list.length,
                   })}
-                  className="flex flex-1 flex-col items-start rounded-lg text-start md:pointer-events-none"
+                  className="absolute inset-0 rounded-lg transition-colors hover:bg-accent/60"
+                />
+
+                <span
+                  className={cn(
+                    "pointer-events-none relative mb-0.5 flex size-6 items-center justify-center rounded-full text-xs tabular-nums",
+                    isToday && "bg-primary font-semibold text-primary-foreground",
+                  )}
                 >
+                  {day.getDate()}
+                </span>
+
+                {list.length > 0 && (
                   <span
                     className={cn(
-                      "mb-0.5 flex size-6 items-center justify-center rounded-full text-xs tabular-nums",
-                      isToday && "bg-primary font-semibold text-primary-foreground",
+                      "pointer-events-none relative mt-auto self-start rounded-full px-1.5 text-[0.6875rem] font-medium tabular-nums md:hidden",
+                      late > 0 ? "bg-warning-surface text-warning" : "bg-muted text-foreground",
                     )}
                   >
-                    {day.getDate()}
+                    {list.length}
                   </span>
+                )}
 
-                  {list.length > 0 && (
-                    <span
-                      className={cn(
-                        "mt-auto rounded-full px-1.5 text-[0.6875rem] font-medium tabular-nums md:hidden",
-                        late > 0 ? "bg-warning-surface text-warning" : "bg-muted text-foreground",
-                      )}
-                    >
-                      {list.length}
-                    </span>
-                  )}
-                </button>
-
-                <ul className="hidden flex-col gap-0.5 md:flex">
+                <ul className="relative hidden flex-col gap-0.5 md:flex">
                   {list.slice(0, 3).map((task) => (
                     <li key={task.id}>
                       <button
@@ -249,7 +272,7 @@ export function CalendarView({
                     <li>
                       <button
                         type="button"
-                        onClick={() => setSelectedDay(day)}
+                        onClick={() => openDay(day)}
                         className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
                       >
                         {t("cal.more", { n: list.length - 3 })}
@@ -263,15 +286,29 @@ export function CalendarView({
         </div>
       </div>
 
-      {selectedDay && (
-        <section aria-label={t("cal.selectedSection")} className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">
-            {selectedDay.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long" })}
-            <span className="ms-1.5 text-muted-foreground">{selectedTasks.length}</span>
-          </h3>
-          {selectedTasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("cal.nothingThatDay")}</p>
-          ) : (
+      {/* A day, opened. Empty days open too: "nothing due" is an answer, and
+          a square that ignores the click looks broken. */}
+      <Dialog
+        open={dayOpen}
+        onOpenChange={setDayOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDay?.toLocaleDateString(tag, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTasks.length === 0
+                ? t("cal.nothingThatDay")
+                : tn("count.tasks", selectedTasks.length)}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTasks.length > 0 && (
             <ul className="flex flex-col gap-2">
               {selectedTasks.map((task) => (
                 <li key={task.id}>
@@ -299,8 +336,8 @@ export function CalendarView({
               ))}
             </ul>
           )}
-        </section>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {activeTask && (
         <TaskDialog
