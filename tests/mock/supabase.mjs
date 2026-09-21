@@ -404,6 +404,10 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/__db") {
     return send(db);
   }
+  // How many round trips a page cost, for measuring navigation.
+  if (url.pathname === "/__log") {
+    return send({ calls: log.length, last: log.slice(-40) });
+  }
 
   // --- GoTrue ------------------------------------------------------------
   if (url.pathname.startsWith("/auth/v1/user")) {

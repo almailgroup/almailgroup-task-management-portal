@@ -1185,6 +1185,27 @@ While a page genuinely is on its way, the nav item you clicked shows a spinner
 in place of its own icon — `useLinkStatus` reports only for the link it is
 rendered inside, so it can never appear on an item nobody clicked.
 
+**Re-measured since, against the same stubbed Supabase at 120ms a call.** An
+earlier attempt at this produced a number worth nothing: it waited for text
+the page being *left* already showed, so every navigation looked instant. The
+fix is to wait for something only the destination has.
+
+Warm, a click costs **66–139ms** and one round trip — the page is already
+sitting in the router cache. The one outlier is the first click after landing,
+at 879ms, which is the hop competing with the rail's own prefetch burst rather
+than the hop being slow. Arriving cold, content is on screen in **604–698ms**.
+
+The burst is around 70 Supabase queries per page view, and that is the trade
+the comment in `sidebar-nav.tsx` describes: server-side queries bought to keep
+clicks instant. It is worth knowing where that lands. In the browser it is 2
+requests and 35KB — the RSC payloads — against 1.26MB of JavaScript for the
+same load, so it is not the phone's bandwidth being spent. It is Vercel
+compute and Supabase queries, and it buys 1340ms → 66ms on a click.
+
+Nothing here needed changing. The numbers are written down so the next person
+to wonder does not have to set the harness up again: `tests/mock/supabase.mjs`
+with `LATENCY_MS=120` is the whole of it.
+
 ## Installed on a phone
 
 Added to the home screen, the app runs without Safari's chrome, which means the
