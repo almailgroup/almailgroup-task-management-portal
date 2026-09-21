@@ -3,13 +3,18 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * End-to-end checks against a real build.
  *
- * These cover the public surface — the pages reachable without a Supabase
- * session — plus the responsive and accessibility rules that apply to every
- * page. The authenticated views need a live project, so they are checked
- * against a staging deployment by pointing BASE_URL at it.
+ * The signed-out pages need no backend. The signed-in ones run against
+ * `tests/mock/supabase.mjs`, a small stand-in that answers like PostgREST and
+ * GoTrue and keeps what it is told, so a spec can create a task and then find
+ * it. It enforces nothing: row-level security is verified against a real
+ * Postgres, never here, and the production project is never a test target.
+ *
+ * Point BASE_URL at a deployment to run the same specs against it instead.
  */
 const PORT = Number(process.env.PORT ?? 3210);
+const MOCK_PORT = Number(process.env.MOCK_PORT ?? 54997);
 const baseURL = process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`;
+const mockURL = `http://127.0.0.1:${MOCK_PORT}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -31,19 +36,31 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
-  // Reuse an already-running dev server locally; start one in CI.
+  // Reuse an already-running server locally; start both in CI.
   webServer: process.env.BASE_URL
     ? undefined
-    : {
-        command: `npx next start -p ${PORT}`,
-        url: baseURL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-        env: {
-          NEXT_PUBLIC_SUPABASE_URL:
-            process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://example.supabase.co",
-          NEXT_PUBLIC_SUPABASE_ANON_KEY:
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-anon-key",
+    : [
+        {
+          command: "node tests/mock/supabase.mjs",
+          url: `${mockURL}/__db`,
+          reuseExistingServer: !process.env.CI,
+          timeout: 30_000,
+          env: { PORT: String(MOCK_PORT), MOCK_QUIET: "1" },
         },
-      },
+        {
+          // Built here, not beforehand: `NEXT_PUBLIC_*` is inlined into the
+          // browser bundle at build time, so a build made against a real
+          // project would keep talking to it however this is started.
+          command: `npx next build && npx next start -p ${PORT}`,
+          url: baseURL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 300_000,
+          env: {
+            NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? mockURL,
+            NEXT_PUBLIC_SUPABASE_ANON_KEY:
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-anon-key",
+            NEXT_PUBLIC_SITE_URL: baseURL,
+          },
+        },
+      ],
 });

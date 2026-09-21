@@ -1305,7 +1305,37 @@ actually had, not towards a coverage number:
 The end-to-end tests cover the pages reachable without a session, plus two
 rules that apply everywhere and keep getting broken by accident: no page may
 scroll sideways, and no control on a touch device may be smaller than a thumb.
-Point `BASE_URL` at a staging deployment to run them against real data.
+
+The signed-in ones run against `tests/mock/supabase.mjs`, a stand-in that
+answers like PostgREST and GoTrue and keeps what it is told, so a spec can
+create a task and then find it. It is started by the Playwright config
+alongside the app — including the build, because `NEXT_PUBLIC_SUPABASE_URL`
+is inlined into the browser bundle and a build made against a real project
+would keep talking to it however it is started.
+
+Sign-in hands back a token for whichever address is typed, so a spec signs in
+as a member and *is* one; that is what makes checking a role-shaped rule
+possible. The workspace it serves is `tests/mock/seed.mjs`: six people, three
+projects and a month of tasks around a fixed day, so "three are overdue" is
+still true next year.
+
+**The mock is not an authority.** It enforces nothing — every request is
+answered as the signed-in user. Row-level security is verified where it
+lives, against a real Postgres (`supabase/tests/`), and never against the
+production project. A spec passing here proves the interface works, not that
+the rules hold. Where a spec touches something RLS decides — the review gate,
+a conversation that is not yours — it says so in a comment and checks only
+that the interface states the rule rather than letting the database refuse a
+button press.
+
+What they cover: creating a task and finding it after a reload, an admin
+closing one, a member being offered In Review but not Done, a manager being
+offered Done, opening and adding to a private thread, a thread that is not
+yours reading as missing, a calendar day opening whether or not anything is
+due, and the command palette knowing every destination the sidebar has.
+
+Point `BASE_URL` at a staging deployment to run the same specs against real
+data instead; nothing in them depends on the mock being the thing answering.
 
 ### What is not covered
 
