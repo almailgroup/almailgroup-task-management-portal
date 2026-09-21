@@ -34,6 +34,10 @@ function parseTaskForm(formData: FormData) {
     priority: formData.get("priority") ?? "medium",
     dueAt: formData.get("dueAt") ?? undefined,
     assigneeIds: formData.getAll("assigneeIds").map(String).filter(Boolean),
+    // The select says "none" when it means "once"; the schema says "".
+    repeatEvery:
+      formData.get("repeatEvery") === "none" ? "" : (formData.get("repeatEvery") ?? undefined),
+    repeatInterval: formData.get("repeatInterval") ?? 1,
   });
 }
 
@@ -100,6 +104,8 @@ export async function createTask(
       status: parsed.data.status,
       priority: parsed.data.priority,
       due_at: parsed.data.dueAt || null,
+      repeat_every: parsed.data.repeatEvery || null,
+      repeat_interval: parsed.data.repeatInterval,
       position,
       created_by: user.id,
     })
@@ -155,6 +161,8 @@ export async function updateTask(
       status: parsed.data.status,
       priority: parsed.data.priority,
       due_at: parsed.data.dueAt || null,
+      repeat_every: parsed.data.repeatEvery || null,
+      repeat_interval: parsed.data.repeatInterval,
     })
     .eq("id", taskId)
     .select("id")

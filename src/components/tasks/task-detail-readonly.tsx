@@ -18,7 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DueDate, PriorityIndicator } from "@/components/tasks/task-meta";
+import { DueDate, PriorityIndicator,
+  RepeatBadge,
+} from "@/components/tasks/task-meta";
 import { initialsFrom } from "@/lib/initials";
 import { changeTaskStatus } from "@/lib/data/task-actions";
 import { TASK_STATUSES } from "@/lib/constants";
@@ -132,7 +134,10 @@ export function TaskDetailReadonly({
           <span className="text-sm font-medium leading-none">{t("meta.dueDate")}</span>
           <div className="flex h-9 items-center">
             {task.due_at ? (
-              <DueDate dueAt={task.due_at} status={task.status} />
+              <span className="flex items-center gap-2">
+                <DueDate dueAt={task.due_at} status={task.status} />
+                <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
+              </span>
             ) : (
               <span className="text-sm text-muted-foreground">{t("readonly.none")}</span>
             )}

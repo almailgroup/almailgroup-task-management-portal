@@ -40,14 +40,19 @@ import {
   restoreTask,
   updateTask,
 } from "@/lib/data/task-actions";
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { REPEAT_UNITS, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
+import type { TranslationKey } from "@/lib/i18n";
 import type {
   Profile,
+  RepeatUnit,
   TaskStatus,
   TaskWithAssignees,
 } from "@/lib/supabase/database.types";
+
+/** What the select holds: a unit, or the absence of one. */
+type RepeatChoice = RepeatUnit | "none";
 
 /**
  * Task detail modal. Doubles as the create form when `task` is null.
@@ -84,6 +89,10 @@ export function TaskDialog({
 
   /** The dialog itself, so focus can land on it rather than on a field. */
   const contentRef = React.useRef<HTMLDivElement>(null);
+  // Seeded by the effect below rather than here: this component stays mounted
+  // between tasks — only the dialog's contents unmount — so an initial value
+  // would be whatever the first task opened had.
+  const [repeatEvery, setRepeatEvery] = React.useState<RepeatChoice>("none");
   const [pending, setPending] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [result, setResult] = React.useState<ActionResult<{
@@ -103,6 +112,7 @@ export function TaskDialog({
     if (!open) return;
     setResult(null);
     setAssigneeIds(task?.assignees.map((person) => person.id) ?? []);
+    setRepeatEvery(task?.repeat_every ?? "none");
   }, [open, task]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -332,6 +342,60 @@ export function TaskDialog({
                 )}
                 <FieldError message={errors?.dueAt} />
               </div>
+            </div>
+
+            {/* Recurrence.
+                Every month the same freight reconciliation was retyped from
+                memory, which is both a chore and a way to forget one. The
+                rule sits on the task rather than in a series of its own:
+                closing this one opens the next, so there is only ever one
+                open copy and the closed ones are the history.
+
+                The interval only appears once something is chosen — an
+                "every 1" beside a "Does not repeat" is a question nobody
+                asked. */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="repeatEvery">{t("task.repeats")}</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  name="repeatEvery"
+                  value={repeatEvery}
+                  onValueChange={(value) => setRepeatEvery(value as RepeatChoice)}
+                >
+                  <SelectTrigger id="repeatEvery" className="w-auto min-w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("task.repeatNever")}</SelectItem>
+                    {REPEAT_UNITS.map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {t(`task.repeat.${unit}` as TranslationKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {repeatEvery !== "none" && (
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {t("task.repeatEveryN")}
+                    <Input
+                      id="repeatInterval"
+                      name="repeatInterval"
+                      type="number"
+                      min={1}
+                      max={365}
+                      defaultValue={task?.repeat_interval ?? 1}
+                      className="w-20"
+                      aria-invalid={Boolean(errors?.repeatInterval)}
+                    />
+                    {t(`task.repeatUnit.${repeatEvery}` as TranslationKey)}
+                  </label>
+                )}
+              </div>
+              {repeatEvery !== "none" && (
+                <p className="text-xs text-muted-foreground">{t("task.repeatHint")}</p>
+              )}
+              <FieldError message={errors?.repeatEvery ?? errors?.repeatInterval} />
             </div>
 
             <div className="flex flex-col gap-1.5">

@@ -38,6 +38,14 @@ export const TASK_PRIORITIES: readonly PriorityMeta[] = [
   { value: "urgent", label: "priority.urgent", weight: 4 },
 ] as const;
 
+/**
+ * The repeat units, in the order a person thinks of them.
+ *
+ * Deliberately short: a rule like "the first Monday of the month" wants a
+ * calendar generator, and nobody has asked for one.
+ */
+export const REPEAT_UNITS = ["day", "week", "month", "year"] as const;
+
 export type RoleMeta = {
   value: UserRole;
   label: TranslationKey;

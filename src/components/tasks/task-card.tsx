@@ -7,6 +7,7 @@ import {
   AssigneeStack,
   DueDate,
   PriorityIndicator,
+  RepeatBadge,
 } from "@/components/tasks/task-meta";
 import { compactAge, formatElapsed } from "@/lib/dates";
 import { useNow } from "@/lib/use-now";
@@ -122,6 +123,7 @@ export const TaskCard = React.forwardRef<
       <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <PriorityIndicator priority={task.priority} />
         <DueDate dueAt={task.due_at} status={task.status} />
+                  <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
         <ElapsedSinceCreated createdAt={task.created_at} />
         <span className="ms-auto flex items-center gap-2">
           <AssigneeStack assignees={task.assignees} max={2} />

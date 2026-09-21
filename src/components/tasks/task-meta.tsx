@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Clock3 } from "lucide-react";
+import { CalendarDays, Clock3, Repeat } from "lucide-react";
 
 import {
   Avatar,
@@ -13,8 +13,10 @@ import { priorityMeta, statusMeta } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { formatDateTime, isOverdue } from "@/lib/dates";
 import { useI18n } from "@/lib/i18n/client";
+import type { TranslationKey } from "@/lib/i18n";
 import type {
   Profile,
+  RepeatUnit,
   TaskPriority,
   TaskStatus,
 } from "@/lib/supabase/database.types";
@@ -80,6 +82,52 @@ export function PriorityIndicator({
 }
 
 /** Formats a yyyy-mm-dd date, marking anything overdue on an unfinished task. */
+/**
+ * That a task comes back.
+ *
+ * An icon rather than a sentence: on a card this sits beside the date and
+ * the status, where a line of prose would crowd out the title. The sentence
+ * is the title attribute and the screen-reader text, so nothing is lost —
+ * and it says "monthly" rather than "every 1 months", which is how people
+ * write it and how the dialog offers it.
+ */
+export function RepeatBadge({
+  every,
+  interval,
+  className,
+}: {
+  every: RepeatUnit | null;
+  interval: number;
+  className?: string;
+}) {
+  const { t } = useI18n();
+  if (!every) return null;
+
+  const plain: Record<RepeatUnit, TranslationKey> = {
+    day: "task.repeatsDaily",
+    week: "task.repeatsWeekly",
+    month: "task.repeatsMonthly",
+    year: "task.repeatsYearly",
+  };
+  const label =
+    interval === 1
+      ? t(plain[every])
+      : t("task.repeatsEvery", {
+          n: interval,
+          unit: t(`task.repeatUnit.${every}` as TranslationKey),
+        });
+
+  return (
+    <span
+      className={cn("inline-flex items-center gap-1 text-xs text-muted-foreground", className)}
+      title={label}
+    >
+      <Repeat className="size-3" />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
 export function DueDate({
   dueAt,
   status,

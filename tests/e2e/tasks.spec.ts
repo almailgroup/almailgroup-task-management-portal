@@ -46,6 +46,49 @@ test.describe("the work itself", () => {
   });
 });
 
+test.describe("work that comes back", () => {
+  /**
+   * Opening the next occurrence is a database trigger, and it is tested
+   * where it lives — `supabase/tests/recurring-tasks.sql` against a real
+   * Postgres. The mock runs no triggers, so what is checked here is the
+   * other half: that a rule can be set, saved and read back.
+   */
+  test("a repeat rule is saved and comes back", async ({ page }) => {
+    const title = unique("Reconcile the freight account");
+
+    await signIn(page);
+    await page.goto("/general?new=1");
+    const dialog = await openDialog(page);
+    await dialog.locator("#title").fill(title);
+    // A repeat with no due date is refused, by the database and by the form.
+    await dialog.locator("#dueAt").fill("2026-10-01T09:00");
+    await dialog.locator("#repeatEvery").click();
+    await page.getByRole("option", { name: "Weekly" }).click();
+    await dialog.locator("#repeatInterval").fill("2");
+    await dialog.getByRole("button", { name: "Create task" }).click();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+
+    await page.goto("/general");
+    await taskNamed(page, title).click();
+    const again = await openDialog(page);
+    await expect(again.locator("#repeatEvery")).toContainText("Weekly");
+    await expect(again.locator("#repeatInterval")).toHaveValue("2");
+  });
+
+  test("a repeat needs a date to count from", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/general?new=1");
+    const dialog = await openDialog(page);
+    await dialog.locator("#title").fill(unique("Undated repeat"));
+    await dialog.locator("#repeatEvery").click();
+    await page.getByRole("option", { name: "Monthly" }).click();
+    await dialog.getByRole("button", { name: "Create task" }).click();
+
+    // Said against the field, not thrown as a constraint violation.
+    await expect(dialog.getByText("needs a due date")).toBeVisible({ timeout: 10_000 });
+  });
+});
+
 test.describe("the review gate", () => {
   /**
    * The rule itself lives in row-level security and is verified against a

@@ -857,9 +857,56 @@ belongs on Tuesday whatever the offset. Overdue tasks are marked, done ones
 struck through, and anything with no date is counted at the top rather than
 silently left out.
 
-On a wide screen each square lists its tasks; on a phone the squares show a
-count and tapping one lists that day below the grid. The month is part of the
-address (`/calendar?month=2026-10`), so it survives a reload and can be sent.
+Every square answers a click — empty ones included, where the answer is
+"nothing due that day". It opens the day in a dialog listing what is due, on
+every screen size. A square is too small to be the answer on its own: on a
+phone it fits a count and nothing else, on a desktop three titles out of
+however many there are. Those titles stay their own buttons and open the task
+directly, which is the shorter path when the one you want is already visible.
+
+The month is part of the address (`/calendar?month=2026-10`), so it survives a
+reload and can be sent.
+
+## Work that comes back
+
+A task can repeat: daily, weekly, monthly or yearly, and every *n* of those —
+fortnightly is "every 2 weeks". The control sits under the due date in the
+task dialog, and the interval only appears once something is chosen, because
+"every 1" beside "Does not repeat" is a question nobody asked.
+
+The model is the simplest one that is honest: **a task carries its own rule,
+and closing it opens the next one.** There is no series, no parent row and no
+calendar of instances waiting to happen. What follows from that:
+
+- exactly one open copy exists at a time, so the board never fills with the
+  same job four times;
+- the history is the closed instances themselves, each with its own comments
+  and activity;
+- editing the rule changes it from the next occurrence on, which is what
+  somebody editing the task in front of them expects.
+
+The next due date is advanced from the last one, not from today, and then
+advanced again until it is in the future. A monthly task closed three months
+late is next due next month rather than arriving already overdue. A task
+abandoned for a year is bounded at 500 steps so nothing can spin.
+
+The rule travels to the occurrence that is still open, so a closed task never
+carries one. That is also what stops a second copy appearing if somebody
+edits a task that is already done.
+
+What it cannot say is "the first Monday of the month" or "weekdays only".
+Those want a real calendar rule and a generator, and neither is worth its
+weight until somebody asks for it.
+
+All of that is one trigger in the database — `spawn_next_occurrence()` — so it
+holds however the task is closed: the dialog, the board, a future API. It is
+tested where it lives, in `supabase/tests/recurring-tasks.sql`, against a real
+Postgres with the whole schema applied. Eleven checks; seven of them go red if
+the trigger is dropped.
+
+A repeat with no due date is refused twice over: by a check constraint,
+because there would be nothing to advance, and by the form, so it reads as a
+sentence under the field rather than as a constraint violation.
 
 ## My List
 

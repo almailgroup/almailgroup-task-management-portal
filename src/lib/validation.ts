@@ -98,7 +98,27 @@ export const taskSchema = z.object({
     ])
     .optional(),
   assigneeIds: z.array(z.string().uuid()).default([]),
-});
+  /**
+   * How often the task comes back. An empty string is "once", which is what
+   * a <select> with no repeat chosen submits.
+   *
+   * The database refuses a repeat with no due date — there would be nothing
+   * to advance — so the same rule is stated here, where it can be shown
+   * against the field rather than thrown as a constraint violation.
+   */
+  repeatEvery: z
+    .union([z.enum(["day", "week", "month", "year"]), z.literal("")])
+    .optional(),
+  repeatInterval: z.coerce
+    .number()
+    .int("validation.repeatInterval")
+    .min(1, "validation.repeatInterval")
+    .max(365, "validation.repeatInterval")
+    .default(1),
+}).refine(
+  (task) => !task.repeatEvery || Boolean(task.dueAt),
+  { message: "validation.repeatNeedsDue", path: ["repeatEvery"] },
+);
 
 export const commentSchema = z.object({
   content: z

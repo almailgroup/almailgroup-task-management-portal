@@ -19,6 +19,8 @@ export type Json =
 export type UserRole = "admin" | "manager" | "member";
 export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
+/** The unit of a task's repeat rule. Null on the column means "once". */
+export type RepeatUnit = "day" | "week" | "month" | "year";
 
 export type AttachmentKind = "file" | "link";
 
@@ -138,6 +140,14 @@ export type Database = {
           created_by: string | null;
           /** Set when trashed; cleared on restore. Hidden from every read. */
           deleted_at: string | null;
+          /**
+           * The repeat rule, or null for work that happens once. Closing a
+           * repeating task opens the next one and takes the rule with it, so
+           * a closed task never carries one.
+           */
+          repeat_every: RepeatUnit | null;
+          /** How many of those units apart. 2 + "week" is fortnightly. */
+          repeat_interval: number;
           created_at: string;
           updated_at: string;
         };
@@ -153,6 +163,8 @@ export type Database = {
           follow_up_note?: string | null;
           position?: number;
           created_by: string;
+          repeat_every?: RepeatUnit | null;
+          repeat_interval?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -165,6 +177,8 @@ export type Database = {
           follow_up_at?: string | null;
           follow_up_note?: string | null;
           position?: number;
+          repeat_every?: RepeatUnit | null;
+          repeat_interval?: number;
         };
         Relationships: [
           {

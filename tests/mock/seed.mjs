@@ -62,11 +62,14 @@ export function seed() {
     updated_at: "2026-02-01T00:00:00Z",
   }));
 
-  /** [title, status, priority, project index, due offset in days, assignee] */
+  /**
+   * [title, status, priority, project index, due offset in days, assignee,
+   *  repeat unit]
+   */
   const shape = [
     ["Sign the custody agreement", "todo", "urgent", 0, -3, IDS.sara],
     ["Chase the QR code artwork", "in_progress", "high", 2, -1, IDS.priya],
-    ["Reconcile August freight", "todo", "medium", 1, -2, IDS.omar],
+    ["Reconcile August freight", "todo", "medium", 1, -2, IDS.omar, "month"],
     ["Meet with Kuwait banks", "todo", "high", 0, 0, IDS.admin],
     ["Container MSKU4471 clearance", "in_progress", "urgent", 1, 0, IDS.yusuf],
     ["Draft the September invoice", "in_review", "medium", 1, 0, IDS.omar],
@@ -80,7 +83,7 @@ export function seed() {
 
   const tasks = [];
   const task_assignments = [];
-  shape.forEach(([title, status, priority, projectIndex, due, assignee], index) => {
+  shape.forEach(([title, status, priority, projectIndex, due, assignee, repeat], index) => {
     const id = `22222222-2222-4222-8222-${String(index + 1).padStart(12, "0")}`;
     tasks.push({
       id,
@@ -94,6 +97,8 @@ export function seed() {
       follow_up_at: null,
       position: index,
       deleted_at: null,
+      repeat_every: repeat ?? null,
+      repeat_interval: 1,
       created_at: "2026-09-01T00:00:00Z",
       updated_at: "2026-09-01T00:00:00Z",
     });

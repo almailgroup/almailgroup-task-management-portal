@@ -22,6 +22,7 @@ import {
   AssigneeStack,
   DueDate,
   PriorityIndicator,
+  RepeatBadge,
 } from "@/components/tasks/task-meta";
 import { StatusBadge } from "@/components/tasks/task-meta";
 import { statusMeta } from "@/lib/constants";
@@ -266,6 +267,7 @@ export function TaskTable({
                 </td>
                 <td className="px-4 py-3.5">
                   <DueDate dueAt={task.due_at} status={task.status} />
+                  <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                 </td>
                 <td className="px-4 py-3.5">
                   <div className="flex justify-end">
@@ -380,6 +382,7 @@ export function TaskTable({
                   <StatusBadge status={task.status} />
                   <PriorityIndicator priority={task.priority} showLabel />
                   <DueDate dueAt={task.due_at} status={task.status} />
+                  <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                   <span className="ms-auto">
                     <AssigneeStack assignees={task.assignees} max={3} />
                   </span>

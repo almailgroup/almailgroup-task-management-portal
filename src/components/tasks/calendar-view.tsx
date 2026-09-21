@@ -19,6 +19,7 @@ import {
   DueDate,
   PriorityIndicator,
   StatusBadge,
+  RepeatBadge,
 } from "@/components/tasks/task-meta";
 import { isOverdue } from "@/lib/dates";
 import {
@@ -328,6 +329,7 @@ export function CalendarView({
                     </span>
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 ps-5 sm:shrink-0 sm:ps-0">
                       <DueDate dueAt={task.due_at} status={task.status} />
+                  <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                       <StatusBadge status={task.status} />
                       <AssigneeStack assignees={task.assignees} max={2} />
                     </span>
