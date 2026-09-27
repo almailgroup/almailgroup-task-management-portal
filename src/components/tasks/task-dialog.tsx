@@ -30,6 +30,7 @@ import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { TaskProvenance } from "@/components/tasks/task-meta";
 import { isoFromLocalInput, quickDateOptions, toLocalInput } from "@/lib/dates";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
+import { ChecklistPanel } from "@/components/tasks/checklist-panel";
 import { FollowUpPanel } from "@/components/tasks/follow-up-panel";
 import { TaskDetailReadonly } from "@/components/tasks/task-detail-readonly";
 import { CommentThread } from "@/components/tasks/comment-thread";
@@ -454,6 +455,10 @@ export function TaskDialog({
 
         {task && (
           <>
+            {/* The steps inside the task, above the follow-up: one is what
+                the work is made of, the other is when to chase it. */}
+            <ChecklistPanel taskId={task.id} canEdit={canEditDetails} />
+
             <FollowUpPanel task={task} canManage={canEditDetails} />
             <Separator />
             <Tabs defaultValue="comments">

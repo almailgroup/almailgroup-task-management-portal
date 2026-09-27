@@ -521,6 +521,40 @@ export type Database = {
           },
         ];
       };
+      /** The small steps inside a task, under the task's own rules. */
+      task_checklist_items: {
+        Row: {
+          id: string;
+          task_id: string;
+          content: string;
+          done: boolean;
+          position: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          content: string;
+          done?: boolean;
+          position?: number;
+          created_by?: string | null;
+        };
+        Update: {
+          content?: string;
+          done?: boolean;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_task_id_fkey";
+            columns: ["task_id"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       /** One row per device that has agreed to notifications. */
       push_subscriptions: {
         Row: {
@@ -983,6 +1017,12 @@ export type TeamReminderFailure =
 export type AppError =
   Database["public"]["Functions"]["recent_errors"]["Returns"][number];
 
+export type ChecklistItem =
+  Database["public"]["Tables"]["task_checklist_items"]["Row"];
+
+/** How far along a task's steps are, for a list that has no room for them. */
+export type ChecklistProgress = { done: number; total: number };
+
 export type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 export type ConversationParticipant =
   Database["public"]["Tables"]["conversation_participants"]["Row"];
@@ -1045,7 +1085,18 @@ export type NoteWithItems = PersonalNote & {
 export type NotificationWithActor = Notification & { actor: Profile | null };
 
 /** A task joined with the profiles assigned to it. */
-export type TaskWithAssignees = Task & { assignees: Profile[] };
+export type TaskWithAssignees = Task & {
+  assignees: Profile[];
+  /**
+   * How far along its steps are.
+   *
+   * Carried on every task because a list is where it is worth seeing — "3 of
+   * 5" on a card says more about whether something is nearly done than its
+   * status does. Only the flag is fetched, not the text, so a board of forty
+   * tasks costs forty booleans rather than forty lists.
+   */
+  checklist: ChecklistProgress;
+};
 
 /** A comment joined with its author (null when the account was removed). */
 export type TeamMessage = Database["public"]["Tables"]["team_messages"]["Row"];

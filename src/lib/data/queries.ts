@@ -14,6 +14,7 @@ import type { TaskFilter } from "@/lib/task-filters";
 import type { Metrics, Workload } from "@/lib/metrics";
 import type {
   AppError,
+  ChecklistItem,
   CommentWithAuthor,
   NoteWithItems,
   NotificationWithActor,
@@ -204,11 +205,12 @@ type AssignmentEmbed = { user: Profile | null }[] | null;
  * in the same round trip. Written out seven times, it was seven chances for a
  * list to quietly come back without its avatars.
  */
-const TASK_WITH_ASSIGNEES = "*, assignments:task_assignments(user:profiles(*))";
+const TASK_WITH_ASSIGNEES =
+  "*, assignments:task_assignments(user:profiles(*)), checklist:task_checklist_items(done)";
 
 /** The same, but `!inner` drops tasks nobody is assigned to. */
 const TASK_ASSIGNED_TO_SOMEONE =
-  "*, assignments:task_assignments!inner(user:profiles(*))";
+  "*, assignments:task_assignments!inner(user:profiles(*)), checklist:task_checklist_items(done)";
 
 /** Rows straight from a `TASK_WITH_ASSIGNEES` select, flattened. */
 function toTasks(data: unknown): TaskWithAssignees[] {
@@ -217,15 +219,20 @@ function toTasks(data: unknown): TaskWithAssignees[] {
   );
 }
 
-function withAssignees<T extends Task & { assignments: AssignmentEmbed }>(
-  row: T,
-): TaskWithAssignees {
-  const { assignments, ...task } = row;
+function withAssignees<
+  T extends Task & { assignments: AssignmentEmbed; checklist?: { done: boolean }[] },
+>(row: T): TaskWithAssignees {
+  const { assignments, checklist, ...task } = row;
+  const steps = checklist ?? [];
   return {
     ...task,
     assignees: (assignments ?? [])
       .map((a) => a.user)
       .filter((p): p is Profile => p !== null),
+    checklist: {
+      done: steps.filter((step) => step.done).length,
+      total: steps.length,
+    },
   };
 }
 
@@ -815,6 +822,21 @@ export const getRecentErrors = cache(async (): Promise<AppError[]> => {
   if (error) return [];
   return (data ?? []) as AppError[];
 });
+
+/** The steps inside one task, in order. */
+export const getChecklist = cache(
+  async (taskId: string): Promise<ChecklistItem[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("task_checklist_items")
+      .select("*")
+      .eq("task_id", taskId)
+      .order("position", { ascending: true });
+
+    if (error) return [];
+    return (data ?? []) as ChecklistItem[];
+  },
+);
 
 export const getConversations = cache(async (): Promise<ConversationSummary[]> => {
   const supabase = await createClient();

@@ -67,6 +67,7 @@ const FK = {
   conversation_participants: { conversation_id: "conversations", user_id: "profiles" },
   reminder_queue: { task_id: "tasks", user_id: "profiles" },
   app_errors: { user_id: "profiles" },
+  task_checklist_items: { task_id: "tasks", created_by: "profiles" },
   push_subscriptions: { user_id: "profiles" },
   notification_preferences: { user_id: "profiles" },
 };

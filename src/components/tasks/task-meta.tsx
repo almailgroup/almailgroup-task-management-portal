@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Clock3, Repeat } from "lucide-react";
+import { CalendarDays, Clock3, ListChecks, Repeat } from "lucide-react";
 
 import {
   Avatar,
@@ -124,6 +124,40 @@ export function RepeatBadge({
     >
       <Repeat className="size-3" />
       <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
+/**
+ * How far along a task's steps are.
+ *
+ * A count rather than a bar: "3/5" is read at a glance and takes the width
+ * of a word, and a bar two millimetres long on a phone says nothing a number
+ * does not. Hidden when a task has no steps, which is most of them.
+ */
+export function ChecklistProgressBadge({
+  progress,
+  className,
+}: {
+  progress: { done: number; total: number };
+  className?: string;
+}) {
+  const { t } = useI18n();
+  if (progress.total === 0) return null;
+
+  const complete = progress.done === progress.total;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-xs tabular-nums",
+        complete ? "text-foreground" : "text-muted-foreground",
+        className,
+      )}
+      title={t("checklist.progress", { done: progress.done, total: progress.total })}
+    >
+      <ListChecks className="size-3" />
+      {progress.done}/{progress.total}
     </span>
   );
 }

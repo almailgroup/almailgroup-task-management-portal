@@ -152,6 +152,30 @@ export function seed() {
     personal_notes: [],
     personal_note_items: [],
     personal_note_shares: [],
+    // Two steps on the bank meeting, one of them done, so a spec can check
+    // both the panel and the "1/2" a list shows.
+    task_checklist_items: [
+      {
+        id: "99999999-9999-4999-8999-000000000001",
+        task_id: "22222222-2222-4222-8222-000000000004",
+        content: "Bring the signatory list",
+        done: true,
+        position: 0,
+        created_by: IDS.admin,
+        created_at: "2026-09-01T00:00:00Z",
+        updated_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "99999999-9999-4999-8999-000000000002",
+        task_id: "22222222-2222-4222-8222-000000000004",
+        content: "Bring the trade licence",
+        done: false,
+        position: 1024,
+        created_by: IDS.admin,
+        created_at: "2026-09-01T00:00:00Z",
+        updated_at: "2026-09-01T00:00:00Z",
+      },
+    ],
     // One fault, seen twice, so a spec can check the grouping and that only
     // an admin is shown it.
     app_errors: [

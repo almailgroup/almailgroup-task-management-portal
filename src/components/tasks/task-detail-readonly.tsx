@@ -21,6 +21,7 @@ import {
 import { DueDate, PriorityIndicator,
   RepeatBadge,
 } from "@/components/tasks/task-meta";
+import { ChecklistPanel } from "@/components/tasks/checklist-panel";
 import { initialsFrom } from "@/lib/initials";
 import { changeTaskStatus } from "@/lib/data/task-actions";
 import { TASK_STATUSES } from "@/lib/constants";
@@ -172,6 +173,10 @@ export function TaskDetailReadonly({
           </div>
         )}
       </div>
+
+      {/* Ticking a step off is progress, not planning, so it belongs in the
+          view somebody doing the work is given. */}
+      <ChecklistPanel taskId={task.id} canEdit={false} />
 
       <p className="flex items-start gap-1.5 rounded-md border border-border bg-muted px-2.5 py-2 text-xs leading-relaxed text-muted-foreground">
         <Eye className="mt-0.5 size-3.5 shrink-0" />

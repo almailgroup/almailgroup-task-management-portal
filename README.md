@@ -867,6 +867,39 @@ directly, which is the shorter path when the one you want is already visible.
 The month is part of the address (`/calendar?month=2026-10`), so it survives a
 reload and can be sent.
 
+## The steps inside a task
+
+"Meet with Kuwait banks" has five documents to bring, and there was nowhere
+to put them. They went into the description as prose, where nothing can be
+ticked off and nobody can see how far along it is — or they went nowhere, and
+somebody arrived without the signatory list.
+
+A task now carries steps: add them in the dialog, tick them anywhere, and the
+count rides along wherever the task is listed — "3/5" beside the due date,
+which says more about whether something is nearly done than its status does.
+
+**The steps carry no rules of their own.** Reading follows `can_view_task`,
+writing follows exactly what an update to the task follows:
+`is_manager_or_admin() or can_edit_task(...)`. That is deliberate, and it is
+the second version of this: the first draft had a third rule and a
+`security definer` function, so that somebody could tick a step off without
+being able to rewrite it. The test for it could not find anybody in that
+position — on a project, whoever can *see* a task is a manager, its author,
+or assigned to it, and all three may edit it. A special case that protects
+nobody is worse than none.
+
+Only the flags are fetched with a task, never the text: a board of forty
+tasks costs forty booleans rather than forty lists. The words are loaded when
+the dialog opens.
+
+Ticking is optimistic — a box that waits half a second to darken feels
+broken. A refusal puts it back and says why.
+
+`supabase/tests/task-checklists.sql` checks that somebody on the task sees
+and ticks and plans, somebody with no part in it sees nothing and is refused
+an insert outright, a manager in the project may change steps on a task they
+are not on, and deleting a task takes its steps with it.
+
 ## Work that comes back
 
 A task can repeat: daily, weekly, monthly or yearly, and every *n* of those —
