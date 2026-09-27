@@ -400,6 +400,26 @@ const RPC = {
 
   purge_old_errors: () => 0,
 
+  /** Archiving, including the refusal that makes it worth having. */
+  set_project_archived({ project, archived }) {
+    const row = db.projects.find((one) => one.id === project);
+    if (!row) return null;
+
+    if (archived) {
+      const open = db.tasks.filter(
+        (task) => task.project_id === project && !task.deleted_at && task.status !== "done",
+      ).length;
+      if (open > 0) {
+        const error = new Error(`That project still has ${open} task(s) open.`);
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    row.archived_at = archived ? new Date().toISOString() : null;
+    return null;
+  },
+
   purge_trashed_tasks: () => 0,
   enqueue_task_reminders: () => 0,
   claim_reminders: () => [],
@@ -507,7 +527,12 @@ const server = createServer(async (request, response) => {
     const handler = RPC[name];
     if (!handler) return send({ message: `no mock for rpc ${name}` }, 404);
     const args = (await readBody(request)) ?? {};
-    return send(handler(args, actor(request)));
+    try {
+      return send(handler(args, actor(request)));
+    } catch (thrown) {
+      // A function that raises, as Postgres would: the app reads `message`.
+      return send({ message: thrown.message, code: "P0001" }, thrown.status ?? 400);
+    }
   }
 
   if (url.pathname.startsWith("/rest/v1/")) {

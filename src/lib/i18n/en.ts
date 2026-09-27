@@ -495,6 +495,12 @@ export const en = {
   "project.actions": "Project actions",
   "project.edit": "Edit project",
   "project.delete": "Delete project",
+  "project.archive": "Archive project",
+  "project.restore": "Bring back from the archive",
+  "project.archived": "Archived. It is out of the sidebar, and nothing is lost.",
+  "project.restored": "Back in the sidebar.",
+  "project.isArchived": "Archived",
+  "project.archivedNote": "This project is archived. It is out of the sidebar and the pickers; everything in it is still here.",
   "project.deleteTitle": "Delete this project?",
   "project.deleteBody": "{name} and all {tasks} in it will be permanently deleted, along with their comments, attachments and history. This cannot be undone.",
 

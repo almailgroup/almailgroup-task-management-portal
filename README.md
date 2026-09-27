@@ -867,6 +867,31 @@ directly, which is the shorter path when the one you want is already visible.
 The month is part of the address (`/calendar?month=2026-10`), so it survives a
 reload and can be sent.
 
+## Finishing with a project
+
+Projects accumulated. A job delivered in 2026 sat in the sidebar next to live
+work for as long as the portal ran, in every project picker, in the counts —
+and the only way to be rid of it was to delete it, which takes its tasks, its
+comments and its history with it.
+
+Archiving is the other answer. **Manage → Archive project** takes it out of
+the sidebar and the pickers and leaves everything else exactly where it was:
+the project still opens, still reads, still has its work in it, and says at
+the top that it is archived. Bringing it back is the same menu item.
+
+**It is refused while anything in it is still open**, and the refusal says
+how many — which is the difference between finishing with a project and
+losing track of one. That check is in the database, not in the button, so it
+holds however the project is archived.
+
+Two queries where there was one: `getProjects` is what the sidebar, the
+pickers and the dashboard ask, and leaves archived ones out; `getAllProjects`
+is for the places that are about the projects themselves.
+
+`supabase/tests/archive-projects.sql` checks the refusal and its count, that
+archiving destroys nothing and the project still reads, that it is
+reversible, and that a member cannot archive one at all.
+
 ## The steps inside a task
 
 "Meet with Kuwait banks" has five documents to bring, and there was nowhere

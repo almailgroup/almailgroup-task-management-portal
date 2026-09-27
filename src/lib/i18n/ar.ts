@@ -534,6 +534,12 @@ export const ar: Dictionary = {
   "project.actions": "إجراءات المشروع",
   "project.edit": "تعديل المشروع",
   "project.delete": "حذف المشروع",
+  "project.archive": "أرشفة المشروع",
+  "project.restore": "إعادته من الأرشيف",
+  "project.archived": "تمت الأرشفة. خرج من القائمة الجانبية، ولم يُفقد شيء.",
+  "project.restored": "عاد إلى القائمة الجانبية.",
+  "project.isArchived": "مؤرشف",
+  "project.archivedNote": "هذا المشروع مؤرشف. خرج من القائمة الجانبية ومن قوائم الاختيار؛ وكل ما فيه ما زال موجوداً.",
   "project.deleteTitle": "حذف هذا المشروع؟",
   "project.deleteBody": "سيُحذف {name} وجميع {tasks} فيه نهائياً، مع تعليقاتها ومرفقاتها وسجلها. لا يمكن التراجع عن هذا.",
 

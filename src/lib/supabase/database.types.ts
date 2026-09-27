@@ -98,6 +98,8 @@ export type Database = {
           name: string;
           description: string | null;
           created_by: string | null;
+          /** When it was archived, or null while it is live. */
+          archived_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -112,6 +114,7 @@ export type Database = {
         Update: {
           name?: string;
           description?: string | null;
+          archived_at?: string | null;
         };
         Relationships: [
           {
@@ -941,6 +944,11 @@ export type Database = {
           last_error: string | null;
           failed_at: string;
         }[];
+      };
+      /** Archives a project or brings it back; refuses while work is open. */
+      set_project_archived: {
+        Args: { project: string; archived: boolean };
+        Returns: void;
       };
       /** Recent faults, grouped. Admins only; raises for anybody else. */
       recent_errors: {

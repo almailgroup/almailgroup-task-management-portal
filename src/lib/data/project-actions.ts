@@ -178,3 +178,34 @@ export async function removeProjectMember(
   revalidatePath("/", "layout");
   return ok(undefined);
 }
+
+/**
+ * Put a project away, or bring it back.
+ *
+ * Archiving hides a project from the sidebar and every picker without
+ * touching a single row of its work: its tasks, comments and history stay
+ * exactly where they were, and opening the project still shows them.
+ *
+ * Refused while anything in it is still open, which is the difference
+ * between finishing a project and losing track of one. The count comes back
+ * in the message so the person knows what is left rather than being told
+ * "no".
+ */
+export async function setProjectArchived(
+  projectId: string,
+  archived: boolean,
+): Promise<ActionResult<void>> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("set_project_archived", {
+    project: projectId,
+    archived,
+  });
+
+  if (error) return fail(describeDatabaseError(error));
+
+  revalidatePath("/dashboard");
+  revalidatePath("/tasks");
+  revalidatePath(`/projects/${projectId}`);
+  return ok(undefined);
+}

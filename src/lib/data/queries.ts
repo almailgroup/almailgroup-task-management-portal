@@ -164,11 +164,32 @@ export const requireProfile = cache(async (): Promise<Profile> => {
   return profile;
 });
 
+/**
+ * The projects still being worked on.
+ *
+ * Archived ones are left out of everything that asks "what are we working
+ * on" — the sidebar, the pickers, the dashboard — which is the whole point
+ * of archiving one. `getAllProjects` is for the places that are about the
+ * projects themselves.
+ */
 export const getProjects = cache(async (): Promise<Project[]> => {
   const supabase = await createClient();
   const result = await supabase
     .from("projects")
     .select("*")
+    .is("archived_at", null)
+    .order("created_at", { ascending: false });
+
+  return orFail(result, "projects") ?? [];
+});
+
+/** Live and archived together, newest first, for managing them. */
+export const getAllProjects = cache(async (): Promise<Project[]> => {
+  const supabase = await createClient();
+  const result = await supabase
+    .from("projects")
+    .select("*")
+    .order("archived_at", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: false });
 
   return orFail(result, "projects") ?? [];

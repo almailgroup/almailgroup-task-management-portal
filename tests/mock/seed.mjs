@@ -54,9 +54,13 @@ export function seed() {
     { id: "11111111-1111-4111-8111-000000000001", name: "Kuwait Bank Portal", description: "Corporate banking rollout." },
     { id: "11111111-1111-4111-8111-000000000002", name: "Warehouse Move", description: "Shuwaikh to Sulaibiya." },
     { id: "11111111-1111-4111-8111-000000000003", name: "Brand Refresh", description: "Signage, cards, site." },
+    // Finished last year, kept for the record: out of the sidebar, still
+    // readable, and a spec can check both halves of that.
+    { id: "11111111-1111-4111-8111-000000000004", name: "2025 Audit", description: "Closed.", archived_at: "2026-01-15T00:00:00Z" },
   ].map((p) => ({
     ...p,
     colour: null,
+    archived_at: p.archived_at ?? null,
     created_by: IDS.admin,
     created_at: "2026-02-01T00:00:00Z",
     updated_at: "2026-02-01T00:00:00Z",

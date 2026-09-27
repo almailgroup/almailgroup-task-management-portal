@@ -11,19 +11,35 @@ import { openDialog, PEOPLE, signIn, taskNamed, unique } from "./helpers";
  */
 test.describe("a task's steps", () => {
   test("are listed, ticked and counted", async ({ page }) => {
-    await signIn(page);
-    await page.goto("/tasks?filter=all");
+    // Its own task, with its own steps. The specs share one workspace and
+    // both viewports run this: asserting "1 of 2" on a seeded task means
+    // whichever ran first ticks the box and the second finds 2 of 2.
+    const title = unique("Open a bank account");
+    const first = unique("Bring the licence");
+    const second = unique("Bring the signatures");
 
-    await taskNamed(page, "Meet with Kuwait banks").click();
+    await signIn(page);
+    await page.goto("/general?new=1");
+    const create = await openDialog(page);
+    await create.locator("#title").fill(title);
+    await create.getByRole("button", { name: "Create task" }).click();
+    await expect(create).toBeHidden({ timeout: 15_000 });
+
+    await taskNamed(page, title).click();
     const dialog = await openDialog(page);
 
-    await expect(dialog.getByText("Bring the signatory list")).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(dialog.getByText("1 of 2")).toBeVisible();
+    for (const step of [first, second]) {
+      await dialog.getByRole("textbox", { name: "Add a step…" }).fill(step);
+      await dialog.getByRole("button", { name: "Add" }).click();
+      await expect(dialog.getByText(step)).toBeVisible({ timeout: 15_000 });
+    }
 
-    // Tick the second one; the count follows.
-    await dialog.getByRole("checkbox", { name: "Bring the trade licence" }).click();
+    await expect(dialog.getByText("0 of 2")).toBeVisible();
+
+    await dialog.getByRole("checkbox", { name: first }).click();
+    await expect(dialog.getByText("1 of 2")).toBeVisible({ timeout: 15_000 });
+
+    await dialog.getByRole("checkbox", { name: second }).click();
     await expect(dialog.getByText("2 of 2")).toBeVisible({ timeout: 15_000 });
   });
 

@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Archive,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,7 +34,7 @@ import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { TaskFilterBar } from "@/components/tasks/task-filter-bar";
 import { TaskTable } from "@/components/tasks/task-table";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
-import { deleteProject } from "@/lib/data/project-actions";
+import { deleteProject, setProjectArchived } from "@/lib/data/project-actions";
 import { csvFilename, tasksToCsv } from "@/lib/csv";
 import { downloadText } from "@/lib/download";
 import { matchesFilters } from "@/lib/task-filters";
@@ -118,6 +119,22 @@ export function ProjectWorkspace({
     // would reopen the dialog every render after it had been closed.
   }, [searchParams]);
 
+  /**
+   * Put the project away, or bring it back.
+   *
+   * Refused by the database while anything in it is still open, and the
+   * refusal says how many — which is the useful half of "no".
+   */
+  async function onArchive(archived: boolean) {
+    const outcome = await setProjectArchived(project.id, archived);
+    if (!outcome.ok) {
+      toast.error(tm(outcome.error));
+      return;
+    }
+    toast.success(t(archived ? "project.archived" : "project.restored"));
+    router.refresh();
+  }
+
   async function onDeleteProject() {
     const outcome = await deleteProject(project.id);
     if (!outcome.ok) {
@@ -131,6 +148,15 @@ export function ProjectWorkspace({
 
   return (
     <PageShell>
+      {/* An archived project is still readable, and should say what it is
+          the moment somebody arrives on it from a link or a search. */}
+      {project.archived_at && (
+        <p className="flex items-start gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+          <Archive className="mt-0.5 size-3.5 shrink-0" />
+          {t("project.archivedNote")}
+        </p>
+      )}
+
       <PageHeader
         title={project.name}
         icon={<Hash />}
@@ -165,6 +191,12 @@ export function ProjectWorkspace({
                   <DropdownMenuItem onSelect={() => setProjectDialogOpen(true)}>
                     <Pencil />
                     {t("project.edit")}
+                  </DropdownMenuItem>
+                  {/* Archiving before deleting, and separated from it: one
+                      of these is reversible and the other is not. */}
+                  <DropdownMenuItem onSelect={() => onArchive(!project.archived_at)}>
+                    <Archive />
+                    {t(project.archived_at ? "project.restore" : "project.archive")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => setConfirmDelete(true)}>
