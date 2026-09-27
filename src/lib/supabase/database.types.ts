@@ -485,6 +485,42 @@ export type Database = {
           },
         ];
       };
+      /**
+       * Faults from the deployed app, kept for two weeks.
+       *
+       * Write-only for everybody: there is no select policy, because a
+       * message can carry a fragment of whatever it failed on. An admin
+       * reads them through `recent_errors()`.
+       */
+      app_errors: {
+        Row: {
+          id: string;
+          occurred_at: string;
+          user_id: string | null;
+          source: "browser" | "server";
+          digest: string | null;
+          message: string;
+          route: string | null;
+          user_agent: string | null;
+        };
+        Insert: {
+          user_id?: string | null;
+          source: "browser" | "server";
+          digest?: string | null;
+          message: string;
+          route?: string | null;
+          user_agent?: string | null;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "app_errors_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       /** One row per device that has agreed to notifications. */
       push_subscriptions: {
         Row: {
@@ -872,6 +908,21 @@ export type Database = {
           failed_at: string;
         }[];
       };
+      /** Recent faults, grouped. Admins only; raises for anybody else. */
+      recent_errors: {
+        Args: { since_hours?: number };
+        Returns: {
+          occurred_at: string;
+          person: string | null;
+          source: "browser" | "server";
+          digest: string | null;
+          message: string;
+          route: string | null;
+          seen: number;
+        }[];
+      };
+      /** Drops error rows older than the given age. */
+      purge_old_errors: { Args: { older_than?: string }; Returns: number };
       task_counts: {
         Args: { tz?: string };
         Returns: {
@@ -927,6 +978,10 @@ export type ReminderFailure =
 
 export type TeamReminderFailure =
   Database["public"]["Functions"]["reminder_failures"]["Returns"][number];
+
+/** A fault, as an admin sees it: grouped, counted, never a payload. */
+export type AppError =
+  Database["public"]["Functions"]["recent_errors"]["Returns"][number];
 
 export type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 export type ConversationParticipant =

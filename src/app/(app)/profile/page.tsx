@@ -8,6 +8,7 @@ import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { ChangePassword } from "@/components/profile/change-password";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { DeliveryFailures } from "@/components/profile/delivery-failures";
+import { ErrorLog } from "@/components/profile/error-log";
 import { PushDevices } from "@/components/profile/push-devices";
 import { ReminderSettings } from "@/components/profile/reminder-settings";
 import { roleMeta } from "@/lib/constants";
@@ -16,6 +17,7 @@ import {
   getMyReminderFailures,
   getNotificationPreferences,
   getPushDevices,
+  getRecentErrors,
   getTeamReminderFailures,
   requireProfile,
 } from "@/lib/data/queries";
@@ -90,12 +92,17 @@ export default async function ProfilePage() {
               botUsername={botUsername}
               devices={<PushDevices devices={devices} publicKey={pushKey} />}
               failures={
-                <DeliveryFailures
-                  mine={mineFailed}
+                <>
+                  {/* Admin only, and the function refuses anybody else
+                      outright rather than returning an empty list. */}
+                  {profile.role === "admin" && <ErrorLog errors={await getRecentErrors()} />}
+                  <DeliveryFailures
+                    mine={mineFailed}
                   // Only an admin is shown the team's; the function refuses
                   // anybody else outright rather than returning nothing.
-                  team={profile.role === "admin" ? await getTeamReminderFailures() : []}
-                />
+                    team={profile.role === "admin" ? await getTeamReminderFailures() : []}
+                  />
+                </>
               }
             />
           </CardContent>

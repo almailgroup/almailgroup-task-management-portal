@@ -107,6 +107,11 @@ export const en = {
   "bell.empty": "Nothing yet. You will be told when work is assigned to you.",
 
   // ---- errors ---------------------------------------------------------------------
+  "errors.title": "Recent faults",
+  "errors.subtitle": "What has gone wrong in the last three days, newest first. Kept for two weeks.",
+  "errors.times": "{n}×",
+  "errors.browser": "in the browser",
+  "errors.server": "on the server",
   "error.title": "Something went wrong",
   "error.body": "That page could not be loaded. Try again, and if it keeps happening contact your workspace admin.",
   "error.reference": "Reference: {digest}",

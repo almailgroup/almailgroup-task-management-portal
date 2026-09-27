@@ -4,6 +4,7 @@ import * as React from "react";
 import { RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { reportClientError } from "@/lib/data/error-actions";
 import { useI18n } from "@/lib/i18n/client";
 
 /**
@@ -21,6 +22,15 @@ export default function ErrorBoundary({
 
   React.useEffect(() => {
     console.error(error);
+
+    // And somewhere a person will actually look. The console is on the
+    // phone that hit the fault, which is the one place nobody reads.
+    void reportClientError({
+      message: `${error.name}: ${error.message}`,
+      route: window.location.pathname + window.location.search,
+      digest: error.digest,
+      userAgent: navigator.userAgent,
+    });
   }, [error]);
 
   return (

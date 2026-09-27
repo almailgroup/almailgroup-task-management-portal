@@ -1296,6 +1296,42 @@ Three more things a standalone app needs that a page in a browser does not:
   `chrome-touch` utility turns off selection, the callout and the wait for a
   second tap.
 
+## When something goes wrong
+
+Nothing captured it. A page that threw on somebody's phone left a line in a
+Vercel log nobody reads, and the way a fault was discovered was that somebody
+mentioned it — or did not, and worked around it for a month.
+
+Faults now go into `app_errors`, and an admin sees them on their own profile:
+what the message was, which route, browser or server, when, and how many
+times. Grouped by message and route, because one fault hit forty times is one
+line with a count rather than forty lines burying everything else.
+
+Both halves are covered. `src/instrumentation.ts` exports `onRequestError`,
+which Next calls for every error thrown while rendering or handling a
+request — including the ones the boundary shows a generic page for, which is
+exactly the set nobody was finding out about. The route-level boundary
+reports what happened in the browser, alongside the console line it already
+wrote, because the console is on the phone that hit the fault and that is the
+one place nobody reads.
+
+**Deliberately not a third-party service.** Sentry would mean an account, a
+key pasted into a dashboard, and somebody's task titles leaving the country.
+The portal already has a database with row-level security and an admin who
+signs in every day.
+
+The table is write-only for everybody: anybody signed in may report a fault,
+and only as themselves, but there is no select policy at all — a message can
+carry a fragment of whatever it failed on. Reading is through
+`recent_errors()`, which raises for anybody but an admin. Rows are kept for
+two weeks, swept by the same scheduled run that drains the reminder queue,
+so there is nothing new to schedule.
+
+`supabase/tests/error-log.sql` covers it: a fault cannot be reported as
+somebody else, the table cannot be read with a session at all, a member is
+refused the log outright, an admin gets it grouped with a count, and an old
+row is swept while a recent one is not.
+
 ## When a reminder cannot be delivered
 
 A reminder gets four attempts. After that it was marked `failed` in a table

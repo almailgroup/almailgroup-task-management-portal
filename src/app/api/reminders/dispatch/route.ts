@@ -69,6 +69,11 @@ async function run(request: NextRequest) {
   const { error: purgeError } = await supabase.rpc("purge_trashed_tasks");
   if (purgeError) console.error(`[reminders] purge_trashed_tasks: ${purgeError.message}`);
 
+  // And the error log, which is kept for two weeks. On the same run so
+  // there is nothing new to schedule and nothing to remember.
+  const { error: errorPurge } = await supabase.rpc("purge_old_errors");
+  if (errorPurge) console.error(`[reminders] purge_old_errors: ${errorPurge.message}`);
+
   const { error: enqueueError } = await supabase.rpc("enqueue_task_reminders");
 
   // Claim the batch before touching a provider. Reading pending rows and

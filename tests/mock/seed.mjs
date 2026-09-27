@@ -152,6 +152,30 @@ export function seed() {
     personal_notes: [],
     personal_note_items: [],
     personal_note_shares: [],
+    // One fault, seen twice, so a spec can check the grouping and that only
+    // an admin is shown it.
+    app_errors: [
+      {
+        id: "88888888-8888-4888-8888-000000000001",
+        occurred_at: "2026-09-21T07:14:00Z",
+        user_id: IDS.priya,
+        source: "browser",
+        digest: "3f2a91",
+        message: "TypeError: Cannot read properties of null",
+        route: "/tasks?filter=overdue",
+        user_agent: "iPhone",
+      },
+      {
+        id: "88888888-8888-4888-8888-000000000002",
+        occurred_at: "2026-09-21T07:16:00Z",
+        user_id: IDS.priya,
+        source: "browser",
+        digest: "3f2a91",
+        message: "TypeError: Cannot read properties of null",
+        route: "/tasks?filter=overdue",
+        user_agent: "iPhone",
+      },
+    ],
     comments: [],
     task_activity: [],
     task_attachments: [],

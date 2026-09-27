@@ -56,3 +56,32 @@ test.describe("delivery failures", () => {
     await expect(page.getByText(/Sara Khan/)).toHaveCount(0);
   });
 });
+
+/**
+ * Faults from the deployed app.
+ *
+ * Nothing used to capture these: a page that threw on somebody's phone left
+ * a line in a log nobody reads. The seeded workspace holds one fault, seen
+ * twice, reported by somebody who is not the admin.
+ */
+test.describe("the error log", () => {
+  test("an admin sees what has been going wrong, grouped", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/profile");
+
+    await expect(page.getByText("Recent faults")).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByText("TypeError: Cannot read properties of null"),
+    ).toBeVisible();
+    // One fault seen twice is one line with a count, not two lines.
+    await expect(page.getByText("2×")).toBeVisible();
+  });
+
+  test("nobody else does", async ({ page }) => {
+    await signIn(page, PEOPLE.member);
+    await page.goto("/profile");
+
+    await expect(page.getByText("Telegram").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Recent faults")).toHaveCount(0);
+  });
+});

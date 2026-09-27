@@ -13,6 +13,7 @@ import { dayBoundsIn } from "@/lib/dates";
 import type { TaskFilter } from "@/lib/task-filters";
 import type { Metrics, Workload } from "@/lib/metrics";
 import type {
+  AppError,
   CommentWithAuthor,
   NoteWithItems,
   NotificationWithActor,
@@ -800,6 +801,20 @@ export const getTeamReminderFailures = cache(
     return (data ?? []) as TeamReminderFailure[];
   },
 );
+
+/**
+ * What has been going wrong lately, for an admin.
+ *
+ * Grouped by message and route: one fault hit forty times is one line with a
+ * count, not forty lines burying everything else. Refused outright for
+ * anybody else.
+ */
+export const getRecentErrors = cache(async (): Promise<AppError[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("recent_errors", { since_hours: 72 });
+  if (error) return [];
+  return (data ?? []) as AppError[];
+});
 
 export const getConversations = cache(async (): Promise<ConversationSummary[]> => {
   const supabase = await createClient();

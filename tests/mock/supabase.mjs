@@ -66,6 +66,7 @@ const FK = {
   direct_messages: { conversation_id: "conversations", author_id: "profiles" },
   conversation_participants: { conversation_id: "conversations", user_id: "profiles" },
   reminder_queue: { task_id: "tasks", user_id: "profiles" },
+  app_errors: { user_id: "profiles" },
   push_subscriptions: { user_id: "profiles" },
   notification_preferences: { user_id: "profiles" },
 };
@@ -371,6 +372,32 @@ const RPC = {
   },
 
   notify_reminder_failed: () => null,
+
+  /** Grouped the way the real one groups: by message and route. */
+  recent_errors(_args, ME) {
+    const me = db.profiles.find((row) => row.id === ME);
+    if (me?.role !== "admin") return [];
+
+    const groups = new Map();
+    for (const row of db.app_errors) {
+      const key = `${row.source}|${row.message}|${row.route}`;
+      const found = groups.get(key) ?? {
+        occurred_at: row.occurred_at,
+        person: db.profiles.find((p) => p.id === row.user_id)?.full_name ?? null,
+        source: row.source,
+        digest: row.digest ?? null,
+        message: row.message,
+        route: row.route,
+        seen: 0,
+      };
+      found.seen += 1;
+      if (row.occurred_at > found.occurred_at) found.occurred_at = row.occurred_at;
+      groups.set(key, found);
+    }
+    return [...groups.values()].sort((a, b) => (a.occurred_at < b.occurred_at ? 1 : -1));
+  },
+
+  purge_old_errors: () => 0,
 
   purge_trashed_tasks: () => 0,
   enqueue_task_reminders: () => 0,
