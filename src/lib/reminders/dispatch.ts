@@ -68,12 +68,28 @@ export async function sendClaimed(
     if (exhausted) givenUp += 1;
     else retrying += 1;
 
+    // Tell the person. A reminder that could not be delivered used to end
+    // here: marked failed in a table nobody reads, while somebody waited to
+    // hear about work they never heard about. The bell they already watch is
+    // the right place for it, and the message names the channel so the fix —
+    // a wrong number, a revoked permission — is obvious.
+    //
+    // Written by the database, like every other notification here: the table
+    // takes no inserts from anything holding a session.
+    if (exhausted) {
+      await supabase.rpc("notify_reminder_failed", { reminder: reminder.id });
+    }
+
     await supabase
       .from("reminder_queue")
       .update({
         status: exhausted ? "failed" : "pending",
         attempts,
         last_error: result.error,
+        // When it gave up, not when it was queued. An hour of retries sits
+        // between those two, and "why did nobody hear about this" is a
+        // question about the second one.
+        failed_at: exhausted ? new Date().toISOString() : null,
         // Releasing the claim is what lets a retry be picked up again.
         claimed_at: null,
         // Back off so a struggling provider is not hammered on every run.

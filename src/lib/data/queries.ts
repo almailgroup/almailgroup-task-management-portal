@@ -26,6 +26,8 @@ import type {
   ConversationSummary,
   DirectMessageWithAuthor,
   PushDevice,
+  ReminderFailure,
+  TeamReminderFailure,
   TeamMessageWithAuthor,
 } from "@/lib/supabase/database.types";
 
@@ -768,6 +770,36 @@ export const getPushDevices = cache(async (): Promise<PushDevice[]> => {
   if (error) return [];
   return (data ?? []) as PushDevice[];
 });
+
+/** Reminders that could not be delivered to you, most recent first. */
+export const getMyReminderFailures = cache(
+  async (): Promise<ReminderFailure[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("my_reminder_failures", {
+      since_hours: 168,
+    });
+    if (error) return [];
+    return (data ?? []) as ReminderFailure[];
+  },
+);
+
+/**
+ * The same across the team, for somebody who can do something about it.
+ *
+ * Refused outright for anybody but an admin — the function raises rather
+ * than returning nothing, so a caller cannot mistake "not allowed" for
+ * "nothing wrong".
+ */
+export const getTeamReminderFailures = cache(
+  async (): Promise<TeamReminderFailure[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("reminder_failures", {
+      since_hours: 168,
+    });
+    if (error) return [];
+    return (data ?? []) as TeamReminderFailure[];
+  },
+);
 
 export const getConversations = cache(async (): Promise<ConversationSummary[]> => {
   const supabase = await createClient();

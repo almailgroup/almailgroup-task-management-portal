@@ -19,6 +19,8 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => fakeAdmin() })
 let writes: Record<string, Record<string, unknown>>;
 /** What `claim_task_reminders` should hand back. */
 let claimable: QueuedReminder[];
+/** Reminder ids the dispatcher told somebody about. */
+let told: string[];
 let claimError: string | null;
 
 function fakeAdmin() {
@@ -31,10 +33,17 @@ function fakeAdmin() {
         },
       }),
     }),
-    rpc: async (_name: string, _args: unknown) =>
-      claimError
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      // Telling somebody their reminder could not be delivered goes through
+      // the database, like every other notification here.
+      if (name === "notify_reminder_failed") {
+        told.push(String(args.reminder));
+        return { data: null, error: null };
+      }
+      return claimError
         ? { data: null, error: { message: claimError } }
-        : { data: claimable, error: null },
+        : { data: claimable, error: null };
+    },
   } as never;
 }
 
@@ -57,6 +66,7 @@ const reminder = (over: Partial<QueuedReminder> = {}): QueuedReminder => ({
 
 beforeEach(() => {
   writes = {};
+  told = [];
   claimable = [];
   claimError = null;
   deliver.mockReset();
@@ -152,5 +162,42 @@ describe("dispatchForTask", () => {
     claimable = [reminder()];
     deliver.mockRejectedValue(new Error("socket hang up"));
     await expect(dispatchForTask("t1")).resolves.toBeNull();
+  });
+});
+
+describe("when a reminder cannot be delivered at all", () => {
+  test("the person is told, once, after the last attempt", async () => {
+    deliver.mockResolvedValue({ ok: false, error: "Twilio 400", retryable: false });
+
+    const tally = await sendClaimed(fakeAdmin(), [reminder({ id: "r9" })]);
+
+    expect(tally.givenUp).toBe(1);
+    expect(told).toEqual(["r9"]);
+  });
+
+  test("a reminder that will be tried again tells nobody yet", async () => {
+    deliver.mockResolvedValue({ ok: false, error: "Resend 503", retryable: true });
+
+    await sendClaimed(fakeAdmin(), [reminder({ id: "r9", attempts: 0 })]);
+
+    expect(told).toEqual([]);
+  });
+
+  test("the row records when it gave up, not when it was queued", async () => {
+    deliver.mockResolvedValue({ ok: false, error: "Twilio 400", retryable: false });
+
+    await sendClaimed(fakeAdmin(), [reminder({ id: "r9" })]);
+
+    expect(writes.r9.status).toBe("failed");
+    expect(typeof writes.r9.failed_at).toBe("string");
+  });
+
+  test("and clears that mark while it is still being tried", async () => {
+    deliver.mockResolvedValue({ ok: false, error: "Resend 503", retryable: true });
+
+    await sendClaimed(fakeAdmin(), [reminder({ id: "r9" })]);
+
+    expect(writes.r9.status).toBe("pending");
+    expect(writes.r9.failed_at).toBeNull();
   });
 });

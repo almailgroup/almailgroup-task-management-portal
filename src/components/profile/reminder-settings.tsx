@@ -33,6 +33,7 @@ export function ReminderSettings({
   available,
   botUsername,
   devices,
+  failures,
 }: {
   preferences: NotificationPreferences;
   email: string;
@@ -44,6 +45,11 @@ export function ReminderSettings({
    * browser grants, per device, and it saves itself.
    */
   devices?: React.ReactNode;
+  /**
+   * Reminders that could not be delivered. Above the channels rather than
+   * below them: it is the reason somebody opened this page.
+   */
+  failures?: React.ReactNode;
 }) {
   const router = useRouter();
   const { t, tm } = useI18n();
@@ -110,6 +116,8 @@ export function ReminderSettings({
 
   return (
     <div className="flex flex-col gap-5">
+      {failures}
+
       <Channel
         icon={<Mail />}
         title={t("auth.email")}

@@ -332,6 +332,46 @@ const RPC = {
     return row ? 1 : 0;
   },
 
+  /**
+   * Read from the queue, like the real ones — the shape is what the profile
+   * page renders, and the message body is deliberately not in it.
+   */
+  my_reminder_failures(_args, ME) {
+    return db.reminder_queue
+      .filter((row) => row.status === "failed" && row.user_id === ME)
+      .map((row) => ({
+        channel: row.channel,
+        kind: row.kind,
+        attempts: row.attempts,
+        last_error: row.last_error,
+        failed_at: row.failed_at ?? row.created_at,
+      }));
+  },
+
+  reminder_failures(_args, ME) {
+    const me = db.profiles.find((row) => row.id === ME);
+    // The real one raises for anybody else; the app treats an error as
+    // "nothing to show", which is the same outcome.
+    if (me?.role !== "admin") return [];
+
+    return db.reminder_queue
+      .filter((row) => row.status === "failed")
+      .map((row) => {
+        const person = db.profiles.find((profile) => profile.id === row.user_id);
+        return {
+          user_id: row.user_id,
+          person: person?.full_name ?? person?.email ?? "?",
+          channel: row.channel,
+          kind: row.kind,
+          attempts: row.attempts,
+          last_error: row.last_error,
+          failed_at: row.failed_at ?? row.created_at,
+        };
+      });
+  },
+
+  notify_reminder_failed: () => null,
+
   purge_trashed_tasks: () => 0,
   enqueue_task_reminders: () => 0,
   claim_reminders: () => [],

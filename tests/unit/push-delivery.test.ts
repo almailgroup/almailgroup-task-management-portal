@@ -147,6 +147,9 @@ const queueClient = () =>
         },
       }),
     }),
+    // Giving up on a reminder now also tells the person, through the
+    // database function that writes the notification.
+    rpc: async () => ({ data: null, error: null }),
   }) as never;
 
 describe("what the dispatcher does about it", () => {

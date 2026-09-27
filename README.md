@@ -1296,6 +1296,40 @@ Three more things a standalone app needs that a page in a browser does not:
   `chrome-touch` utility turns off selection, the callout and the wait for a
   second tap.
 
+## When a reminder cannot be delivered
+
+A reminder gets four attempts. After that it was marked `failed` in a table
+nobody reads — and that was the end of it. The person waiting to hear about
+their work simply never heard, and the symptom was the portal seeming not to
+bother rather than a wrong number or a permission somebody revoked.
+
+Now the row records *when* it gave up (`failed_at` — `created_at` is when it
+was queued, and an hour of retries can sit between the two), and two people
+find out:
+
+- **The person**, as a notification in the bell they already watch, naming
+  the channel: "A reminder could not be sent to you on WhatsApp". The channel
+  is named because that is where the fix is.
+- **An admin**, on their own profile beside the channel settings, as a list
+  of who, which channel, when and why — across the whole team.
+
+An admin never sees the message. A queue row carries the reminder's subject
+and body, and a body carries somebody's work; `reminder_failures()` returns
+seven columns and none of them is it. The function raises for a non-admin
+rather than returning an empty list, so "not allowed" can never be mistaken
+for "nothing wrong".
+
+The notification is written by the database, like every other notification
+here — the table takes no inserts from anything holding a session, and the
+wording lives beside the rest of them.
+
+`supabase/tests/reminder-failures.sql` holds nine checks: a member sees
+their own failure and not the one still being retried, a member is refused
+the team's outright, an admin sees everybody's, the returned columns carry
+no body, the person is told once, and a reminder still being retried tells
+nobody. Adding a `body` column to what an admin gets turns the fourth of
+those red.
+
 ## How much a page asks for
 
 Every task view used to call one query: every task the viewer could see, no

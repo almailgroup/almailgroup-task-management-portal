@@ -7,13 +7,16 @@ import { UserCog } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { ChangePassword } from "@/components/profile/change-password";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { DeliveryFailures } from "@/components/profile/delivery-failures";
 import { PushDevices } from "@/components/profile/push-devices";
 import { ReminderSettings } from "@/components/profile/reminder-settings";
 import { roleMeta } from "@/lib/constants";
 import { getI18n } from "@/lib/i18n/server";
 import {
+  getMyReminderFailures,
   getNotificationPreferences,
   getPushDevices,
+  getTeamReminderFailures,
   requireProfile,
 } from "@/lib/data/queries";
 import { publicPushKey } from "@/lib/push/keys";
@@ -26,10 +29,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ProfilePage() {
   const { t } = await getI18n();
-  const [profile, preferences, devices, pushKey] = await Promise.all([
+  const [profile, preferences, devices, mineFailed, pushKey] = await Promise.all([
     requireProfile(),
     getNotificationPreferences(),
     getPushDevices(),
+    getMyReminderFailures(),
     // Null when there is no service-role key to reach the table with. The UI
     // then says push is unavailable rather than offering a switch that
     // cannot work.
@@ -85,6 +89,14 @@ export default async function ProfilePage() {
               available={available}
               botUsername={botUsername}
               devices={<PushDevices devices={devices} publicKey={pushKey} />}
+              failures={
+                <DeliveryFailures
+                  mine={mineFailed}
+                  // Only an admin is shown the team's; the function refuses
+                  // anybody else outright rather than returning nothing.
+                  team={profile.role === "admin" ? await getTeamReminderFailures() : []}
+                />
+              }
             />
           </CardContent>
         </Card>

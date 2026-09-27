@@ -176,6 +176,29 @@ export function seed() {
     ],
     push_subscriptions: [],
     web_push_keys: [],
-    reminder_queue: [],
+    // One undeliverable reminder, to somebody who is not the admin: enough
+    // for a spec to check that an admin sees the team's and a member sees
+    // neither theirs nor anybody else's.
+    reminder_queue: [
+      {
+        id: "77777777-7777-4777-8777-000000000001",
+        user_id: IDS.sara,
+        task_id: null,
+        channel: "whatsapp",
+        kind: "due_soon",
+        recipient: "+96500000000",
+        subject: "Due soon: Sign the custody agreement",
+        body: "Sign the custody agreement is due.",
+        dedupe_key: "seed:failed:1",
+        status: "failed",
+        attempts: 4,
+        last_error: "Twilio 400: not a WhatsApp number",
+        scheduled_for: "2026-09-20T06:00:00Z",
+        claimed_at: null,
+        sent_at: null,
+        failed_at: "2026-09-20T06:20:00Z",
+        created_at: "2026-09-20T06:00:00Z",
+      },
+    ],
   };
 }

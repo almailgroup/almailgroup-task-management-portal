@@ -559,6 +559,8 @@ export type Database = {
           dedupe_key: string;
           scheduled_for: string;
           sent_at: string | null;
+          /** When delivery was given up on. Null until it is. */
+          failed_at: string | null;
           created_at: string;
         };
         Insert: never;
@@ -567,6 +569,7 @@ export type Database = {
           attempts?: number;
           last_error?: string | null;
           sent_at?: string | null;
+          failed_at?: string | null;
           scheduled_for?: string;
           claimed_at?: string | null;
         };
@@ -843,6 +846,32 @@ export type Database = {
        * Dashboard figures, counted in the database under the caller's RLS.
        * `tz` is an IANA timezone so "due today" means the viewer's day.
        */
+      /** Tells somebody a reminder could not be delivered. Dispatcher only. */
+      notify_reminder_failed: { Args: { reminder: string }; Returns: void };
+      /** Recent undeliverable reminders across the team. Admins only. */
+      reminder_failures: {
+        Args: { since_hours?: number };
+        Returns: {
+          user_id: string;
+          person: string;
+          channel: ReminderChannel;
+          kind: string;
+          attempts: number;
+          last_error: string | null;
+          failed_at: string;
+        }[];
+      };
+      /** The same question about yourself, which anybody may ask. */
+      my_reminder_failures: {
+        Args: { since_hours?: number };
+        Returns: {
+          channel: ReminderChannel;
+          kind: string;
+          attempts: number;
+          last_error: string | null;
+          failed_at: string;
+        }[];
+      };
       task_counts: {
         Args: { tz?: string };
         Returns: {
@@ -891,6 +920,13 @@ export type PushDevice = Pick<
   PushSubscriptionRow,
   "endpoint" | "user_agent" | "created_at"
 >;
+
+/** A reminder that could not be delivered — never the message itself. */
+export type ReminderFailure =
+  Database["public"]["Functions"]["my_reminder_failures"]["Returns"][number];
+
+export type TeamReminderFailure =
+  Database["public"]["Functions"]["reminder_failures"]["Returns"][number];
 
 export type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 export type ConversationParticipant =
