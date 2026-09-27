@@ -32,6 +32,8 @@ export function TaskBrowser({
   tasks,
   filter,
   counts,
+  total,
+  truncated,
   projects,
   team,
   profile,
@@ -39,6 +41,10 @@ export function TaskBrowser({
   tasks: TaskWithAssignees[];
   filter: TaskFilter;
   counts: Record<TaskFilter, number>;
+  /** How many match this filter in the database, not how many arrived. */
+  total: number;
+  /** True when the page holds fewer than `total`. */
+  truncated: boolean;
   projects: Project[];
   team: Profile[];
   profile: Profile;
@@ -148,9 +154,17 @@ export function TaskBrowser({
           />
         </div>
         <span className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
+          {/* The total is the database's, not this page's. A list that
+              carries 500 of 900 should say 900 — the old line said 500,
+              which read as "that is all of them". */}
           <span className="tabular-nums">
-            {t("browser.countOf", { shown: visible.length, total: tasks.length })}
+            {t("browser.countOf", { shown: visible.length, total })}
           </span>
+          {truncated && (
+            <span className="rounded-full bg-muted px-2 py-0.5">
+              {t("browser.narrowToSeeRest", { shown: tasks.length })}
+            </span>
+          )}
           {visible.length > 0 && (
             <Button
               variant="ghost"

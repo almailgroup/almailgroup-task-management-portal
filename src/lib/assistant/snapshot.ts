@@ -1,7 +1,12 @@
 import "server-only";
 
-import { getAllTasks, getProjects, getTeam, requireProfile } from "@/lib/data/queries";
-import { summarise } from "@/lib/metrics";
+import {
+  getOpenTasks,
+  getTaskCounts,
+  getProjects,
+  getTeam,
+  requireProfile,
+} from "@/lib/data/queries";
 import { getLocale, getTimeZone } from "@/lib/i18n/server";
 import type { AssistantSnapshot, AssistantTask } from "@/lib/assistant/types";
 
@@ -18,9 +23,21 @@ import type { AssistantSnapshot, AssistantTask } from "@/lib/assistant/types";
  * assistant and the dashboard can never disagree about how many are overdue.
  */
 export async function buildSnapshot(): Promise<AssistantSnapshot> {
-  const [profile, tasks, projects, team, locale, timeZone] = await Promise.all([
+  /**
+   * The figures come from the database, the board from the open work.
+   *
+   * Counting in TypeScript over whatever rows arrived meant the assistant
+   * could state a total that was a row cap rather than a fact — and state it
+   * with complete confidence, which is the worst way for a number to be
+   * wrong. The counts are now the same ones the dashboard tiles show.
+   *
+   * What the model reads is the open work: closed tasks answer no question
+   * anybody asks an assistant beyond "how many", and that is a count.
+   */
+  const [profile, open, metrics, projects, team, locale, timeZone] = await Promise.all([
     requireProfile(),
-    getAllTasks(),
+    getOpenTasks(),
+    getTaskCounts(),
     getProjects(),
     getTeam(),
     getLocale(),
@@ -28,10 +45,8 @@ export async function buildSnapshot(): Promise<AssistantSnapshot> {
   ]);
 
   const projectName = new Map(projects.map((project) => [project.id, project.name]));
-  const metrics = summarise(tasks, timeZone);
-  const open = tasks.filter((task) => task.status !== "done");
 
-  const flattened: AssistantTask[] = tasks.map((task) => ({
+  const flattened: AssistantTask[] = open.tasks.map((task) => ({
     id: task.id,
     title: task.title,
     status: task.status,
@@ -68,8 +83,10 @@ export async function buildSnapshot(): Promise<AssistantSnapshot> {
       done: metrics.done,
       overdue: metrics.overdue,
       dueToday: metrics.dueToday,
-      unassigned: open.filter((task) => task.assignees.length === 0).length,
-      noDueDate: open.filter((task) => task.due_at === null).length,
+      // Counted over the open work that was fetched, which is what these two
+      // are about — nobody asks how many closed tasks had no due date.
+      unassigned: open.tasks.filter((task) => task.assignees.length === 0).length,
+      noDueDate: open.tasks.filter((task) => task.due_at === null).length,
     },
   };
 }

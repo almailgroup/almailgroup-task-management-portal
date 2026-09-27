@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { TaskDialog } from "@/components/tasks/task-dialog";
+import { tasksForMonth } from "@/lib/data/calendar-actions";
 import {
   AssigneeStack,
   DueDate,
@@ -64,24 +65,76 @@ import type {
  */
 export function CalendarView({
   tasks,
+  month: initialMonth,
+  partial,
+  undated,
   projects,
   team,
   profile,
 }: {
+  /** The month the server rendered, and only that month. */
   tasks: TaskWithAssignees[];
+  /** Which month those are, as `2026-09`. */
+  month: string;
+  /** True when that month holds more than one page can carry. */
+  partial: boolean;
+  /** How many tasks carry no due date at all, counted by the database. */
+  undated: number;
   projects: Project[];
   team: Profile[];
   profile: Profile;
 }) {
   const router = useRouter();
-  const params = useSearchParams();
   const nowMs = useNow();
   const { t, tn, tag, timeZone } = useI18n();
   const weekdays = React.useMemo(() => weekdayLabels(tag, "short"), [tag]);
 
   const [month, setMonth] = React.useState<Date>(
-    () => parseMonthParam(params.get("month")) ?? startOfMonth(todayIn(timeZone)),
+    () => parseMonthParam(initialMonth) ?? startOfMonth(todayIn(timeZone)),
   );
+
+  /**
+   * What each month holds, as it is asked for.
+   *
+   * The page arrives with one month. Turning to another fetches that one and
+   * keeps it, so going back is free and no query ever asks for more than six
+   * weeks of work however many years the portal has been running.
+   */
+  const [byMonth, setByMonth] = React.useState<
+    Record<string, { tasks: TaskWithAssignees[]; truncated: boolean }>
+  >(() => ({ [initialMonth]: { tasks, truncated: partial } }));
+  const [loading, setLoading] = React.useState(false);
+
+  // A new server render — a task saved, or a reload — replaces what it covers.
+  React.useEffect(() => {
+    setByMonth((current) => ({
+      ...current,
+      [initialMonth]: { tasks, truncated: partial },
+    }));
+  }, [initialMonth, tasks, partial]);
+
+  const monthKey = monthParam(month);
+  const shown = byMonth[monthKey];
+
+  React.useEffect(() => {
+    if (shown !== undefined) return;
+    let current = true;
+    setLoading(true);
+    tasksForMonth(monthKey)
+      .then((found) => {
+        if (!current) return;
+        setByMonth((all) => ({
+          ...all,
+          [monthKey]: { tasks: found.tasks, truncated: found.truncated },
+        }));
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [monthKey, shown]);
   // The day survives the close, so the dialog still has a date and a list to
   // draw while it animates out. The next open overwrites it.
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
@@ -94,7 +147,14 @@ export function CalendarView({
     setDayOpen(true);
   };
 
-  // The month is part of the address, so it survives a reload and can be sent.
+  /**
+   * Turn to another month.
+   *
+   * The address is rewritten rather than navigated: a navigation would be a
+   * server render and a skeleton flash for what reads as flipping a page.
+   * The month's tasks are fetched beside it instead. The URL still carries
+   * the month, so a reload or a shared link lands on the same one.
+   */
   const goTo = (next: Date) => {
     setMonth(next);
     setDayOpen(false);
@@ -110,23 +170,21 @@ export function CalendarView({
       id ? (map.get(id) ?? t("common.project")) : t("common.general");
   }, [projects, t]);
 
-  // Grouped by local day; undated ones set aside rather than lost.
-  const { byDay, undated } = React.useMemo(() => {
+  // Grouped by local day. Placement stays here because only the browser
+  // knows which local day an instant falls on — a task due at 01:00 Tuesday
+  // in Kuwait is still Monday in UTC.
+  const byDay = React.useMemo(() => {
     const byDay = new Map<string, TaskWithAssignees[]>();
-    let undated = 0;
-    for (const task of tasks) {
-      if (!task.due_at) {
-        undated += 1;
-        continue;
-      }
+    for (const task of shown?.tasks ?? []) {
+      if (!task.due_at) continue;
       const key = dayKeyIn(new Date(task.due_at), timeZone);
       byDay.set(key, [...(byDay.get(key) ?? []), task]);
     }
     for (const list of byDay.values()) {
       list.sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime());
     }
-    return { byDay, undated };
-  }, [tasks, timeZone]);
+    return byDay;
+  }, [shown, timeZone]);
 
   const today = nowMs === null ? null : startOfDay(new Date(nowMs));
   const days = monthGrid(month);
@@ -153,6 +211,7 @@ export function CalendarView({
           <>
             {t("cal.dueThisMonth", { n: dueThisMonth })}
             {undated > 0 && ` · ${t("cal.noDate", { n: undated })}`}
+            {shown?.truncated && ` · ${t("cal.partialMonth")}`}
           </>
         }
         actions={
@@ -188,7 +247,16 @@ export function CalendarView({
         {month.toLocaleDateString(tag, { month: "long", year: "numeric" })}
       </h2>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-sm)]">
+      <div
+        className={cn(
+          "overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-sm)] transition-opacity",
+          // Dimmed rather than replaced: a skeleton here would throw the grid
+          // away and put it back a moment later, which reads as the page
+          // reloading rather than as a month arriving.
+          loading && "opacity-60",
+        )}
+        aria-busy={loading}
+      >
         <div className="grid grid-cols-7 border-b border-border bg-muted/60 text-center text-[0.6875rem] font-medium text-muted-foreground sm:text-xs">
           {weekdays.map((day) => (
             <div key={day} className="py-2">

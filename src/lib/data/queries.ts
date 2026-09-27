@@ -9,6 +9,8 @@ import {
   VERIFIED_MUST_CHANGE_PASSWORD,
   VERIFIED_USER,
 } from "@/lib/supabase/middleware";
+import { dayBoundsIn } from "@/lib/dates";
+import type { TaskFilter } from "@/lib/task-filters";
 import type { Metrics, Workload } from "@/lib/metrics";
 import type {
   CommentWithAuthor,
@@ -287,16 +289,186 @@ export const getTaskActivity = cache(
   },
 );
 
-/** Every task across every visible project — powers the dashboard metrics. */
+/**
+ * How many rows a list page will carry at most.
+ *
+ * Not a performance tuning number — a truth one. PostgREST caps a response
+ * whether or not the query asks it to (Supabase defaults to 1000), so an
+ * unbounded query does not fetch everything, it fetches an arbitrary slice
+ * and says nothing. Asking for a bound means the answer is known: either
+ * everything matched, or it did not and the page can say so.
+ *
+ * Overridable so the end-to-end specs can drive the truncated case with a
+ * handful of tasks rather than five hundred of them. Production never sets
+ * it.
+ */
+export const TASK_PAGE_SIZE = Number(process.env.TASK_PAGE_SIZE ?? 500);
+
+/** A bounded answer, and whether anything was left out of it. */
+export type TaskPage = {
+  tasks: TaskWithAssignees[];
+  /** How many match in total, counted by the database rather than by us. */
+  total: number;
+  /** True when `tasks` is not all of them. */
+  truncated: boolean;
+};
+
+/**
+ * Every task across every visible project.
+ *
+ * Kept for the places that genuinely want the lot and are bounded by their
+ * own nature — a project board, an export. Everything that is bounded by a
+ * date or a status asks for that instead: see `getTasksDueBetween` and
+ * `getOpenTasks`.
+ *
+ * @deprecated for new callers. It carries the same cap every other query
+ * does; it simply cannot tell you when it hit it.
+ */
 export const getAllTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   const supabase = await createClient();
   const result = await supabase
     .from("tasks")
     .select(TASK_WITH_ASSIGNEES)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(TASK_PAGE_SIZE);
 
   return toTasks(orFail(result, "tasks"));
 });
+
+/**
+ * The tasks a calendar month needs, and nothing else.
+ *
+ * The grid is six weeks, so the window is the grid rather than the month:
+ * the last days of August are on September's page and belong in the answer.
+ *
+ * Undated tasks are counted rather than returned. The calendar only ever
+ * shows that number at the top, and fetching a year of undated work to
+ * display "3 with no date" is the kind of query that quietly becomes the
+ * slowest thing on the page.
+ */
+export const getTasksDueBetween = cache(
+  async (from: string, to: string): Promise<TaskPage> => {
+    const supabase = await createClient();
+    const { data, count, error } = await supabase
+      .from("tasks")
+      .select(TASK_WITH_ASSIGNEES, { count: "exact" })
+      .gte("due_at", from)
+      .lt("due_at", to)
+      .order("due_at", { ascending: true })
+      .limit(TASK_PAGE_SIZE);
+
+    if (error) orFail({ data, error }, "tasks");
+
+    const tasks = toTasks(data);
+    return {
+      tasks,
+      total: count ?? tasks.length,
+      // A month busier than one page is unlikely here and still possible.
+      // Saying so is the whole point of this change: the failure it replaces
+      // was a calendar quietly showing some of a month.
+      truncated: (count ?? 0) > tasks.length,
+    };
+  },
+);
+
+/** How many tasks carry no due date at all. */
+export const countUndatedTasks = cache(async (): Promise<number> => {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .is("due_at", null);
+
+  return count ?? 0;
+});
+
+/**
+ * Everything still open, soonest first.
+ *
+ * What Today is made of: overdue, due today, in progress, waiting on review.
+ * All four are "not done", and open work is bounded by how much a company
+ * can have in flight rather than by how long it has been running — which is
+ * what makes this a safe thing to ask for whole.
+ */
+export const getOpenTasks = cache(async (): Promise<TaskPage> => {
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("tasks")
+    .select(TASK_WITH_ASSIGNEES, { count: "exact" })
+    .neq("status", "done")
+    .order("due_at", { ascending: true, nullsFirst: false })
+    .limit(TASK_PAGE_SIZE);
+
+  if (error) orFail({ data, error }, "tasks");
+
+  const tasks = toTasks(data);
+  return {
+    tasks,
+    total: count ?? tasks.length,
+    truncated: (count ?? 0) > tasks.length,
+  };
+});
+
+/**
+ * One filter's worth of the task browser, decided in the database.
+ *
+ * It used to fetch everything and filter in TypeScript, which meant the
+ * chips' counts and the list itself were both computed from whatever slice
+ * happened to come back. The predicates here are the same ones
+ * `applyTaskFilter` applies — deliberately, so a filter cannot mean one
+ * thing on the server and another in the browser — and the count comes from
+ * the database, so it is right however many there are.
+ *
+ * "Due today" is the viewer's day, which is why the zone has to be passed
+ * in: the server's own day is four hours out for a quarter of every one.
+ */
+export const getTasksForFilter = cache(
+  async (filter: TaskFilter, timeZone: string): Promise<TaskPage> => {
+    const supabase = await createClient();
+    let query = supabase
+      .from("tasks")
+      .select(TASK_WITH_ASSIGNEES, { count: "exact" });
+
+    const now = new Date().toISOString();
+
+    switch (filter) {
+      case "todo":
+      case "in_progress":
+      case "in_review":
+      case "done":
+        query = query.eq("status", filter);
+        break;
+      case "pending":
+        query = query.neq("status", "done");
+        break;
+      case "due_today": {
+        const { start, end } = dayBoundsIn(new Date(), timeZone);
+        query = query.neq("status", "done").gte("due_at", start).lt("due_at", end);
+        break;
+      }
+      case "overdue":
+        query = query.neq("status", "done").lt("due_at", now);
+        break;
+      case "all":
+      default:
+        break;
+    }
+
+    // Soonest first, undated last: the same order the list has always shown.
+    const { data, count, error } = await query
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(TASK_PAGE_SIZE);
+
+    if (error) orFail({ data, error }, "tasks");
+
+    const tasks = toTasks(data);
+    return {
+      tasks,
+      total: count ?? tasks.length,
+      truncated: (count ?? 0) > tasks.length,
+    };
+  },
+);
 
 /** Tasks belonging to no project — the General Tasks list. */
 export const getGeneralTasks = cache(async (): Promise<TaskWithAssignees[]> => {

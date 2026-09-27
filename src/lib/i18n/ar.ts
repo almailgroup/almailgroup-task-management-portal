@@ -404,6 +404,7 @@ export const ar: Dictionary = {
   // ---- calendar --------------------------------------------------------------------------------------
   "cal.dueThisMonth": "{n} مستحقة هذا الشهر",
   "cal.noDate": "{n} بدون تاريخ",
+  "cal.partialMonth": "يُعرض جزء من هذا الشهر",
   "cal.prevMonth": "الشهر السابق",
   "cal.nextMonth": "الشهر التالي",
   "cal.gridLabel": "المهام حسب تاريخ الاستحقاق",
@@ -424,6 +425,7 @@ export const ar: Dictionary = {
   "browser.searchThese": "ابحث في هذه المهام",
   "browser.searchTasks": "ابحث في المهام",
   "browser.countOf": "{shown} من {total}",
+  "browser.narrowToSeeRest": "أول {shown} — ضيّق التصفية لرؤية الباقي",
   "browser.exportLabel": "تصدير هذه المهام كملف CSV",
   "browser.exportTitle": "تصدير CSV",
   "browser.noMatches": "لا توجد نتائج",

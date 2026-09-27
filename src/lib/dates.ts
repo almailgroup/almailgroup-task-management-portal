@@ -39,6 +39,62 @@ function dayNumber(date: Date, timeZone?: string): number {
 }
 
 /**
+ * The instants a viewer's calendar day starts and ends at.
+ *
+ * "Due today" is a question about somebody's day, not the server's, and a
+ * query has to ask the database in instants. Derived from the same `dayIn`
+ * every other date question goes through, so a boundary can never be a day
+ * out from what the interface shows.
+ *
+ * The offset is read at the start of that day rather than assumed: a zone
+ * that changes offset in the middle of a day would otherwise shift the
+ * window by an hour. Kuwait never does, but the browser sends its own zone
+ * and somebody travelling does.
+ */
+export function dayBoundsIn(
+  date: Date,
+  timeZone?: string,
+): { start: string; end: string } {
+  const day = dayIn(date, timeZone);
+  const [year, month, dayOfMonth] = day.split("-").map(Number);
+
+  // Midnight in the zone, found by asking what UTC instant reads as 00:00
+  // there. One correction pass is enough for every real zone offset.
+  const guess = Date.UTC(year, month - 1, dayOfMonth);
+  const offset = offsetAt(new Date(guess), timeZone);
+  const start = new Date(guess - offset);
+  const end = new Date(start.getTime() + 86_400_000);
+
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+/** How far `timeZone` is from UTC at that instant, in milliseconds. */
+function offsetAt(date: Date, timeZone?: string): number {
+  if (!timeZone) return -date.getTimezoneOffset() * 60_000;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const asUTC = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour") % 24,
+    get("minute"),
+    get("second"),
+  );
+  return asUTC - date.getTime();
+}
+
+/**
  * A task is overdue once its due instant has passed and the work is not done.
  *
  * Now that due dates carry a time of day this is a plain instant comparison,

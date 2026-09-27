@@ -115,3 +115,22 @@ export function parseMonthParam(value: string | null): Date | null {
 export function monthParam(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
+
+/**
+ * The instants a month's grid covers, as a query wants them.
+ *
+ * The grid is six weeks, not a month: the last days of August sit on
+ * September's page and a task due on one of them belongs in September's
+ * answer. Widened by a day at each end so that a viewer whose timezone is
+ * ahead of the server's still gets the task that lands on their first or
+ * last square.
+ */
+export function monthWindow(month: Date): { from: string; to: string } {
+  const days = monthGrid(month);
+  const from = new Date(days[0]);
+  from.setDate(from.getDate() - 1);
+  const to = new Date(days[days.length - 1]);
+  to.setDate(to.getDate() + 2);
+
+  return { from: from.toISOString(), to: to.toISOString() };
+}

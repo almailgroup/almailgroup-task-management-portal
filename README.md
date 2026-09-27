@@ -1296,6 +1296,45 @@ Three more things a standalone app needs that a page in a browser does not:
   `chrome-touch` utility turns off selection, the callout and the wait for a
   second tap.
 
+## How much a page asks for
+
+Every task view used to call one query: every task the viewer could see, no
+limit, ordered by when it was created. That works until there are more tasks
+than a response carries — and PostgREST caps a response whether or not the
+query asks it to, Supabase's default being 1000 rows.
+
+Past that cap the pages showed a slice, chosen by *creation* date while the
+calendar places by *due* date, and said nothing at all. A task created last
+year and due next month would simply not be on the calendar. No error, no
+empty state, just a month that looked quieter than it was — and an assistant
+answering from a board with holes in it.
+
+So each page now asks for what it actually needs:
+
+- **Calendar** fetches the six weeks its grid covers, and only that month.
+  Turning the page fetches the next one and keeps it, so going back is free.
+  The month stays in the address, so a reload or a shared link lands on it.
+- **Today** asks for work that is not done, which is what its four sections
+  are made of. Open work is bounded by how much is in flight rather than by
+  how long the portal has been running.
+- **The task browser** filters in the database rather than in the browser,
+  and its chips are counted by the same function the dashboard tiles use — so
+  a chip is right however many tasks there are, even when the list beneath it
+  is one page of them.
+- **The assistant** reads the open work and the database's own counts. It
+  could previously state a total that was a row cap, with complete
+  confidence, which is the worst way for a number to be wrong.
+
+Where a bound is still reached, the page says so: "**first 500 — narrow the
+filter to see the rest**" on the browser, "**showing part of this month**" on
+the calendar. That is the point of the change. The cap was always there; what
+it lacked was the honesty to mention it.
+
+`TASK_PAGE_SIZE` exists so the end-to-end specs can drive the truncated case
+with a dozen tasks instead of five hundred. The config starts a second copy
+of the app with it set to five, because a small page size across the whole
+suite would starve every other spec of the rows it looks for.
+
 ## When the connection drops
 
 Installed to a home screen there is no address bar to explain a failure, so a

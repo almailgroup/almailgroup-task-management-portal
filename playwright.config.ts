@@ -13,8 +13,18 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const PORT = Number(process.env.PORT ?? 3210);
 const MOCK_PORT = Number(process.env.MOCK_PORT ?? 54997);
+/**
+ * A second copy of the same build, with a deliberately tiny page size.
+ *
+ * The truncated case is the one that used to be silent, so it has to be
+ * exercised — but a small page size across the whole suite would starve
+ * every other spec of the rows it looks for. One more `next start` against
+ * the same build is cheaper than seeding five hundred tasks.
+ */
+const SMALL_PORT = Number(process.env.SMALL_PORT ?? PORT + 1);
 const baseURL = process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`;
 const mockURL = `http://127.0.0.1:${MOCK_PORT}`;
+const smallURL = `http://127.0.0.1:${SMALL_PORT}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -60,6 +70,22 @@ export default defineConfig({
             NEXT_PUBLIC_SUPABASE_ANON_KEY:
               process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-anon-key",
             NEXT_PUBLIC_SITE_URL: baseURL,
+          },
+        },
+        {
+          // Same build, one env var different. `next build` has already run
+          // by the time this starts, so it costs a process rather than a
+          // compile.
+          command: `npx next start -p ${SMALL_PORT}`,
+          url: smallURL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+          env: {
+            NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? mockURL,
+            NEXT_PUBLIC_SUPABASE_ANON_KEY:
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-anon-key",
+            NEXT_PUBLIC_SITE_URL: smallURL,
+            TASK_PAGE_SIZE: "5",
           },
         },
       ],

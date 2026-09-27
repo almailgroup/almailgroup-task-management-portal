@@ -21,8 +21,10 @@ export const PEOPLE = {
   member: { email: "omar@almailgroup.com", name: "Omar Haddad" },
 };
 
-export async function signIn(page: Page, who = PEOPLE.admin) {
-  await page.goto("/login");
+export async function signIn(page: Page, who = PEOPLE.admin, origin?: string) {
+  // `origin` is for the specs that run against the second, small-page copy
+  // of the app; everything else uses the config's baseURL.
+  await page.goto(origin ? `${origin}/login` : "/login");
   await page.fill("#email", who.email);
   await page.fill("#password", "not-checked-by-the-mock");
   await page.getByRole("button", { name: "Sign in" }).click();

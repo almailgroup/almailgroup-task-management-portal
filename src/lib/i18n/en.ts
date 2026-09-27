@@ -365,6 +365,7 @@ export const en = {
   // ---- calendar --------------------------------------------------------------------------------------
   "cal.dueThisMonth": "{n} due this month",
   "cal.noDate": "{n} with no date",
+  "cal.partialMonth": "showing part of this month",
   "cal.prevMonth": "Previous month",
   "cal.nextMonth": "Next month",
   "cal.gridLabel": "Tasks by due date",
@@ -385,6 +386,7 @@ export const en = {
   "browser.searchThese": "Search these tasks",
   "browser.searchTasks": "Search tasks",
   "browser.countOf": "{shown} of {total}",
+  "browser.narrowToSeeRest": "first {shown} — narrow the filter to see the rest",
   "browser.exportLabel": "Export these tasks as CSV",
   "browser.exportTitle": "Export as CSV",
   "browser.noMatches": "No matches",

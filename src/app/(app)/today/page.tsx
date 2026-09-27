@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 
 import { TodayView } from "@/components/dashboard/today-view";
 import {
-  getAllTasks,
   getFollowUps,
+  getOpenTasks,
   getProjects,
   getTeam,
   requireProfile,
@@ -16,9 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TodayPage() {
-  const [profile, tasks, followUps, projects, team] = await Promise.all([
+  // Today is made of four questions — overdue, due today, in progress,
+  // waiting on review — and every one of them is about work that is not
+  // done. Asking for that rather than for everything means the page cannot
+  // silently lose an old overdue task to a row cap it never mentioned.
+  const [profile, open, followUps, projects, team] = await Promise.all([
     requireProfile(),
-    getAllTasks(),
+    getOpenTasks(),
     getFollowUps(),
     getProjects(),
     getTeam(),
@@ -26,7 +30,7 @@ export default async function TodayPage() {
 
   return (
     <TodayView
-      tasks={tasks}
+      tasks={open.tasks}
       followUps={followUps}
       projects={projects}
       team={team}

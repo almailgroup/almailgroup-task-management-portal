@@ -79,6 +79,8 @@ export function seed() {
     ["Quarterly board pack", "done", "high", 0, -8, IDS.sara],
     ["Archive 2025 contracts", "done", "low", 0, -14, IDS.omar],
     ["Website copy review", "todo", "medium", 2, null, IDS.lina],
+    // Next month, so a spec can turn the calendar to it and find something.
+    ["October board meeting", "todo", "high", 0, 20, IDS.admin],
   ];
 
   const tasks = [];
