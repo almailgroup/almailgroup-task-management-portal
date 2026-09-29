@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   addMonths,
@@ -6,6 +6,8 @@ import {
   monthGrid,
   monthParam,
   parseMonthParam,
+  startOfMonth,
+  todayIn,
   weekdayIndex,
 } from "@/lib/calendar";
 
@@ -52,5 +54,34 @@ describe("month parameter", () => {
   it("steps across a year boundary", () => {
     expect(monthParam(addMonths(new Date(2026, 11, 1), 1))).toBe("2027-01");
     expect(monthParam(addMonths(new Date(2026, 0, 1), -1))).toBe("2025-12");
+  });
+});
+
+/**
+ * Which month the calendar opens on is a question about the reader's clock.
+ *
+ * The page is rendered on a server whose own clock is UTC. Kuwait is three
+ * hours ahead, so between midnight and 03:00 on the first of a month the two
+ * disagree about which month it is — and the calendar page, asking its own
+ * runtime, opened on the month that had just ended.
+ */
+describe("todayIn", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("is the reader's day even when the server's is the day before", () => {
+    // 01:00 on 1 October in Kuwait is 22:00 on 30 September in UTC.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-30T22:00:00.000Z"));
+
+    expect(monthParam(startOfMonth(todayIn("Asia/Kuwait")))).toBe("2026-10");
+    // The answer the page used to give, for contrast.
+    expect(monthParam(startOfMonth(todayIn("UTC")))).toBe("2026-09");
+  });
+
+  it("agrees with the server when the two are on the same day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-15T09:00:00.000Z"));
+    expect(monthParam(startOfMonth(todayIn("Asia/Kuwait")))).toBe("2026-10");
+    expect(monthParam(startOfMonth(todayIn("UTC")))).toBe("2026-10");
   });
 });

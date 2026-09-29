@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 
 import { CalendarView } from "@/components/tasks/calendar-view";
-import { monthParam, monthWindow, parseMonthParam, startOfMonth } from "@/lib/calendar";
+import {
+  monthParam,
+  monthWindow,
+  parseMonthParam,
+  startOfMonth,
+  todayIn,
+} from "@/lib/calendar";
 import {
   countUndatedTasks,
   getProjects,
@@ -9,7 +15,7 @@ import {
   getTeam,
   requireProfile,
 } from "@/lib/data/queries";
-import { getI18n } from "@/lib/i18n/server";
+import { getI18n, getTimeZone } from "@/lib/i18n/server";
 
 type PageProps = { searchParams: Promise<{ month?: string }> };
 
@@ -32,7 +38,12 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function CalendarPage({ searchParams }: PageProps) {
   const { month: raw } = await searchParams;
-  const month = parseMonthParam(raw ?? null) ?? startOfMonth(new Date());
+  // The reader's month, not the machine's. `new Date()` here is the server's
+  // clock, which on Vercel is UTC: for the first three hours of every month
+  // in Kuwait that is still the month before, so the calendar opened on
+  // September while the phone beside it said October.
+  const month =
+    parseMonthParam(raw ?? null) ?? startOfMonth(todayIn(await getTimeZone()));
   const { from, to } = monthWindow(month);
 
   const [profile, page, undated, projects, team] = await Promise.all([
