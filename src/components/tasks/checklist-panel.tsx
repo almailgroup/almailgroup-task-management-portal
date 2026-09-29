@@ -48,13 +48,21 @@ export function ChecklistPanel({
   // list: a board needs the counts, which ride along already, not the text.
   React.useEffect(() => {
     let current = true;
-    listChecklistItems(taskId).then((found) => {
-      if (current) setItems(found);
-    });
+    listChecklistItems(taskId)
+      .then((found) => {
+        if (current) setItems(found);
+      })
+      .catch((error) => {
+        // Say so. Left uncaught this rejected quietly and the panel showed
+        // an empty list, which is indistinguishable from a task that has no
+        // steps — and somebody would then add the ones already there.
+        console.error("[checklist] load:", error);
+        if (current) toast.error(tm("common.somethingWrong"));
+      });
     return () => {
       current = false;
     };
-  }, [taskId]);
+  }, [taskId, tm]);
 
   const done = items.filter((item) => item.done).length;
 

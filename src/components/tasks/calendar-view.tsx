@@ -102,7 +102,7 @@ export function CalendarView({
    * weeks of work however many years the portal has been running.
    */
   const [byMonth, setByMonth] = React.useState<
-    Record<string, { tasks: TaskWithAssignees[]; truncated: boolean }>
+    Record<string, { tasks: TaskWithAssignees[]; truncated: boolean; failed?: boolean }>
   >(() => ({ [initialMonth]: { tasks, truncated: partial } }));
   const [loading, setLoading] = React.useState(false);
 
@@ -129,6 +129,19 @@ export function CalendarView({
           [monthKey]: { tasks: found.tasks, truncated: found.truncated },
         }));
       })
+      .catch((error) => {
+        // A month that could not be fetched is not an empty month. Left
+        // uncaught this rejected silently, the grid drew nothing, and the
+        // header said "0 due this month" — a confident lie about work that
+        // is sitting there. It is recorded as failed so the header can say
+        // so, and so the retry below has something to clear.
+        console.error(`[calendar] ${monthKey}:`, error);
+        if (!current) return;
+        setByMonth((all) => ({
+          ...all,
+          [monthKey]: { tasks: [], truncated: false, failed: true },
+        }));
+      })
       .finally(() => {
         if (current) setLoading(false);
       });
@@ -146,6 +159,15 @@ export function CalendarView({
   const openDay = (day: Date) => {
     setSelectedDay(day);
     setDayOpen(true);
+  };
+
+  /** Forget a month that failed, which sends the effect above after it again. */
+  const retryMonth = () => {
+    setByMonth((all) => {
+      const next = { ...all };
+      delete next[monthKey];
+      return next;
+    });
   };
 
   /**
@@ -210,9 +232,25 @@ export function CalendarView({
         icon={<CalendarDays />}
         description={
           <>
-            {t("cal.dueThisMonth", { n: dueThisMonth })}
-            {undated > 0 && ` · ${t("cal.noDate", { n: undated })}`}
-            {shown?.truncated && ` · ${t("cal.partialMonth")}`}
+            {shown?.failed ? (
+              <>
+                {t("cal.monthFailed")}
+                {" · "}
+                <button
+                  type="button"
+                  onClick={retryMonth}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  {t("error.retry")}
+                </button>
+              </>
+            ) : (
+              <>
+                {t("cal.dueThisMonth", { n: dueThisMonth })}
+                {undated > 0 && ` · ${t("cal.noDate", { n: undated })}`}
+                {shown?.truncated && ` · ${t("cal.partialMonth")}`}
+              </>
+            )}
           </>
         }
         actions={

@@ -117,9 +117,15 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
   React.useEffect(() => {
     if (!open || people.length > 0) return;
     let current = true;
-    listPeople().then((found) => {
-      if (current) setPeople(found);
-    });
+    listPeople()
+      .then((found) => {
+        if (current) setPeople(found);
+      })
+      // The list stays empty and the palette still finds pages and tasks.
+      // Caught rather than left to reject: an unhandled rejection is noise
+      // in the console of a page that is working, and the next open asks
+      // again anyway.
+      .catch((error) => console.error("[palette] people:", error));
     return () => {
       current = false;
     };
