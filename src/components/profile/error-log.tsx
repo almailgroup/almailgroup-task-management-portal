@@ -16,7 +16,7 @@ import type { AppError } from "@/lib/supabase/database.types";
  * emergency, and amber in this app means late work.
  */
 export async function ErrorLog({ errors }: { errors: AppError[] }) {
-  const { t, tag, timeZone } = await getI18n();
+  const { t, tm, tag, timeZone } = await getI18n();
   if (errors.length === 0) return null;
 
   return (
@@ -38,8 +38,11 @@ export async function ErrorLog({ errors }: { errors: AppError[] }) {
                 className="flex flex-col gap-0.5 rounded-md bg-muted/50 px-2.5 py-1.5"
               >
                 <span className="flex items-baseline justify-between gap-2">
+                  {/* `tm`, because a recorded fault is either a key this
+                      app chose or the message an exception carried. The
+                      first is translated, the second passes through. */}
                   <span className="min-w-0 truncate text-xs font-medium">
-                    {entry.message}
+                    {tm(entry.message)}
                   </span>
                   {entry.seen > 1 && (
                     <span className="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">

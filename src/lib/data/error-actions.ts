@@ -28,7 +28,12 @@ export async function reportClientError(input: {
     await supabase.from("app_errors").insert({
       source: "browser",
       digest: input.digest?.slice(0, 200) ?? null,
-      message: input.message.slice(0, 2000) || "Unknown error",
+      // A key, not a sentence: this row is read back onto an admin's profile
+      // page, and a fault recorded in English is a fault an Arabic reader
+      // cannot read. `tm` renders the key and passes a real exception
+      // message — which arrives in whatever language threw it — straight
+      // through.
+      message: input.message.slice(0, 2000) || "errors.unknown",
       route: input.route.slice(0, 500),
       user_agent: input.userAgent?.slice(0, 400) ?? null,
       user_id: user?.id ?? null,
