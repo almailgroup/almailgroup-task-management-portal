@@ -556,6 +556,12 @@ export type Database = {
             referencedRelation: "tasks";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "task_checklist_items_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
       /** One row per device that has agreed to notifications. */
