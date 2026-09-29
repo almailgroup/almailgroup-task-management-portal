@@ -37,6 +37,40 @@ describe("attachmentPath", () => {
     const path = attachmentPath("t", "???");
     expect(path.split("/")[1]).toMatch(/file$/);
   });
+
+  /**
+   * The company names its documents in Arabic, and `\w` is ASCII.
+   *
+   * One sanitising pass over the whole filename removed every letter and then
+   * the leading dot with them, so "عقد الإيجار.pdf" became "pdf": a key with
+   * no extension, and a download nothing on the phone would open.
+   */
+  it("keeps the extension when the name itself is not ASCII", () => {
+    const name = attachmentPath("t", "عقد الإيجار.pdf").split("/")[1];
+    expect(name.endsWith(".pdf")).toBe(true);
+  });
+
+  it("keeps the extension on an English name too", () => {
+    expect(attachmentPath("t", "August freight.xlsx").split("/")[1]).toMatch(
+      /-August-freight\.xlsx$/,
+    );
+  });
+
+  it("does not invent an extension where there was none", () => {
+    expect(attachmentPath("t", "README").split("/")[1]).not.toContain(".");
+  });
+
+  it("takes the last extension, and leaves a double one alone", () => {
+    expect(attachmentPath("t", "invoice.tar.gz").split("/")[1]).toMatch(
+      /-invoice\.tar\.gz$/,
+    );
+  });
+
+  it("keeps a dotfile inside the task folder", () => {
+    const path = attachmentPath("t", ".env");
+    expect(path.startsWith("t/")).toBe(true);
+    expect(path.split("/")[1]).not.toMatch(/^[.-]/);
+  });
 });
 
 describe("linkAttachmentSchema", () => {
