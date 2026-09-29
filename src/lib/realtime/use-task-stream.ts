@@ -4,7 +4,30 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
-import type { TaskWithAssignees } from "@/lib/supabase/database.types";
+import type { Task, TaskWithAssignees } from "@/lib/supabase/database.types";
+
+/**
+ * A task row from Postgres, folded onto the one already on screen.
+ *
+ * Realtime sends the table's own columns and nothing else: no assignees, and
+ * — since checklists arrived — no step count either. Both are joined in by
+ * the server query, so a merge that takes the row wholesale drops them. The
+ * assignees were carried across from the first day; the checklist was not,
+ * and `undefined` reaching ChecklistProgressBadge is a thrown TypeError and
+ * an error boundary over the whole board.
+ *
+ * Everything joined on stays; everything the row owns is replaced.
+ */
+export function mergeTaskUpdate(
+  previous: TaskWithAssignees,
+  row: Task,
+): TaskWithAssignees {
+  return {
+    ...row,
+    assignees: previous.assignees,
+    checklist: previous.checklist,
+  };
+}
 
 /**
  * Keeps a task list live, for one project or for the general list.
@@ -57,7 +80,7 @@ export function useTaskStream({
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "tasks", ...scope },
         (payload) => {
-          const row = payload.new as TaskWithAssignees;
+          const row = payload.new as Task;
 
           // Trashed, not moved: a soft delete arrives as an update with
           // deleted_at set. It leaves the board the way a hard delete would.
@@ -80,8 +103,9 @@ export function useTaskStream({
               return current;
             }
             const next = [...current];
-            // Keep the joined assignees; the payload does not include them.
-            next[index] = { ...row, assignees: current[index].assignees };
+            // Keep what the payload does not carry: the assignees and the
+            // checklist counts, both of which are joined in by the query.
+            next[index] = mergeTaskUpdate(current[index], row);
             return next;
           });
         },
