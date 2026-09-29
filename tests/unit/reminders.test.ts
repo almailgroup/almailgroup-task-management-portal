@@ -90,6 +90,65 @@ describe("deliver", () => {
   });
 });
 
+/**
+ * What a task is called must not decide whether its reminder arrives.
+ *
+ * Telegram was sent `*subject*` in legacy Markdown mode. A title holding an
+ * underscore or a star — "PO_2026_44", "Invoice *final*" — leaves the markup
+ * unbalanced, and Telegram answers 400, which this dispatcher does not retry.
+ * The reminder was given up on, and the only sign was a line in a failures
+ * list.
+ */
+describe("telegram formatting", () => {
+  const env = { ...process.env };
+  beforeEach(() => {
+    process.env.TELEGRAM_BOT_TOKEN = "bot-token";
+  });
+  afterEach(() => {
+    process.env = { ...env };
+    vi.restoreAllMocks();
+  });
+
+  const sent = async (over: Partial<QueuedReminder>) => {
+    const fetcher = vi.fn(
+      async (_url: string, init?: RequestInit) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({ ok: true }),
+          text: async () => "",
+          _init: init,
+        }) as unknown as Response,
+    );
+    vi.stubGlobal("fetch", fetcher);
+    await deliver(reminder({ channel: "telegram", recipient: "12345", ...over }));
+    const [, init] = fetcher.mock.calls[0];
+    return JSON.parse(String(init?.body)) as {
+      text: string;
+      parse_mode?: string;
+    };
+  };
+
+  it("does not ask Telegram to parse the title as Markdown", async () => {
+    const payload = await sent({ subject: "PO_2026_44", body: "Bring *both* copies" });
+    expect(payload.parse_mode).not.toBe("Markdown");
+    expect(payload.text).toContain("PO_2026_44");
+    expect(payload.text).toContain("Bring *both* copies");
+  });
+
+  it("escapes the three characters its markup mode reserves", async () => {
+    const payload = await sent({
+      subject: "Ali & Sons <Kuwait>",
+      body: "Margin > 5% & rising",
+    });
+    expect(payload.parse_mode).toBe("HTML");
+    expect(payload.text).toContain("Ali &amp; Sons &lt;Kuwait&gt;");
+    expect(payload.text).toContain("Margin &gt; 5% &amp; rising");
+    // The bold tags around the subject are markup, not escaped text.
+    expect(payload.text.startsWith("<b>")).toBe(true);
+  });
+});
+
 describe("configuredChannels", () => {
   it("only claims a channel when every credential it needs is present", () => {
     const env = { ...process.env };

@@ -73,6 +73,24 @@ async function sendEmail(reminder: QueuedReminder): Promise<DeliveryResult> {
 // Telegram — Bot API
 // ---------------------------------------------------------------------------
 
+/**
+ * Telegram's HTML mode needs exactly three characters escaped.
+ *
+ * The alternative — `parse_mode: "Markdown"` — is what this used to send,
+ * and it made delivery depend on what somebody had called their task. A
+ * title like "PO_2026_44" or "Invoice *final*" leaves the markup unbalanced,
+ * Telegram answers 400 "can't parse entities", and a 400 is not retryable:
+ * the reminder was marked failed and nobody was ever told about that task.
+ * Markdown has no escape rule that survives arbitrary text; HTML has one,
+ * and it is this function.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 async function sendTelegram(reminder: QueuedReminder): Promise<DeliveryResult> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -91,8 +109,10 @@ async function sendTelegram(reminder: QueuedReminder): Promise<DeliveryResult> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: reminder.recipient,
-        text: `*${reminder.subject ?? APP_NAME}*\n${reminder.body}${appLink()}`,
-        parse_mode: "Markdown",
+        text: `<b>${escapeHtml(reminder.subject ?? APP_NAME)}</b>\n${escapeHtml(
+          `${reminder.body}${appLink()}`,
+        )}`,
+        parse_mode: "HTML",
         disable_web_page_preview: true,
       }),
     },
