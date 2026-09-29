@@ -1031,6 +1031,39 @@ export const getMyOpenTasks = cache(
   },
 );
 
+/**
+ * What was finished on the viewer's today.
+ *
+ * Its own query because Today's other four questions are all about work that
+ * is *not* done, and the one bounded read that answers them
+ * (`getOpenTasks`) excludes exactly the rows this needs. Deriving it from
+ * that list instead — which is what happened when the page stopped asking
+ * for every task — makes it permanently empty, and a line that never appears
+ * looks like a quiet day rather than a bug.
+ *
+ * Bounded by the day itself rather than by a row cap: a company cannot
+ * finish more work in one day than a page can carry.
+ */
+export const getDoneToday = cache(
+  async (timeZone: string): Promise<TaskWithAssignees[]> => {
+    const supabase = await createClient();
+    const { start, end } = dayBoundsIn(new Date(), timeZone);
+
+    const result = await supabase
+      .from("tasks")
+      .select(TASK_WITH_ASSIGNEES)
+      .eq("status", "done")
+      // When it was last touched is the closest thing to when it was closed;
+      // the status change is the touch.
+      .gte("updated_at", start)
+      .lt("updated_at", end)
+      .order("updated_at", { ascending: false })
+      .limit(TASK_PAGE_SIZE);
+
+    return toTasks(orFail(result, "today's finished work"));
+  },
+);
+
 /** The overdue work, soonest-overdue first, bounded. */
 export const getOverdueTasks = cache(
   async (limit = 6): Promise<TaskWithAssignees[]> => {

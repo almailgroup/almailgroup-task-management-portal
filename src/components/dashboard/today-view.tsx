@@ -49,12 +49,16 @@ import type {
  */
 export function TodayView({
   tasks,
+  doneToday,
   followUps,
   projects,
   team,
   profile,
 }: {
+  /** Open work only: the four questions above are all "not done". */
   tasks: TaskWithAssignees[];
+  /** Finished on the reader's today, read separately for that reason. */
+  doneToday: TaskWithAssignees[];
   followUps: TaskWithAssignees[];
   projects: Project[];
   team: Profile[];
@@ -79,10 +83,6 @@ export function TodayView({
   );
   const inProgress = tasks.filter((t) => t.status === "in_progress");
   const inReview = tasks.filter((t) => t.status === "in_review");
-  const completedToday = tasks.filter(
-    (t) => t.status === "done" && isDueToday(t.updated_at, timeZone),
-  );
-
   const chaseNow = followUps.filter(
     (t) => t.follow_up_at && new Date(t.follow_up_at) <= new Date(),
   );
@@ -262,9 +262,12 @@ export function TodayView({
         </Card>
       )}
 
-      {completedToday.length > 0 && (
+      {/* Read separately rather than filtered out of `tasks`: that list is
+          open work by construction, so asking it for done rows answered
+          "none" every time and this line silently stopped appearing. */}
+      {doneToday.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {t("today.completedToday", { tasks: tn("count.tasks", completedToday.length) })}
+          {t("today.completedToday", { tasks: tn("count.tasks", doneToday.length) })}
         </p>
       )}
 
