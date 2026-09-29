@@ -73,7 +73,20 @@ export function NotificationBell({
   // server's exact count and adjust it as rows are read or arrive.
   const [unread, setUnread] = React.useState(initialUnread);
 
-  React.useEffect(() => setItems(initialItems), [initialItems]);
+  /**
+   * Which notifications this tab has already accounted for.
+   *
+   * A row can reach here twice — realtime redelivering it, or a server
+   * refresh arriving with it already in the list — and the badge must not
+   * count it again. A ref rather than state: this is bookkeeping, and it is
+   * read at the moment an event lands rather than at render.
+   */
+  const seen = React.useRef(new Set(initialItems.map((n) => n.id)));
+
+  React.useEffect(() => {
+    setItems(initialItems);
+    for (const item of initialItems) seen.current.add(item.id);
+  }, [initialItems]);
   React.useEffect(() => setUnread(initialUnread), [initialUnread]);
 
   React.useEffect(() => {
@@ -89,11 +102,18 @@ export function NotificationBell({
         },
         (payload) => {
           const row = payload.new as Notification;
-          setItems((current) => {
-            if (current.some((n) => n.id === row.id)) return current;
-            if (row.read_at === null) setUnread((count) => count + 1);
-            return [row, ...current].slice(0, 30);
-          });
+
+          // The duplicate check is made here, once, rather than inside the
+          // updater. React may run a state updater more than once for a
+          // single event — twice under Strict Mode, and again whenever it
+          // rebases a queued update — so an updater that also bumps the
+          // badge counted the same notification two and three times, and
+          // the number beside the bell drifted above the list under it.
+          if (seen.current.has(row.id)) return;
+          seen.current.add(row.id);
+
+          setItems((current) => [row, ...current].slice(0, 30));
+          if (row.read_at === null) setUnread((count) => count + 1);
           toast(row.title, { description: row.body ?? undefined });
         },
       )
