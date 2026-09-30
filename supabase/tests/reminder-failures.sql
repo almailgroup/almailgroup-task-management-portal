@@ -161,4 +161,17 @@ order by ok, name;
 
 select count(*) filter (where ok is not true) as failures from results;
 
+-- A failing check has to fail the run, not just appear in the table above.
+-- Printing the rows and exiting 0 is how these files sat in the repo being
+-- green by never being asked: psql stops on an *error*, and a FAIL row is
+-- not one until something raises.
+do $$
+declare failed integer;
+begin
+  select count(*) filter (where ok is not true) into failed from results;
+  if failed > 0 then
+    raise exception '% check(s) failed — see the table above', failed;
+  end if;
+end $$;
+
 rollback;

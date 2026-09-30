@@ -71,17 +71,38 @@ jobs:
 
       # The privacy rules live entirely in the policies, where no amount of
       # testing the UI can reach them. They are checked here against a real
-      # PostgreSQL with the whole schema applied, as three different people.
-      - name: Apply the schema
+      # PostgreSQL, built from setup.sql exactly as a fresh deployment would
+      # build it, as several different people.
+      #
+      # Every file in supabase/tests/, found by glob rather than named. Listed
+      # by name, this job ran two of them: eight suites arrived with their
+      # migrations and were never wired in, so they were green by never being
+      # asked. A glob cannot forget the next one.
+      #
+      # Each suite gets its own database — they insert their own fixtures, and
+      # one must not inherit another's.
+      - name: Policy and trigger suites
         run: |
-          psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/tests/shim.sql
-          psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/setup.sql
-
-      - name: My List privacy rules
-        run: psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/tests/shared-notes.sql
-
-      - name: Deleting and restoring tasks
-        run: psql "$PGURL" -v ON_ERROR_STOP=1 -q -f supabase/tests/trash-tasks.sql
+          shopt -s nullglob
+          status=0
+          for suite in supabase/tests/*.sql; do
+            case "$(basename "$suite")" in shim.sql) continue ;; esac
+            echo "::group::$(basename "$suite")"
+            db="t_$(basename "$suite" .sql | tr -dc 'a-z0-9')"
+            psql "$PGURL" -v ON_ERROR_STOP=1 -q -c "drop database if exists $db"
+            psql "$PGURL" -v ON_ERROR_STOP=1 -q -c "create database $db"
+            suite_url="${PGURL%/*}/$db"
+            psql "$suite_url" -v ON_ERROR_STOP=1 -q -f supabase/tests/shim.sql
+            psql "$suite_url" -v ON_ERROR_STOP=1 -q -f supabase/setup.sql
+            if psql "$suite_url" -v ON_ERROR_STOP=1 -q -f "$suite"; then
+              echo "ok"
+            else
+              echo "::error::$(basename "$suite") failed"
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $status
 
   e2e:
     name: End-to-end
