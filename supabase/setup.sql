@@ -28,6 +28,17 @@
 --   20260914000018_task_counts_timezone.sql
 --   20260914000019_shared_notes.sql
 --   20260914000020_trash_tasks.sql
+--   20260916000021_notify_missing_recipient.sql
+--   20260916000022_claim_task_reminders.sql
+--   20260916000023_team_chat.sql
+--   20260919000024_direct_messages.sql
+--   20260921000025_recurring_tasks.sql
+--   20260921000026_web_push.sql
+--   20260927000027_reminder_failures.sql
+--   20260927000028_error_log.sql
+--   20260927000029_task_checklists.sql
+--   20260927000030_archive_projects.sql
+--   20260930000031_guard_telegram_chat.sql
 -- ---------------------------------------------------------------------------
 
 -- =========================================================================
@@ -3626,3 +3637,1733 @@ begin
   return inserted;
 end;
 $$;
+
+-- =========================================================================
+-- 20260916000021_notify_missing_recipient.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Deleting a person could not be done.
+--
+-- Removing an account from Supabase's Authentication page returned 500, and
+-- the database log underneath it said:
+--
+--   insert or update on table "notifications"
+--   violates foreign key constraint "notifications_user_id_fkey"
+--
+-- The cascade is the whole story. Deleting the auth user deletes their
+-- profile; deleting the profile deletes their task assignments; and every
+-- assignment that goes fires `task_assignments_notify_delete`, which tries to
+-- tell that person they have been removed from a task. The profile it would
+-- address is the one that has just been deleted, so the insert has nobody to
+-- point at and the whole delete rolls back. The more work somebody had been
+-- given, the more certainly they could never be removed.
+--
+-- `push_notification` already meant to guard this — "never about a missing
+-- user" is its own comment — but it only checked that the recipient id was not
+-- null, and an id for a row that no longer exists is not null. It checks for
+-- the row now.
+--
+-- This is the right place for the fix rather than the assignment trigger:
+-- every notification in the app goes through this one function, so a comment,
+-- a mention, a status change and a reassignment are all covered by it, and any
+-- future one is covered without being remembered.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.push_notification(
+  recipient uuid,
+  actor uuid,
+  kind text,
+  heading text,
+  detail text,
+  task uuid,
+  project uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  -- Never notify someone about their own action.
+  if recipient is null or recipient = coalesce(actor, '00000000-0000-0000-0000-000000000000'::uuid) then
+    return;
+  end if;
+
+  -- Never notify someone who is not there any more. During a cascading delete
+  -- the profile is already gone by the time the triggers on its children run,
+  -- and a message to a deleted account is not worth failing the delete for.
+  if not exists (select 1 from public.profiles where id = recipient) then
+    return;
+  end if;
+
+  insert into public.notifications (user_id, actor_id, type, title, body, task_id, project_id)
+  values (recipient, actor, kind, heading, detail, task, project);
+end;
+$$;
+
+-- =========================================================================
+-- 20260916000022_claim_task_reminders.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Send "you were assigned this" at the moment it happens.
+--
+-- Every reminder went out on the daily sweep, which is right for the three
+-- kinds that are questions about the clock — due soon, overdue, follow up.
+-- They can only be found by looking at the board against the time, so a
+-- scheduled run is the only thing that could find them.
+--
+-- Being handed a task is not that. It is an event that has already happened,
+-- with a known recipient and a message sitting ready in the queue within
+-- milliseconds. It waited up to a day anyway, because it shared the one
+-- conveyor belt with the others — so somebody assigned work at 2pm heard
+-- about it the next morning.
+--
+-- This claims the rows for a single task, so the assignment path can drain
+-- just those and leave the rest of the queue to the scheduler. Same rules as
+-- `claim_reminders`: the row is moved out of 'pending' in one statement before
+-- any provider is called, SKIP LOCKED so the sweep and an assignment happening
+-- at the same moment take different rows rather than both sending, and a claim
+-- stranded by a dead function is released after ten minutes.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.claim_task_reminders(task uuid)
+returns setof public.reminder_queue
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if task is null then
+    return;
+  end if;
+
+  -- Release anything this task left 'sending' in a run that died.
+  update public.reminder_queue
+     set status = 'pending', claimed_at = null
+   where task_id = task
+     and status = 'sending'
+     and claimed_at < now() - interval '10 minutes';
+
+  return query
+  with due as (
+    select id
+      from public.reminder_queue
+     where task_id = task
+       and status = 'pending'
+       and scheduled_for <= now()
+     -- A task has one row per assignee per channel. The cap is here so a
+     -- pathological task cannot turn one assignment into an unbounded send.
+     limit 40
+     for update skip locked
+  )
+  update public.reminder_queue q
+     set status = 'sending', claimed_at = now()
+    from due
+   where q.id = due.id
+  returning q.*;
+end;
+$$;
+
+-- Only the service-role dispatcher calls this; it reads every user's queue.
+revoke all on function public.claim_task_reminders(uuid) from public, anon, authenticated;
+
+-- =========================================================================
+-- 20260916000023_team_chat.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Team chat
+--
+-- One room for the workspace. Not a channel list and not direct messages:
+-- everyone here already works together, and a single room that everybody can
+-- see is the thing a small team actually uses. It is modelled so a `room`
+-- column could be added later without moving the messages.
+--
+-- Deliberately separate from `comments`, which belong to a task and are part
+-- of its record. A message here is conversation, and is allowed to be deleted
+-- by the person who wrote it.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.team_messages (
+  id        uuid primary key default gen_random_uuid(),
+  author_id uuid not null references public.profiles (id) on delete cascade,
+  body      text not null,
+
+  created_at timestamptz not null default now(),
+  edited_at  timestamptz,
+
+  -- Long enough for a paragraph, short enough that the room stays a
+  -- conversation rather than a document.
+  constraint team_messages_body_length check (
+    char_length(btrim(body)) between 1 and 4000
+  )
+);
+
+-- The room is read newest-last and paged from the end.
+create index if not exists team_messages_created_idx
+  on public.team_messages (created_at desc);
+
+alter table public.team_messages enable row level security;
+
+-- Everyone signed in is on the team, so everyone reads the room. There is no
+-- narrower rule to write: a shared room whose messages some members cannot see
+-- is not a shared room.
+drop policy if exists "team messages are readable by the team" on public.team_messages;
+create policy "team messages are readable by the team"
+  on public.team_messages for select
+  to authenticated
+  using (true);
+
+-- You may only speak as yourself. Without the `author_id` check a member could
+-- post a message attributed to somebody else, which is the one thing a chat
+-- must not allow.
+drop policy if exists "members write their own messages" on public.team_messages;
+create policy "members write their own messages"
+  on public.team_messages for insert
+  to authenticated
+  with check (author_id = auth.uid());
+
+drop policy if exists "authors edit their own messages" on public.team_messages;
+create policy "authors edit their own messages"
+  on public.team_messages for update
+  to authenticated
+  using (author_id = auth.uid())
+  with check (author_id = auth.uid());
+
+-- An author can delete what they said; an admin can delete anything, because
+-- somebody has to be able to remove what should not have been posted.
+drop policy if exists "authors and admins delete messages" on public.team_messages;
+create policy "authors and admins delete messages"
+  on public.team_messages for delete
+  to authenticated
+  using (author_id = auth.uid() or public.is_admin());
+
+-- Row-level security decides *which* rows; the grant decides whether the role
+-- may touch the table at all, and both are needed. Every other table in this
+-- schema grants explicitly rather than leaning on the default privileges of
+-- the `public` schema — this one was the exception, and the symptom was a
+-- room that answered "permission denied for table team_messages".
+grant select, insert, update, delete on public.team_messages to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Realtime
+--
+-- RLS is still enforced on everything realtime forwards, so publishing the
+-- table does not widen who can read it.
+-- ---------------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    raise notice 'publication supabase_realtime not found — skipping';
+    return;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'team_messages'
+  ) then
+    alter publication supabase_realtime add table public.team_messages;
+  end if;
+end $$;
+
+-- A delete payload carries only the identifying columns unless the replica
+-- identity is full, and the room needs to know which message went.
+alter table public.team_messages replica identity full;
+
+-- =========================================================================
+-- 20260919000024_direct_messages.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Private messages
+--
+-- The team room is one room that everybody reads; its select policy is
+-- literally `using (true)`. This is the opposite: a conversation is readable
+-- only by the people in it, and there is no admin override anywhere in this
+-- file. An admin can remove a message from the shared room because somebody
+-- has to be able to take down what should not have been posted in public.
+-- Nothing here is public, so that reason does not apply, and "private unless
+-- an admin is curious" is not private.
+--
+-- Shaped for one-to-one today and small private groups later without moving
+-- any messages: membership lives in `conversation_participants`, which has no
+-- idea how many people it holds. The ordered pair on `conversations` exists
+-- only to stop two people ending up with two threads, and is null for
+-- anything that is not a pair.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.conversations (
+  id         uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+
+  -- Ordering for the conversation list, kept by the trigger below so the list
+  -- does not have to aggregate every message to sort itself.
+  last_message_at timestamptz not null default now(),
+
+  -- The two people, smaller id first, so (a,b) and (b,a) are the same row.
+  member_low  uuid references public.profiles (id) on delete cascade,
+  member_high uuid references public.profiles (id) on delete cascade,
+
+  constraint conversations_pair_ordered check (
+    (member_low is null and member_high is null) or member_low < member_high
+  )
+);
+
+-- One thread per pair. Partial, so future group conversations — which leave
+-- both columns null — are not forced into a single row between them.
+create unique index if not exists conversations_pair_idx
+  on public.conversations (member_low, member_high)
+  where member_low is not null;
+
+create index if not exists conversations_recent_idx
+  on public.conversations (last_message_at desc);
+
+create table if not exists public.conversation_participants (
+  conversation_id uuid not null references public.conversations (id) on delete cascade,
+  user_id         uuid not null references public.profiles (id) on delete cascade,
+
+  -- How far this person has read. The unread count is everything after it.
+  last_read_at timestamptz not null default now(),
+
+  primary key (conversation_id, user_id)
+);
+
+create index if not exists conversation_participants_user_idx
+  on public.conversation_participants (user_id);
+
+create table if not exists public.direct_messages (
+  id              uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations (id) on delete cascade,
+  author_id       uuid not null references public.profiles (id) on delete cascade,
+  body            text not null,
+
+  created_at timestamptz not null default now(),
+  edited_at  timestamptz,
+
+  constraint direct_messages_body_length check (
+    char_length(btrim(body)) between 1 and 4000
+  )
+);
+
+create index if not exists direct_messages_thread_idx
+  on public.direct_messages (conversation_id, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- Membership, asked without recursion
+--
+-- A policy on `conversation_participants` that checks membership by selecting
+-- from `conversation_participants` is a policy that calls itself. `security
+-- definer` steps outside row-level security to answer the one question every
+-- policy in this file is built on, which is what breaks the loop.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.in_conversation(conversation uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select conversation is not null and exists (
+    select 1
+      from public.conversation_participants p
+     where p.conversation_id = conversation
+       and p.user_id = auth.uid()
+  );
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Starting a conversation
+--
+-- Find the thread with somebody, or open it. Done in one `security definer`
+-- function rather than by letting the client insert, for two reasons: the
+-- caller can only ever add themselves and one other person, and two people
+-- messaging each other at the same moment get one thread rather than two —
+-- the unique index decides it and the loser reads the winner's row.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.start_direct_conversation(other uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  me   uuid := auth.uid();
+  low  uuid;
+  high uuid;
+  found uuid;
+begin
+  if me is null then
+    raise exception 'not signed in';
+  end if;
+  if other is null or other = me then
+    raise exception 'pick somebody else to message';
+  end if;
+  if not exists (select 1 from public.profiles where id = other) then
+    raise exception 'that person is not on the team';
+  end if;
+
+  low  := least(me, other);
+  high := greatest(me, other);
+
+  select id into found
+    from public.conversations
+   where member_low = low and member_high = high;
+
+  if found is not null then
+    return found;
+  end if;
+
+  insert into public.conversations (member_low, member_high)
+       values (low, high)
+  on conflict (member_low, member_high) where member_low is not null
+  do nothing
+  returning id into found;
+
+  -- Somebody else won the race; their row is the thread.
+  if found is null then
+    select id into found
+      from public.conversations
+     where member_low = low and member_high = high;
+    return found;
+  end if;
+
+  insert into public.conversation_participants (conversation_id, user_id)
+       values (found, me), (found, other);
+
+  return found;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Keeping the list in order, and telling the other person
+-- ---------------------------------------------------------------------------
+
+create or replace function public.touch_conversation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  recipient uuid;
+  sender    text;
+begin
+  update public.conversations
+     set last_message_at = new.created_at
+   where id = new.conversation_id;
+
+  -- A message nobody is told about is a message nobody reads. Everyone in the
+  -- conversation except whoever wrote it.
+  select coalesce(p.full_name, p.email) into sender
+    from public.profiles p where p.id = new.author_id;
+
+  for recipient in
+    select user_id
+      from public.conversation_participants
+     where conversation_id = new.conversation_id
+       and user_id <> new.author_id
+  loop
+    perform public.push_direct_notification(
+      recipient, new.author_id, sender, new.body, new.conversation_id
+    );
+  end loop;
+
+  return new;
+end;
+$$;
+
+-- `push_notification` writes a notification about a task; this one is about a
+-- conversation, which has no task and no project to point at.
+create or replace function public.push_direct_notification(
+  recipient uuid,
+  actor uuid,
+  heading text,
+  detail text,
+  conversation uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if recipient is null or recipient = actor then
+    return;
+  end if;
+  -- Same guard as `push_notification`: never address a profile that has been
+  -- deleted, or a cascading delete cannot finish.
+  if not exists (select 1 from public.profiles where id = recipient) then
+    return;
+  end if;
+
+  insert into public.notifications
+    (user_id, actor_id, type, title, body, conversation_id)
+  values
+    (recipient, actor, 'direct_message', heading, left(btrim(detail), 140), conversation);
+end;
+$$;
+
+drop trigger if exists direct_messages_touch on public.direct_messages;
+create trigger direct_messages_touch
+  after insert on public.direct_messages
+  for each row execute function public.touch_conversation();
+
+-- ---------------------------------------------------------------------------
+-- A notification can now be about a conversation
+-- ---------------------------------------------------------------------------
+
+alter table public.notifications
+  add column if not exists conversation_id uuid
+  references public.conversations (id) on delete cascade;
+
+alter table public.notifications drop constraint if exists notifications_type_known;
+alter table public.notifications add constraint notifications_type_known check (
+  type in (
+    'task_assigned',
+    'task_unassigned',
+    'task_commented',
+    'task_mentioned',
+    'task_review_requested',
+    'task_completed',
+    'direct_message'
+  )
+);
+
+-- ---------------------------------------------------------------------------
+-- Row-level security
+-- ---------------------------------------------------------------------------
+
+alter table public.conversations              enable row level security;
+alter table public.conversation_participants  enable row level security;
+alter table public.direct_messages            enable row level security;
+
+-- `force` so the rule holds for the table's owner too. A private conversation
+-- is the one place in this schema where that distinction is worth the cost.
+alter table public.conversations              force row level security;
+alter table public.conversation_participants  force row level security;
+alter table public.direct_messages            force row level security;
+
+drop policy if exists "participants read their conversations" on public.conversations;
+create policy "participants read their conversations"
+  on public.conversations for select
+  to authenticated
+  using (public.in_conversation(id));
+
+-- No insert policy on purpose: conversations are opened through
+-- `start_direct_conversation`, which decides who is in one.
+
+drop policy if exists "participants see who is in the room" on public.conversation_participants;
+create policy "participants see who is in the room"
+  on public.conversation_participants for select
+  to authenticated
+  using (public.in_conversation(conversation_id));
+
+-- Marking your own place, and nobody else's.
+drop policy if exists "participants mark their own place" on public.conversation_participants;
+create policy "participants mark their own place"
+  on public.conversation_participants for update
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "participants read the thread" on public.direct_messages;
+create policy "participants read the thread"
+  on public.direct_messages for select
+  to authenticated
+  using (public.in_conversation(conversation_id));
+
+-- You may only speak as yourself, and only where you are.
+drop policy if exists "participants write as themselves" on public.direct_messages;
+create policy "participants write as themselves"
+  on public.direct_messages for insert
+  to authenticated
+  with check (
+    author_id = auth.uid() and public.in_conversation(conversation_id)
+  );
+
+drop policy if exists "authors edit their own messages" on public.direct_messages;
+create policy "authors edit their own messages"
+  on public.direct_messages for update
+  to authenticated
+  using (author_id = auth.uid())
+  with check (author_id = auth.uid());
+
+-- Authors only. There is deliberately no admin clause here.
+drop policy if exists "authors delete their own messages" on public.direct_messages;
+create policy "authors delete their own messages"
+  on public.direct_messages for delete
+  to authenticated
+  using (author_id = auth.uid());
+
+-- Row-level security decides which rows; the grant decides whether the role
+-- may touch the table at all, and this schema says so explicitly everywhere.
+grant select                       on public.conversations             to authenticated;
+grant select, update               on public.conversation_participants to authenticated;
+grant select, insert, update, delete on public.direct_messages         to authenticated;
+grant execute on function public.in_conversation(uuid)            to authenticated;
+grant execute on function public.start_direct_conversation(uuid)  to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- The list, in one question
+--
+-- Built naively this is a query for the conversations and then two more for
+-- each of them — the last thing said, and how much of it is unread. Twenty
+-- conversations is forty-one round trips, and the unread total is wanted by
+-- the app shell on *every* page, not just this one. One statement instead,
+-- with a lateral join per thread, which Postgres answers from the indexes
+-- already here.
+--
+-- `security invoker`, not definer: row-level security still applies, so this
+-- cannot return a conversation the caller could not have read anyway. The
+-- explicit `user_id = auth.uid()` join is the belt to that pair of braces.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.my_conversations()
+returns table (
+  id              uuid,
+  last_message_at timestamptz,
+  other_id        uuid,
+  other_name      text,
+  other_email     text,
+  other_avatar    text,
+  other_title     text,
+  last_message    text,
+  last_author_id  uuid,
+  unread          bigint
+)
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  with mine as (
+    select c.id, c.last_message_at, p.last_read_at
+      from public.conversations c
+      join public.conversation_participants p
+        on p.conversation_id = c.id
+       and p.user_id = auth.uid()
+  )
+  select
+    m.id,
+    m.last_message_at,
+    other.id,
+    other.full_name,
+    other.email,
+    other.avatar_url,
+    other.job_title,
+    recent.body,
+    recent.author_id,
+    coalesce(counted.n, 0)
+  from mine m
+  left join lateral (
+    select pr.id, pr.full_name, pr.email, pr.avatar_url, pr.job_title
+      from public.conversation_participants p
+      join public.profiles pr on pr.id = p.user_id
+     where p.conversation_id = m.id
+       and p.user_id <> auth.uid()
+     limit 1
+  ) other on true
+  left join lateral (
+    select d.body, d.author_id
+      from public.direct_messages d
+     where d.conversation_id = m.id
+     order by d.created_at desc
+     limit 1
+  ) recent on true
+  left join lateral (
+    select count(*) as n
+      from public.direct_messages d
+     where d.conversation_id = m.id
+       and d.author_id <> auth.uid()
+       and d.created_at > m.last_read_at
+  ) counted on true
+  order by m.last_message_at desc;
+$$;
+
+-- Just the number, for the badge the shell draws on every page. Counting it
+-- here rather than summing the list above is one small query instead of one
+-- large one, on pages that will never show a conversation.
+create or replace function public.unread_direct_count()
+returns bigint
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select coalesce(count(d.*), 0)
+    from public.conversation_participants p
+    join public.direct_messages d
+      on d.conversation_id = p.conversation_id
+     and d.author_id <> p.user_id
+     and d.created_at > p.last_read_at
+   where p.user_id = auth.uid();
+$$;
+
+grant execute on function public.my_conversations()      to authenticated;
+grant execute on function public.unread_direct_count()   to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Realtime
+--
+-- RLS is enforced on everything realtime forwards, so publishing these does
+-- not widen who can read them.
+-- ---------------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    raise notice 'publication supabase_realtime not found — skipping';
+    return;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime' and schemaname = 'public'
+       and tablename = 'direct_messages'
+  ) then
+    alter publication supabase_realtime add table public.direct_messages;
+  end if;
+end $$;
+
+-- A delete payload carries only the identifying columns unless the replica
+-- identity is full, and the thread needs to know which message went.
+alter table public.direct_messages replica identity full;
+
+-- =========================================================================
+-- 20260921000025_recurring_tasks.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Recurring tasks
+--
+-- The portal could describe work that happens once. Everything that happens
+-- every month — the freight reconciliation, the licence renewal, the board
+-- pack — was retyped each time, which is both a chore and a way to forget.
+--
+-- The model is deliberately the simplest one that is honest: a task carries
+-- its own repeat rule, and closing it opens the next one. There is no series,
+-- no parent row, no calendar of future instances. That means:
+--
+--   * exactly one open instance of a repeating task exists at any moment, so
+--     the board never fills with copies of the same thing;
+--   * the history is the closed instances themselves, each with its own
+--     comments and activity;
+--   * changing the rule changes it from the next occurrence on, which is what
+--     somebody editing a task in front of them expects.
+--
+-- What it cannot express is "the first Monday of the month" or "weekdays
+-- only". Those want a real calendar rule and a generator, and neither is
+-- worth its weight until somebody asks.
+-- ---------------------------------------------------------------------------
+
+alter table public.tasks
+  add column if not exists repeat_every text,
+  add column if not exists repeat_interval integer not null default 1;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'tasks_repeat_every_check'
+  ) then
+    alter table public.tasks
+      add constraint tasks_repeat_every_check
+      check (repeat_every is null or repeat_every in ('day', 'week', 'month', 'year'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'tasks_repeat_interval_check'
+  ) then
+    alter table public.tasks
+      add constraint tasks_repeat_interval_check
+      check (repeat_interval between 1 and 365);
+  end if;
+
+  -- A repeat with no due date has nothing to advance, so it is not a repeat.
+  if not exists (
+    select 1 from pg_constraint where conname = 'tasks_repeat_needs_due_check'
+  ) then
+    alter table public.tasks
+      add constraint tasks_repeat_needs_due_check
+      check (repeat_every is null or due_at is not null);
+  end if;
+end $$;
+
+comment on column public.tasks.repeat_every is
+  'Unit of the repeat rule: day, week, month or year. Null means the task happens once.';
+comment on column public.tasks.repeat_interval is
+  'How many of those units between occurrences. 2 with repeat_every = week is fortnightly.';
+
+-- ---------------------------------------------------------------------------
+-- Closing one opens the next
+--
+-- `security definer` because the row is written on behalf of whoever closed
+-- the task, and the next occurrence belongs to the same person who owned the
+-- last one rather than to them. It writes one row, shaped from a row the
+-- caller has just proved they can update, so it hands out nothing that was
+-- not already theirs.
+--
+-- The due date is advanced until it is in the future: a monthly task closed
+-- three months late should next be due next month, not produce something that
+-- is already overdue.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.spawn_next_occurrence()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  step     interval;
+  next_due timestamptz;
+  copy_id  uuid;
+begin
+  if new.repeat_every is null or new.due_at is null then
+    return new;
+  end if;
+
+  -- Only the move into done, and only once: an update that leaves a closed
+  -- task closed must not open a second copy.
+  if new.status <> 'done' or old.status = 'done' then
+    return new;
+  end if;
+
+  step := (new.repeat_interval || ' ' || new.repeat_every)::interval;
+  next_due := new.due_at + step;
+
+  -- Bounded: a daily task abandoned for years would otherwise loop here.
+  for i in 1..500 loop
+    exit when next_due > now();
+    next_due := next_due + step;
+  end loop;
+
+  insert into public.tasks (
+    project_id, title, description, status, priority,
+    due_at, position, created_by, repeat_every, repeat_interval
+  )
+  values (
+    new.project_id, new.title, new.description, 'todo', new.priority,
+    next_due, new.position, new.created_by, new.repeat_every, new.repeat_interval
+  )
+  returning id into copy_id;
+
+  -- The same people, on the same job.
+  insert into public.task_assignments (task_id, user_id)
+  select copy_id, user_id
+    from public.task_assignments
+   where task_id = new.id;
+
+  -- The rule travels with the occurrence that is still open, so the closed
+  -- one reads as what it is: a thing that was done on a date.
+  update public.tasks
+     set repeat_every = null
+   where id = new.id;
+
+  return new;
+end;
+$fn$;
+
+comment on function public.spawn_next_occurrence() is
+  'Opens the next occurrence of a repeating task when one is closed, and moves the rule onto it.';
+
+drop trigger if exists tasks_spawn_next_occurrence on public.tasks;
+
+create trigger tasks_spawn_next_occurrence
+  after update of status on public.tasks
+  for each row
+  execute function public.spawn_next_occurrence();
+
+-- =========================================================================
+-- 20260921000026_web_push.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Web push
+--
+-- The portal could reach somebody by email, Telegram or WhatsApp — every one
+-- of them a different app, and none of them the one the work is in. Installed
+-- to a home screen, the portal can now buzz the phone itself. iOS has allowed
+-- this since 16.4, for installed web apps only, which is exactly how this one
+-- is used.
+--
+-- Three things here:
+--   * push_subscriptions — one row per device that said yes, not per person;
+--   * push_enabled on the preferences, beside the other channels;
+--   * 'push' as a channel on the queue, fanned out per device.
+--
+-- The keys that sign a push (VAPID) live in web_push_keys, which has row-level
+-- security on and no policies at all: nothing reachable with a user's session
+-- can read it, only the service role the dispatcher runs as. They are
+-- generated on first use rather than pasted into an environment variable, so
+-- the secret is never written down anywhere a person could paste it.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.push_subscriptions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles (id) on delete cascade,
+  -- The browser's own address for this device. Unique across everybody: it is
+  -- issued by the push service and two people cannot hold the same one.
+  endpoint    text not null unique,
+  -- The keys the payload is encrypted to. Useless without the endpoint.
+  p256dh      text not null,
+  auth        text not null,
+  -- For the person deciding which of their devices to turn off.
+  user_agent  text,
+  created_at  timestamptz not null default now(),
+  last_used_at timestamptz
+);
+
+create index if not exists push_subscriptions_user_idx
+  on public.push_subscriptions (user_id);
+
+alter table public.push_subscriptions enable row level security;
+alter table public.push_subscriptions force row level security;
+
+drop policy if exists "people see their own devices" on public.push_subscriptions;
+create policy "people see their own devices"
+  on public.push_subscriptions for select
+  using (user_id = auth.uid());
+
+drop policy if exists "people register their own devices" on public.push_subscriptions;
+create policy "people register their own devices"
+  on public.push_subscriptions for insert
+  with check (user_id = auth.uid());
+
+drop policy if exists "people update their own devices" on public.push_subscriptions;
+create policy "people update their own devices"
+  on public.push_subscriptions for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+-- No admin clause, deliberately: which devices somebody carries is theirs.
+drop policy if exists "people remove their own devices" on public.push_subscriptions;
+create policy "people remove their own devices"
+  on public.push_subscriptions for delete
+  using (user_id = auth.uid());
+
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+
+comment on table public.push_subscriptions is
+  'One row per device that has agreed to notifications. The dispatcher sends to these with the service role.';
+
+-- ---------------------------------------------------------------------------
+-- The signing keys
+--
+-- One row, ever: `id` is a boolean fixed at true, so a second insert collides
+-- with the primary key rather than quietly creating a second pair that half
+-- the devices are subscribed to.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.web_push_keys (
+  id          boolean primary key default true check (id),
+  public_key  text not null,
+  private_key text not null,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.web_push_keys enable row level security;
+alter table public.web_push_keys force row level security;
+-- No policies and no grants: the service role bypasses both, everybody else
+-- is refused. The public half is handed to the browser by the app, which
+-- reads this row on the server.
+
+comment on table public.web_push_keys is
+  'The VAPID key pair, generated on first use. Unreadable with a user session by design.';
+
+-- ---------------------------------------------------------------------------
+-- The channel
+-- ---------------------------------------------------------------------------
+
+alter table public.notification_preferences
+  add column if not exists push_enabled boolean not null default false;
+
+comment on column public.notification_preferences.push_enabled is
+  'Whether reminders are also pushed to this person''s registered devices.';
+
+alter table public.reminder_queue
+  drop constraint if exists reminder_queue_channel_check;
+
+alter table public.reminder_queue
+  add constraint reminder_queue_channel_check
+  check (channel in ('email', 'telegram', 'whatsapp', 'push'));
+
+-- ---------------------------------------------------------------------------
+-- Queueing to devices
+--
+-- The same function as before with one branch added. It is repeated whole
+-- rather than patched because a plpgsql body cannot be edited in place, and a
+-- half-replaced one is worse than a long migration.
+--
+-- Two things worth noticing. The lateral now carries its own recipient: the
+-- other three channels have exactly one address each, a device does not, and
+-- somebody with a phone and a laptop should be told on both. And the dedupe
+-- key gains the endpoint for push only, so every key already in the queue
+-- keeps its exact spelling and nothing that has been sent is sent again.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.enqueue_task_reminders()
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  inserted integer := 0;
+begin
+  -- Work that is due within the recipient's chosen lead time.
+  with candidates as (
+    select
+      t.id as task_id, t.title, t.due_at,
+      a.user_id,
+      p.email,
+      np.email_enabled, np.telegram_enabled, np.whatsapp_enabled, np.push_enabled,
+      np.telegram_chat_id, np.whatsapp_number, np.due_soon_lead_hours
+    from public.tasks t
+    join public.task_assignments a on a.task_id = t.id
+    join public.profiles p on p.id = a.user_id
+    join public.notification_preferences np on np.user_id = a.user_id
+    where t.status <> 'done'
+      and t.deleted_at is null
+      and t.due_at is not null
+      and np.remind_due_soon
+      and t.due_at > now()
+      and t.due_at <= now() + make_interval(hours => np.due_soon_lead_hours)
+  )
+  insert into public.reminder_queue
+    (user_id, task_id, channel, kind, recipient, subject, body, dedupe_key)
+  select
+    c.user_id, c.task_id, ch.channel, 'due_soon',
+    ch.recipient,
+    'Due soon: ' || c.title,
+    c.title || ' is due ' || to_char(c.due_at at time zone 'UTC', 'DD Mon HH24:MI') || ' UTC.',
+    'due_soon:' || c.task_id || ':' || c.user_id || ':' || ch.channel || case when ch.channel = 'push' then ':' || ch.recipient else '' end || ':' || extract(epoch from c.due_at)::bigint
+  from candidates c
+  cross join lateral (
+    select 'email'::text as channel, c.email as recipient
+     where c.email_enabled
+    union all
+    select 'telegram', c.telegram_chat_id
+     where c.telegram_enabled and c.telegram_chat_id is not null
+    union all
+    select 'whatsapp', c.whatsapp_number
+     where c.whatsapp_enabled and c.whatsapp_number is not null
+    union all
+    -- One row per device, so somebody with a phone and a laptop is told on
+    -- both. The others have exactly one address each, which is why they were
+    -- a plain case expression until now.
+    select 'push', s.endpoint
+      from public.push_subscriptions s
+     where c.push_enabled and s.user_id = c.user_id
+  ) ch
+  on conflict (dedupe_key) do nothing;
+
+  get diagnostics inserted = row_count;
+
+  -- Work that is already late. Keyed by the day so a task that stays overdue
+  -- nags once a day rather than on every scheduler run.
+  with candidates as (
+    select
+      t.id as task_id, t.title, t.due_at,
+      a.user_id, p.email,
+      np.email_enabled, np.telegram_enabled, np.whatsapp_enabled, np.push_enabled,
+      np.telegram_chat_id, np.whatsapp_number, np.due_soon_lead_hours
+    from public.tasks t
+    join public.task_assignments a on a.task_id = t.id
+    join public.profiles p on p.id = a.user_id
+    join public.notification_preferences np on np.user_id = a.user_id
+    where t.status <> 'done'
+      and t.deleted_at is null
+      and t.due_at is not null
+      and t.due_at < now()
+      and np.remind_overdue
+  )
+  insert into public.reminder_queue
+    (user_id, task_id, channel, kind, recipient, subject, body, dedupe_key)
+  select
+    c.user_id, c.task_id, ch.channel, 'overdue',
+    ch.recipient,
+    'Overdue: ' || c.title,
+    c.title || ' was due ' || to_char(c.due_at at time zone 'UTC', 'DD Mon HH24:MI') || ' UTC and is still open.',
+    'overdue:' || c.task_id || ':' || c.user_id || ':' || ch.channel || case when ch.channel = 'push' then ':' || ch.recipient else '' end || ':' || to_char(now(), 'YYYY-MM-DD')
+  from candidates c
+  cross join lateral (
+    select 'email'::text as channel, c.email as recipient
+     where c.email_enabled
+    union all
+    select 'telegram', c.telegram_chat_id
+     where c.telegram_enabled and c.telegram_chat_id is not null
+    union all
+    select 'whatsapp', c.whatsapp_number
+     where c.whatsapp_enabled and c.whatsapp_number is not null
+    union all
+    -- One row per device, so somebody with a phone and a laptop is told on
+    -- both. The others have exactly one address each, which is why they were
+    -- a plain case expression until now.
+    select 'push', s.endpoint
+      from public.push_subscriptions s
+     where c.push_enabled and s.user_id = c.user_id
+  ) ch
+  on conflict (dedupe_key) do nothing;
+
+  -- Follow-ups that have come due, to whoever has to chase them.
+  with candidates as (
+    select
+      t.id as task_id, t.title, t.follow_up_at, t.follow_up_note,
+      a.user_id, p.email,
+      np.email_enabled, np.telegram_enabled, np.whatsapp_enabled, np.push_enabled,
+      np.telegram_chat_id, np.whatsapp_number, np.due_soon_lead_hours
+    from public.tasks t
+    join public.task_assignments a on a.task_id = t.id
+    join public.profiles p on p.id = a.user_id
+    join public.notification_preferences np on np.user_id = a.user_id
+    where t.status <> 'done'
+      and t.deleted_at is null
+      and t.follow_up_at is not null
+      and t.follow_up_at <= now()
+      and np.remind_follow_up
+  )
+  insert into public.reminder_queue
+    (user_id, task_id, channel, kind, recipient, subject, body, dedupe_key)
+  select
+    c.user_id, c.task_id, ch.channel, 'follow_up',
+    ch.recipient,
+    'Follow up: ' || c.title,
+    coalesce(c.follow_up_note, 'Time to follow up on ' || c.title) || ' (' || c.title || ')',
+    'follow_up:' || c.task_id || ':' || c.user_id || ':' || ch.channel || case when ch.channel = 'push' then ':' || ch.recipient else '' end || ':' || extract(epoch from c.follow_up_at)::bigint
+  from candidates c
+  cross join lateral (
+    select 'email'::text as channel, c.email as recipient
+     where c.email_enabled
+    union all
+    select 'telegram', c.telegram_chat_id
+     where c.telegram_enabled and c.telegram_chat_id is not null
+    union all
+    select 'whatsapp', c.whatsapp_number
+     where c.whatsapp_enabled and c.whatsapp_number is not null
+    union all
+    -- One row per device, so somebody with a phone and a laptop is told on
+    -- both. The others have exactly one address each, which is why they were
+    -- a plain case expression until now.
+    select 'push', s.endpoint
+      from public.push_subscriptions s
+     where c.push_enabled and s.user_id = c.user_id
+  ) ch
+  on conflict (dedupe_key) do nothing;
+
+  return inserted;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Being handed work, on the device in your pocket
+--
+-- The same trigger, with devices added to the same union it already used.
+-- Assignment is the one reminder that should not wait for the next sweep, so
+-- it is also the one where a push is worth most.
+--
+-- The dedupe key gains the endpoint for push only, as above.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.enqueue_assignment_reminder()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  t public.tasks%rowtype;
+  prefs public.notification_preferences%rowtype;
+begin
+  select * into t from public.tasks where id = new.task_id;
+  if not found then return null; end if;
+
+  select * into prefs from public.notification_preferences where user_id = new.user_id;
+  if not found or not prefs.remind_assigned then return null; end if;
+
+  insert into public.reminder_queue
+    (user_id, task_id, channel, kind, recipient, subject, body, dedupe_key)
+  select
+    new.user_id, t.id, ch.channel, 'assigned',
+    ch.recipient,
+    'Assigned to you: ' || t.title,
+    'You were assigned "' || t.title || '"'
+      || coalesce(' - due ' || to_char(t.due_at at time zone 'UTC', 'DD Mon HH24:MI') || ' UTC', '') || '.',
+    'assigned:' || t.id || ':' || new.user_id || ':' || ch.channel
+      || case when ch.channel = 'push' then ':' || ch.recipient else '' end
+  from (
+    select 'email'::text as channel, (select email from public.profiles where id = new.user_id) as recipient
+      where prefs.email_enabled
+    union all
+    select 'telegram', prefs.telegram_chat_id
+      where prefs.telegram_enabled and prefs.telegram_chat_id is not null
+    union all
+    select 'whatsapp', prefs.whatsapp_number
+      where prefs.whatsapp_enabled and prefs.whatsapp_number is not null
+    union all
+    select 'push', s.endpoint
+      from public.push_subscriptions s
+     where prefs.push_enabled and s.user_id = new.user_id
+  ) ch
+  where ch.recipient is not null
+  on conflict (dedupe_key) do nothing;
+
+  return null;
+end;
+$fn$;
+
+-- =========================================================================
+-- 20260927000027_reminder_failures.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- When a reminder cannot be delivered
+--
+-- A reminder that exhausted its four attempts was marked `failed` and that
+-- was the end of it. Nobody was told — not the person waiting for it, not an
+-- admin. The only symptom was somebody quietly not hearing about their work,
+-- which reads as the portal not bothering rather than as a wrong phone
+-- number or a revoked notification permission.
+--
+-- Two things here. The person gets a notification, in the same bell as
+-- everything else, saying which channel failed. And an admin can see the
+-- failures across the team without being handed the messages themselves.
+-- ---------------------------------------------------------------------------
+
+-- When it gave up, which the row never recorded. `created_at` is when it was
+-- queued: for a reminder that spent an hour being retried those are an hour
+-- apart, and "why did nobody hear about this" is a question about the second
+-- one. Old rows keep their queued time as the best available answer.
+alter table public.reminder_queue
+  add column if not exists failed_at timestamptz;
+
+comment on column public.reminder_queue.failed_at is
+  'When delivery was given up on. Null while the row is still pending or was sent.';
+
+alter table public.notifications drop constraint if exists notifications_type_known;
+alter table public.notifications add constraint notifications_type_known check (
+  type in (
+    'task_assigned',
+    'task_unassigned',
+    'task_commented',
+    'task_mentioned',
+    'task_review_requested',
+    'task_completed',
+    'direct_message',
+    'reminder_failed'
+  )
+);
+
+-- ---------------------------------------------------------------------------
+-- The team's delivery failures, for somebody who can act on them
+--
+-- `security definer` because an admin has no business reading the queue
+-- itself: a row carries the message, and a message carries the work. This
+-- hands back who, which channel, when and why — and never the body.
+--
+-- The admin check is inside the function rather than in a policy, so calling
+-- it as anybody else is refused rather than quietly returning nothing.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.reminder_failures(since_hours integer default 168)
+returns table (
+  user_id     uuid,
+  person      text,
+  channel     text,
+  kind        text,
+  attempts    integer,
+  last_error  text,
+  failed_at   timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $fn$
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can read delivery failures.'
+      using errcode = 'insufficient_privilege';
+  end if;
+
+  return query
+    select
+      q.user_id,
+      coalesce(p.full_name, p.email) as person,
+      q.channel,
+      q.kind,
+      q.attempts,
+      q.last_error,
+      coalesce(q.failed_at, q.created_at) as failed_at
+    from public.reminder_queue q
+    join public.profiles p on p.id = q.user_id
+   where q.status = 'failed'
+     and coalesce(q.failed_at, q.created_at) > now() - make_interval(hours => greatest(1, since_hours))
+   order by coalesce(q.failed_at, q.created_at) desc
+   limit 100;
+end;
+$fn$;
+
+comment on function public.reminder_failures(integer) is
+  'Recent undeliverable reminders, for an admin. Who, which channel and why — never the message.';
+
+grant execute on function public.reminder_failures(integer) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- And the same question about yourself, which anybody may ask
+--
+-- The existing policy already lets somebody read their own queue rows, so
+-- this is only a convenience: the shape the profile page wants, without the
+-- body, and without every caller having to remember the status filter.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.my_reminder_failures(since_hours integer default 168)
+returns table (
+  channel    text,
+  kind       text,
+  attempts   integer,
+  last_error text,
+  failed_at  timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $fn$
+  select
+    q.channel,
+    q.kind,
+    q.attempts,
+    q.last_error,
+    coalesce(q.failed_at, q.created_at)
+  from public.reminder_queue q
+   where q.user_id = auth.uid()
+     and q.status = 'failed'
+     and coalesce(q.failed_at, q.created_at) > now() - make_interval(hours => greatest(1, since_hours))
+   order by coalesce(q.failed_at, q.created_at) desc
+   limit 20;
+$fn$;
+
+comment on function public.my_reminder_failures(integer) is
+  'Reminders that could not be delivered to you. Security invoker: RLS decides, as it does for the table.';
+
+grant execute on function public.my_reminder_failures(integer) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Telling the person
+--
+-- Written here rather than by the dispatcher because every other
+-- notification in this schema is written by the database, and the table's
+-- grants say so: nothing holding a user's session may insert one. The
+-- dispatcher calls this with the row it has just given up on.
+--
+-- The message names the channel, because the fix is almost always a wrong
+-- number or a permission somebody revoked, and neither is guessable from
+-- "a reminder failed".
+-- ---------------------------------------------------------------------------
+
+create or replace function public.notify_reminder_failed(reminder uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  q public.reminder_queue%rowtype;
+  heading text;
+begin
+  select * into q from public.reminder_queue where id = reminder;
+  if not found or q.status <> 'failed' then
+    return;
+  end if;
+
+  heading := case q.channel
+    when 'email'    then 'A reminder could not be emailed to you'
+    when 'telegram' then 'A reminder could not be sent to you on Telegram'
+    when 'whatsapp' then 'A reminder could not be sent to you on WhatsApp'
+    when 'push'     then 'A reminder could not reach one of your devices'
+    else 'A reminder could not be delivered to you'
+  end;
+
+  insert into public.notifications (user_id, actor_id, type, title, body, task_id)
+  values (
+    q.user_id,
+    null,
+    'reminder_failed',
+    heading,
+    coalesce(q.subject, left(q.body, 140)),
+    q.task_id
+  );
+end;
+$fn$;
+
+comment on function public.notify_reminder_failed(uuid) is
+  'Tells somebody a reminder could not be delivered, naming the channel. Called by the dispatcher.';
+
+-- =========================================================================
+-- 20260927000028_error_log.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Errors, somewhere a person looks
+--
+-- Nothing captured what went wrong in the deployed app. A page that threw on
+-- somebody's phone left a line in a Vercel log nobody reads, and the way a
+-- fault was discovered was that somebody mentioned it — or did not, and
+-- worked around it for a month.
+--
+-- This is deliberately not a third-party service. It would mean an account,
+-- a key pasted into a dashboard, and somebody's task titles leaving the
+-- country; the portal already has a database with row-level security and an
+-- admin who signs in every day. Errors go there, and the admin sees them
+-- where they already look.
+--
+-- What is kept is what identifies a fault, never a payload: the message, the
+-- route, whether it came from the browser or the server. Two weeks of them,
+-- swept by the same cron that drains the reminder queue.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.app_errors (
+  id           uuid primary key default gen_random_uuid(),
+  occurred_at  timestamptz not null default now(),
+  -- Null for somebody who was not signed in: a sign-in page that throws is
+  -- exactly the kind of fault worth knowing about.
+  user_id      uuid references public.profiles (id) on delete set null,
+  source       text not null check (source in ('browser', 'server')),
+  -- Next's own reference for a server error. Printed on the error page, so
+  -- somebody can quote it and an admin can find this row.
+  digest       text,
+  message      text not null check (char_length(message) between 1 and 2000),
+  route        text check (char_length(route) <= 500),
+  user_agent   text check (char_length(user_agent) <= 400)
+);
+
+create index if not exists app_errors_when_idx
+  on public.app_errors (occurred_at desc);
+
+alter table public.app_errors enable row level security;
+alter table public.app_errors force row level security;
+
+-- Anybody signed in may report what went wrong in front of them, and only
+-- as themselves. Reading is another matter.
+drop policy if exists "report what went wrong" on public.app_errors;
+create policy "report what went wrong"
+  on public.app_errors for insert
+  with check (user_id is null or user_id = auth.uid());
+
+-- No select policy at all: a message can carry a fragment of whatever it
+-- failed on. Admins read through the function below, which the service role
+-- and an admin check stand behind.
+grant insert on public.app_errors to authenticated;
+
+comment on table public.app_errors is
+  'Faults from the deployed app, kept for two weeks. Write-only for everybody; read through recent_errors().';
+
+-- ---------------------------------------------------------------------------
+-- What has been going wrong
+-- ---------------------------------------------------------------------------
+
+create or replace function public.recent_errors(since_hours integer default 72)
+returns table (
+  occurred_at timestamptz,
+  person      text,
+  source      text,
+  digest      text,
+  message     text,
+  route       text,
+  seen        bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $fn$
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can read the error log.'
+      using errcode = 'insufficient_privilege';
+  end if;
+
+  -- Grouped: one fault hit forty times is one line with a count, not forty
+  -- lines burying everything else that happened that day.
+  return query
+    select
+      max(e.occurred_at) as occurred_at,
+      max(coalesce(p.full_name, p.email)) as person,
+      e.source,
+      max(e.digest) as digest,
+      e.message,
+      e.route,
+      count(*) as seen
+    from public.app_errors e
+    left join public.profiles p on p.id = e.user_id
+   where e.occurred_at > now() - make_interval(hours => greatest(1, since_hours))
+   group by e.source, e.message, e.route
+   order by max(e.occurred_at) desc
+   limit 50;
+end;
+$fn$;
+
+comment on function public.recent_errors(integer) is
+  'Recent faults, grouped by message and route. Admins only; raises for anybody else.';
+
+grant execute on function public.recent_errors(integer) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Two weeks is plenty
+--
+-- Called by the same scheduled route that drains the reminder queue, so
+-- there is nothing new to set up and nothing to remember.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.purge_old_errors(older_than interval default interval '14 days')
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  removed integer;
+begin
+  delete from public.app_errors where occurred_at < now() - older_than;
+  get diagnostics removed = row_count;
+  return removed;
+end;
+$fn$;
+
+comment on function public.purge_old_errors(interval) is
+  'Drops error rows older than the given age. Called by the scheduled dispatcher.';
+
+-- =========================================================================
+-- 20260927000029_task_checklists.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- The small steps inside a task
+--
+-- "Meet with Kuwait banks" has five documents to bring, and there was
+-- nowhere to put them. They went into the description as prose, where
+-- nothing can be ticked off and nobody can see how far along it is — or they
+-- went nowhere, and somebody arrived without the signatory list.
+--
+-- My List has had items since the beginning; a task has not. Same idea, with
+-- one difference that matters: a personal note belongs to one person, and a
+-- task belongs to whoever can see it.
+--
+-- Who may do what is exactly what the task itself allows, and deliberately
+-- not a rule of its own: reading follows can_view_task, writing follows the
+-- same predicate as an update to the task — `is_manager_or_admin() or
+-- can_edit_task(...)`.
+--
+-- The first draft of this had a third rule, a `security definer` function so
+-- that somebody could tick a step off without being able to rewrite it. The
+-- test for it could not find anybody in that position: on a project, anyone
+-- who can *see* a task is a manager, its author or assigned to it, and all
+-- three may edit it. A special case that protects nobody is worse than none,
+-- so the rules are the task's own.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.task_checklist_items (
+  id         uuid primary key default gen_random_uuid(),
+  task_id    uuid not null references public.tasks (id) on delete cascade,
+  content    text not null check (char_length(btrim(content)) between 1 and 500),
+  done       boolean not null default false,
+  -- Gaps, so an item can be dropped between two without renumbering.
+  position   integer not null default 0,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists task_checklist_items_task_idx
+  on public.task_checklist_items (task_id, position);
+
+alter table public.task_checklist_items enable row level security;
+alter table public.task_checklist_items force row level security;
+
+drop policy if exists "see the steps of a task you can see" on public.task_checklist_items;
+create policy "see the steps of a task you can see"
+  on public.task_checklist_items for select
+  using (public.can_view_task(task_id));
+
+drop policy if exists "plan the steps of a task you can edit" on public.task_checklist_items;
+create policy "plan the steps of a task you can edit"
+  on public.task_checklist_items for insert
+  with check (public.is_manager_or_admin() or public.can_edit_task(task_id));
+
+drop policy if exists "change the steps of a task you can edit" on public.task_checklist_items;
+create policy "change the steps of a task you can edit"
+  on public.task_checklist_items for update
+  using (public.is_manager_or_admin() or public.can_edit_task(task_id))
+  with check (public.is_manager_or_admin() or public.can_edit_task(task_id));
+
+drop policy if exists "remove the steps of a task you can edit" on public.task_checklist_items;
+create policy "remove the steps of a task you can edit"
+  on public.task_checklist_items for delete
+  using (public.is_manager_or_admin() or public.can_edit_task(task_id));
+
+grant select, insert, update, delete on public.task_checklist_items to authenticated;
+
+drop trigger if exists task_checklist_items_set_updated_at on public.task_checklist_items;
+create trigger task_checklist_items_set_updated_at
+  before update on public.task_checklist_items
+  for each row execute function public.set_updated_at();
+
+comment on table public.task_checklist_items is
+  'The steps inside a task. Read and written under exactly the rules the task itself has.';
+
+-- =========================================================================
+-- 20260927000030_archive_projects.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Finishing with a project
+--
+-- Projects accumulated. A job delivered in 2026 sat in the sidebar next to
+-- live work for as long as the portal ran, and in every project picker, and
+-- in the dashboard's counts — and the only way to be rid of it was to delete
+-- it, which takes its tasks, its comments and its history with it.
+--
+-- Archiving is the other answer: out of the way, still readable, and
+-- reversible. Nothing is destroyed and nothing is hidden from somebody who
+-- goes looking.
+--
+-- A column rather than a status enum, because there are exactly two states
+-- and one of them is "not archived". `archived_at` also records when, which
+-- a boolean would not.
+-- ---------------------------------------------------------------------------
+
+alter table public.projects
+  add column if not exists archived_at timestamptz;
+
+create index if not exists projects_live_idx
+  on public.projects (archived_at)
+  where archived_at is null;
+
+comment on column public.projects.archived_at is
+  'When the project was archived, or null while it is live. Archiving hides it from the sidebar and the pickers; nothing is deleted.';
+
+-- ---------------------------------------------------------------------------
+-- Archiving one
+--
+-- The update policy on projects already says managers and admins, so this
+-- needs no rule of its own — it exists to be one statement that can be
+-- called by name, and to refuse the thing a plain update would happily do:
+-- archiving a project that still has work open in it.
+--
+-- `security invoker`, so the policy decides, exactly as it would for an
+-- ordinary update.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.set_project_archived(project uuid, archived boolean)
+returns void
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $fn$
+declare
+  still_open integer;
+  touched integer;
+begin
+  if archived then
+    select count(*) into still_open
+      from public.tasks t
+     where t.project_id = project
+       and t.deleted_at is null
+       and t.status <> 'done';
+
+    if still_open > 0 then
+      -- Left as the default raise code on purpose. The app maps
+      -- check_violation to a generic "not allowed", which would throw away
+      -- the one useful thing here: how many are left.
+      raise exception 'That project still has % task(s) open.', still_open;
+    end if;
+  end if;
+
+  update public.projects
+     set archived_at = case when archived then now() else null end
+   where id = project;
+
+  get diagnostics touched = row_count;
+  if touched = 0 then
+    -- Row-level security filtered it: not a manager, or no such project.
+    raise exception 'That project is not yours to archive.'
+      using errcode = 'insufficient_privilege';
+  end if;
+end;
+$fn$;
+
+comment on function public.set_project_archived(uuid, boolean) is
+  'Archives a project, or brings it back. Refuses while any task in it is still open.';
+
+grant execute on function public.set_project_archived(uuid, boolean) to authenticated;
+
+-- =========================================================================
+-- 20260930000031_guard_telegram_chat.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- A Telegram chat is proven, not declared.
+--
+-- `telegram_chat_id` says in its own comment what it is for: the link code
+-- exists so somebody can prove a chat is theirs by sending the bot a code
+-- from inside it. The webhook then records the chat id Telegram reported,
+-- which is the piece the app cannot discover on its own.
+--
+-- Nothing enforced that. The update policy on this table is
+-- `user_id = auth.uid()`, which is right for the two dozen preference
+-- columns beside it, and the app never writes this one — but PostgREST is
+-- reachable from the browser with the anon key, so one hand-written PATCH
+-- set the column to any chat at all and switched the channel on. The bot
+-- then delivered that person's reminders, task titles included, to a chat
+-- that never agreed to receive them.
+--
+-- The same shape as `guard_note_owner` and `guard_note_item_parent` in
+-- migration 0019: the policy decides which row, and a trigger pins the
+-- columns within it that the policy has no way to speak about.
+--
+-- Clearing it is still the owner's to do — that is what unlinking is — and
+-- the webhook is unaffected: it runs with the service role, which carries no
+-- `sub` claim, so `auth.uid()` is null for it and it passes straight
+-- through. The same is true of a migration or a psql session.
+--
+-- No dictionary key for the message: the app has no path that reaches it, so
+-- the only way to see it is to have gone around the app.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.guard_telegram_chat()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  -- The webhook, a migration, the dispatcher: anything not acting as a
+  -- signed-in person. They are the ones allowed to name a chat.
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  -- Unchanged, or being cleared: both fine. Unlinking is the owner's.
+  if new.telegram_chat_id is not distinct from old.telegram_chat_id
+     or new.telegram_chat_id is null then
+    return new;
+  end if;
+
+  raise exception
+    'A Telegram chat is linked by sending the bot the code from your profile, not by setting it directly.'
+    using errcode = 'insufficient_privilege';
+end;
+$$;
+
+comment on function public.guard_telegram_chat() is
+  'Pins notification_preferences.telegram_chat_id so only the verified webhook can name a chat.';
+
+drop trigger if exists notification_preferences_guard_telegram on public.notification_preferences;
+create trigger notification_preferences_guard_telegram
+  before update on public.notification_preferences
+  for each row execute function public.guard_telegram_chat();
