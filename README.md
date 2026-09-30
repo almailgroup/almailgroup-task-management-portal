@@ -824,6 +824,14 @@ Each user then opens Profile → Task reminders → Connect Telegram, and sends 
 one-time code to the bot. The bot replies to confirm. The chat id can only come
 from Telegram itself, which is why this handshake exists.
 
+The database holds that line rather than trusting the app to: a trigger pins
+`telegram_chat_id` so only the webhook — which reaches Postgres with the
+service role, carrying no user identity — may name a chat. Clearing it is
+still yours, because that is what unlinking is. Without the trigger the update
+policy on that table said only "your own row", which was true of the two dozen
+preference columns beside it and let a hand-written request point the bot at
+any chat at all. See `supabase/tests/telegram-link.sql`.
+
 **WhatsApp (Twilio).** This one is not just an API key. For testing, join the
 Twilio WhatsApp sandbox from the console and use the sandbox number. For real
 use you need a WhatsApp Business account, a verified sender number, and — this
@@ -1587,7 +1595,18 @@ npm run test:e2e  # end-to-end — Playwright against a production build
 ```
 
 CI runs both on every push and pull request, along with types, lint, the
-build, and a check that `supabase/setup.sql` still matches the migrations.
+build, a check that `supabase/setup.sql` still matches the migrations, and
+every policy suite in `supabase/tests/` against a real PostgreSQL.
+
+Those last two are worth a note, because both were broken for a while and in
+the same way — a check that only looks where it is told. `setup.sql` had not
+been regenerated in ten migrations, so the one file the section above tells a
+fresh deployment to run would have built a database the app could not read a
+task list out of. And the policy job named its suites one at a time, so eight
+of the ten arrived with their migrations and were never added to it; they had
+also been written to print a table of failures rather than to exit non-zero,
+so running them would not have failed the build either. The suites are now
+found by glob and a failed check raises.
 
 ### What is covered, and why those things
 
