@@ -225,15 +225,6 @@ export function useSpeechInput(onText: (text: string) => void): SpeechInput {
   /**
    * Measure how loud the room is, sixty times a second.
    *
-   * Root mean square over the waveform, which is what a level meter measures —
-   * peak would jump on a consonant and sit at zero through a vowel. The curve
-   * is there because speech at a normal distance from a laptop microphone is
-   * a small fraction of full scale, and a meter that reads 4% while somebody
-   * talks does not tell them it is working, which is the entire job.
-   */
-  /**
-   * Measure how loud the room is, sixty times a second.
-   *
    * Takes a stream rather than opening one: the microphone is asked for once,
    * in the click, and both halves of this feature share the answer. Asking
    * twice meant two permission requests racing each other.
