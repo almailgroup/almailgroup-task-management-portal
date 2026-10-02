@@ -564,6 +564,40 @@ export type Database = {
           },
         ];
       };
+      /** What the person running a project says about how it is going. */
+      project_status_updates: {
+        Row: {
+          id: string;
+          project_id: string;
+          author_id: string | null;
+          status: ProjectStatus;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          author_id: string;
+          status: ProjectStatus;
+          body: string;
+        };
+        /** Append-only: there is no update policy and no update grant. */
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: "project_status_updates_project_id_fkey";
+            columns: ["project_id"];
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_status_updates_author_id_fkey";
+            columns: ["author_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       /** One row per device that has agreed to notifications. */
       push_subscriptions: {
         Row: {
@@ -957,6 +991,19 @@ export type Database = {
         Returns: void;
       };
       /** Recent faults, grouped. Admins only; raises for anybody else. */
+      project_health: {
+        Args: Record<string, never>;
+        Returns: {
+          project_id: string;
+          name: string;
+          latest_status: ProjectStatus | null;
+          latest_body: string | null;
+          latest_at: string | null;
+          latest_author: string | null;
+          open_tasks: number;
+          overdue_tasks: number;
+        }[];
+      };
       recent_errors: {
         Args: { since_hours?: number };
         Returns: {
@@ -1030,6 +1077,21 @@ export type TeamReminderFailure =
 /** A fault, as an admin sees it: grouped, counted, never a payload. */
 export type AppError =
   Database["public"]["Functions"]["recent_errors"]["Returns"][number];
+
+/** How the person running a project says it is going. */
+export type ProjectStatus = "on_track" | "at_risk" | "off_track";
+
+export type ProjectStatusUpdate =
+  Database["public"]["Tables"]["project_status_updates"]["Row"];
+
+/** An update with whoever wrote it, which is how the project page lists them. */
+export type ProjectStatusUpdateWithAuthor = ProjectStatusUpdate & {
+  author: Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> | null;
+};
+
+/** One live project's health, as project_health() reports it. */
+export type ProjectHealthRow =
+  Database["public"]["Functions"]["project_health"]["Returns"][number];
 
 export type ChecklistItem =
   Database["public"]["Tables"]["task_checklist_items"]["Row"];

@@ -153,6 +153,18 @@ export function seed() {
     direct_messages,
     project_members: [],
     notifications: [],
+    // One project its manager has already called at risk, so the dashboard's
+    // "needs attention" has something in it before any spec posts.
+    project_status_updates: [
+      {
+        id: "88888888-8888-4888-8888-000000000001",
+        project_id: projects[1].id,
+        author_id: IDS.sara,
+        status: "at_risk",
+        body: "Sulaibiya racking is a week late; the move date holds only if it lands by Thursday.",
+        created_at: day(-3),
+      },
+    ],
     personal_notes: [],
     personal_note_items: [],
     personal_note_shares: [],

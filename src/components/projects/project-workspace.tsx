@@ -27,6 +27,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { ProjectMembers } from "@/components/projects/project-members";
 import { ProjectPulse } from "@/components/projects/project-pulse";
+import { ProjectStatus } from "@/components/projects/project-status";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
@@ -45,6 +46,7 @@ import type {
   Project,
   TaskStatus,
   TaskWithAssignees,
+  ProjectStatusUpdateWithAuthor,
 } from "@/lib/supabase/database.types";
 
 type View = "board" | "list";
@@ -61,12 +63,15 @@ export function ProjectWorkspace({
   tasks,
   team,
   members,
+  statusUpdates,
   profile,
 }: {
   project: Project;
   tasks: TaskWithAssignees[];
   team: Profile[];
   members: Profile[];
+  /** Null when they could not be read; [] when nobody has posted one. */
+  statusUpdates: ProjectStatusUpdateWithAuthor[] | null;
   profile: Profile;
 }) {
   const router = useRouter();
@@ -210,6 +215,15 @@ export function ProjectWorkspace({
         }
       />
 
+      {/* What the person running it says, then what the board says. The two
+          disagreeing is worth seeing, so they sit together. */}
+      <ProjectStatus
+        projectId={project.id}
+        updates={statusUpdates}
+        canPost={canComplete && !project.archived_at}
+        meId={profile.id}
+        isAdmin={profile.role === "admin"}
+      />
       <ProjectPulse tasks={liveTasks} />
 
       <TaskFilterBar

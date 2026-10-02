@@ -70,6 +70,7 @@ const FK = {
   task_checklist_items: { task_id: "tasks", created_by: "profiles" },
   push_subscriptions: { user_id: "profiles" },
   notification_preferences: { user_id: "profiles" },
+  project_status_updates: { project_id: "projects", author_id: "profiles" },
 };
 
 // ---------------------------------------------------------------------------
@@ -401,6 +402,37 @@ const RPC = {
   purge_old_errors: () => 0,
 
   /** Archiving, including the refusal that makes it worth having. */
+  /**
+   * Every live project's latest status and work counts. The real function is
+   * `security invoker`; the mock enforces nothing, so it answers for all of
+   * them — the specs that read it sign in as the admin, who sees all of them
+   * anyway.
+   */
+  project_health() {
+    const now = Date.now();
+    return db.projects
+      .filter((project) => !project.archived_at)
+      .map((project) => {
+        const latest = db.project_status_updates
+          .filter((row) => row.project_id === project.id)
+          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+        const author = latest && db.profiles.find((row) => row.id === latest.author_id);
+        const work = db.tasks.filter((task) => task.project_id === project.id && !task.deleted_at);
+        const open = work.filter((task) => task.status !== "done");
+        return {
+          project_id: project.id,
+          name: project.name,
+          latest_status: latest?.status ?? null,
+          latest_body: latest?.body ?? null,
+          latest_at: latest?.created_at ?? null,
+          latest_author: author ? (author.full_name ?? author.email) : null,
+          open_tasks: open.length,
+          overdue_tasks: open.filter((task) => task.due_at && Date.parse(task.due_at) < now).length,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
+
   set_project_archived({ project, archived }) {
     const row = db.projects.find((one) => one.id === project);
     if (!row) return null;
@@ -484,6 +516,7 @@ const server = createServer(async (request, response) => {
     response.writeHead(status, { "content-type": "application/json", ...headers });
     response.end(request.method === "HEAD" ? undefined : JSON.stringify(payload));
   };
+
 
   // --- the harness's own door -------------------------------------------
   if (url.pathname === "/__reset") {

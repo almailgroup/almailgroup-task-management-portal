@@ -27,6 +27,8 @@ import type {
   TaskWithAssignees,
   ConversationSummary,
   DirectMessageWithAuthor,
+  ProjectHealthRow,
+  ProjectStatusUpdateWithAuthor,
   PushDevice,
   ReminderFailure,
   TeamReminderFailure,
@@ -842,6 +844,54 @@ export const getRecentErrors = cache(async (): Promise<AppError[]> => {
   const { data, error } = await supabase.rpc("recent_errors", { since_hours: 72 });
   if (error) return [];
   return (data ?? []) as AppError[];
+});
+
+/**
+ * What the people running a project have said about it, newest first.
+ *
+ * Null rather than [] when the read fails. An empty list says "nobody has
+ * posted an update", which is a claim about the project; a failed read is a
+ * claim about the connection, and the panel says which one it is.
+ */
+export const getProjectStatusUpdates = cache(
+  async (projectId: string, limit = 12): Promise<ProjectStatusUpdateWithAuthor[] | null> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("project_status_updates")
+      // Named for the same reason as the owner embed in getMyNotes: the hint
+      // costs nothing, and a bare `profiles(...)` breaks the day a second
+      // path from here to profiles appears.
+      .select(
+        "*, author:profiles!project_status_updates_author_id_fkey(id, full_name, email, avatar_url)",
+      )
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      reportQueryError("getProjectStatusUpdates", error);
+      return null;
+    }
+    return (data ?? []) as unknown as ProjectStatusUpdateWithAuthor[];
+  },
+);
+
+/**
+ * Every live project's latest status and late work, as the caller sees it.
+ *
+ * Null on failure for the same reason: the dashboard block it feeds is
+ * hidden when nothing needs attention, so an empty answer and a failed one
+ * would otherwise look identical — and the failed one would look like good
+ * news.
+ */
+export const getProjectHealth = cache(async (): Promise<ProjectHealthRow[] | null> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("project_health");
+  if (error) {
+    reportQueryError("project_health", error);
+    return null;
+  }
+  return (data ?? []) as ProjectHealthRow[];
 });
 
 /** The steps inside one task, in order. */

@@ -17,6 +17,7 @@ import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard, ProgressBar } from "@/components/dashboard/metric-card";
 import { WorkloadCard } from "@/components/dashboard/workload-card";
+import { NeedsAttention } from "@/components/dashboard/needs-attention";
 import {
   AssigneeStack,
   DueDate,
@@ -26,6 +27,7 @@ import {
 import {
   getMyOpenTasks,
   getOverdueTasks,
+  getProjectHealth,
   getProjects,
   getTaskCounts,
   getWorkload,
@@ -43,7 +45,7 @@ export default async function DashboardPage() {
   // Five bounded reads instead of "fetch every task, then reduce it here".
   // The counts and the workload are aggregated in Postgres; the two lists ask
   // for the six rows they show rather than everything and a slice.
-  const [profile, metrics, workload, myTasks, attention, projects] =
+  const [profile, metrics, workload, myTasks, attention, projects, health] =
     await Promise.all([
       requireProfile(),
       getTaskCounts(),
@@ -51,7 +53,12 @@ export default async function DashboardPage() {
       getMyOpenTasks(6),
       getOverdueTasks(6),
       getProjects(),
+      getProjectHealth(),
     ]);
+
+  // Reporting on projects is a manager's and an admin's job; a member's
+  // dashboard is about their own work.
+  const reportsOnProjects = profile.role === "admin" || profile.role === "manager";
 
   const { t, tn } = await getI18n();
   const firstName = profile.full_name?.split(" ")[0];
@@ -72,6 +79,10 @@ export default async function DashboardPage() {
         <NoProjects canCreate={profile.role !== "member"} />
       ) : (
         <>
+          {/* First, because it is the one thing on this page that says what
+              to do about something rather than how many of it there are. */}
+          {reportsOnProjects && <NeedsAttention health={health} />}
+
           {/* Every tile opens the matching list; counts and list share one
               set of predicates in lib/task-filters, so they cannot disagree. */}
           {/* Two up on a phone: six full-width tiles meant six screens of
