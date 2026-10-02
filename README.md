@@ -63,6 +63,22 @@ monochrome interface.
   Due Today, Overdue), each opening the matching task list at `/tasks`,
   overall progress,
   your assigned work, items needing attention, and per-user workload.
+- **Project status** — whoever runs a project says how it is going: on track,
+  at risk or off track, and a paragraph on why. Updates are kept, never
+  edited, so "at risk three weeks running" is visible as such. On track is
+  grey; the other two are amber, because amber means late or urgent work.
+- **Projects needing attention** — top of the dashboard for managers and
+  admins: projects called off track or at risk, projects with late work
+  (even ones whose owner says they are on track), and projects with open
+  work and no update in two weeks. Each is listed once with every reason that
+  applies. When nothing qualifies the card is not drawn at all.
+- **Reactions on comments** — 👍 ✅ 🙏 👀 🎉 instead of a reply that says
+  "ok". No notification: telling somebody a colleague put a thumb on their
+  comment is the noise this exists to remove.
+
+The last three were taken from [Leantime](https://github.com/Leantime/leantime)
+as ideas, not code — it is AGPL-3.0, and none of its source is in this
+repository.
 
 ## Getting started
 

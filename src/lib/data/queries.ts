@@ -300,7 +300,10 @@ export const getTaskComments = cache(
     const supabase = await createClient();
     const { data } = await supabase
       .from("comments")
-      .select("*, author:profiles(*)")
+      // Named, because reactions are a second road from a comment to a
+      // profile, and a bare profiles(*) asks PostgREST to pick one. It refuses
+      // rather than guesses, and the thread comes back empty.
+      .select("*, author:profiles!comments_user_id_fkey(*), reactions:comment_reactions(emoji, user_id)")
       .eq("task_id", taskId)
       .order("created_at", { ascending: true });
 

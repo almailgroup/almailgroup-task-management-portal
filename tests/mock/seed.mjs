@@ -217,6 +217,7 @@ export function seed() {
       },
     ],
     comments: [],
+    comment_reactions: [],
     task_activity: [],
     task_attachments: [],
     notification_preferences: [

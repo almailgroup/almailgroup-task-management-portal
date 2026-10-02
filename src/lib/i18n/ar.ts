@@ -1097,4 +1097,7 @@ export const ar: Dictionary = {
   "attention.silentWeeks_other": "بلا تحديث منذ {n} أسبوع",
   "attention.never": "لا تحديث بعد",
   "attention.unavailable": "تعذّر التحقق من سير المشاريع.",
+  "reaction.add": "إضافة تفاعل",
+  "reaction.label": "{emoji} {n}، تفاعل بـ {emoji}",
+  "reaction.unknown": "هذا التفاعل ليس من التفاعلات الخمسة المتاحة.",
 };

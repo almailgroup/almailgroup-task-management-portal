@@ -179,16 +179,18 @@ describe("PostgREST embeds", () => {
   const { keys, primaryKeys } = schema();
 
   /**
-   * A junction: a table whose composite primary key is made of foreign keys.
-   * PostgREST reads one of those as a many-to-many relationship between the
-   * tables it points at, which is a second route between them.
+   * A foreign key that can carry a many-to-many route.
+   *
+   * PostgREST's rule is that the junction table's foreign keys must be *part
+   * of* its composite primary key — not that the key is made of nothing else.
+   * This used to require every key column to be a foreign key, which missed
+   * `comment_reactions`: keyed on comment, person and emoji, it is a junction
+   * between comments and profiles all the same, and a bare profiles(*) from
+   * a comment would have been refused while this test passed.
    */
-  const isJunction = (table: string) => {
+  const inCompositeKey = (table: string, column: string) => {
     const pk = primaryKeys.get(table) ?? [];
-    if (pk.length < 2) return false;
-    return pk.every((column) =>
-      keys.some((key) => key.table === table && key.column === column),
-    );
+    return pk.length >= 2 && pk.includes(column);
   };
 
   /**
@@ -207,10 +209,15 @@ describe("PostgREST embeds", () => {
       .map((key) => `${parent}.${key.column}`);
 
     const viaJunction = keys
-      .filter((key) => key.target === parent && isJunction(key.table))
+      .filter((key) => key.target === parent && inCompositeKey(key.table, key.column))
       .flatMap((toParent) =>
         keys
-          .filter((key) => key.table === toParent.table && key.target === target)
+          .filter(
+            (key) =>
+              key.table === toParent.table &&
+              key.target === target &&
+              inCompositeKey(key.table, key.column),
+          )
           .map((toTarget) => `${toParent.table}.${toTarget.column}`),
       );
 
@@ -229,13 +236,20 @@ describe("PostgREST embeds", () => {
       "notifications.user_id",
     ]);
 
-    // One of its own, and three more through tables that point at both. This
-    // is the shape that took My List down: a single foreign key is not the
-    // same as a single route.
+    // One of its own, and one more through the shares table, which points at
+    // both a note and a profile inside its primary key. This is the shape that
+    // took My List down: a single foreign key is not the same as a single
+    // route. (`added_by` is a key to profiles too, but outside the primary key,
+    // so PostgREST does not route through it.)
     expect(routes("personal_notes", "profiles").sort()).toEqual([
-      "personal_note_shares.added_by",
       "personal_note_shares.user_id",
       "personal_notes.user_id",
+    ]);
+
+    // A third key column does not stop a table being a junction.
+    expect(routes("comments", "profiles").sort()).toEqual([
+      "comment_reactions.user_id",
+      "comments.user_id",
     ]);
   });
 

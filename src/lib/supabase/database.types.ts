@@ -564,6 +564,35 @@ export type Database = {
           },
         ];
       };
+      /** Who reacted to which comment, with one of five fixed emoji. */
+      comment_reactions: {
+        Row: {
+          comment_id: string;
+          user_id: string;
+          emoji: string;
+          created_at: string;
+        };
+        Insert: {
+          comment_id: string;
+          user_id: string;
+          emoji: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: "comment_reactions_comment_id_fkey";
+            columns: ["comment_id"];
+            referencedRelation: "comments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "comment_reactions_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       /** What the person running a project says about how it is going. */
       project_status_updates: {
         Row: {
@@ -1180,7 +1209,11 @@ export type TeamMessage = Database["public"]["Tables"]["team_messages"]["Row"];
 /** A message with whoever wrote it, which is how the room reads. */
 export type TeamMessageWithAuthor = TeamMessage & { author: Profile | null };
 
-export type CommentWithAuthor = Comment & { author: Profile | null };
+export type CommentWithAuthor = Comment & {
+  author: Profile | null;
+  /** Who reacted, and with what. Empty on a comment nobody has reacted to. */
+  reactions: { emoji: string; user_id: string }[];
+};
 
 /** An activity row joined with the profile that caused it. */
 export type TaskActivityWithActor = TaskActivity & { actor: Profile | null };

@@ -1009,4 +1009,7 @@ export const en = {
   "attention.silentWeeks_other": "No update in {n} weeks",
   "attention.never": "No update yet",
   "attention.unavailable": "Could not check how projects are going.",
+  "reaction.add": "Add a reaction",
+  "reaction.label": "{emoji} {n}, react with {emoji}",
+  "reaction.unknown": "That reaction is not one of the five on offer.",
 } as const;

@@ -54,7 +54,10 @@ let db = seed();
 const FK = {
   tasks: { project_id: "projects", created_by: "profiles" },
   task_assignments: { task_id: "tasks", user_id: "profiles" },
-  comments: { task_id: "tasks", author_id: "profiles" },
+  // `user_id`, as in the schema. This said `author_id` — a column comments
+  // have never had — so every comment in the mock came back authorless.
+  comments: { task_id: "tasks", user_id: "profiles" },
+  comment_reactions: { comment_id: "comments", user_id: "profiles" },
   task_activity: { task_id: "tasks", actor_id: "profiles" },
   task_attachments: { task_id: "tasks", created_by: "profiles" },
   notifications: { user_id: "profiles", actor_id: "profiles", task_id: "tasks", conversation_id: "conversations" },
@@ -512,11 +515,34 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://localhost:${PORT}`);
   const prefer = request.headers.prefer ?? "";
 
+  /**
+   * Cross-origin, because the browser talks to this directly.
+   *
+   * Most reads go through the app's server, which is not a browser and does
+   * not ask. A few do not: the comment thread and the attachment panel query
+   * from the page itself, from the app's origin to this one. Without these
+   * headers every one of those was refused before it reached a handler — so
+   * no spec could ever see a comment, and none tried.
+   */
+  const CORS = {
+    "access-control-allow-origin": request.headers.origin ?? "*",
+    "access-control-allow-credentials": "true",
+    "access-control-allow-headers": request.headers["access-control-request-headers"] ?? "*",
+    "access-control-allow-methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
+    "access-control-expose-headers": "content-range",
+    vary: "origin",
+  };
+
   const send = (payload, status = 200, headers = {}) => {
-    response.writeHead(status, { "content-type": "application/json", ...headers });
+    response.writeHead(status, { "content-type": "application/json", ...CORS, ...headers });
     response.end(request.method === "HEAD" ? undefined : JSON.stringify(payload));
   };
 
+  if (request.method === "OPTIONS") {
+    response.writeHead(204, CORS);
+    response.end();
+    return;
+  }
 
   // --- the harness's own door -------------------------------------------
   if (url.pathname === "/__reset") {

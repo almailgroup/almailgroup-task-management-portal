@@ -13,11 +13,13 @@ import { initialsFrom } from "@/lib/initials";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MentionTextarea } from "@/components/tasks/mention-textarea";
+import { ReactionChips, ReactionPicker } from "@/components/tasks/comment-reactions";
 import { deleteComment, postComment } from "@/lib/data/comment-actions";
 import { MentionText } from "@/lib/mentions";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/client";
 import type { Translator } from "@/lib/i18n";
+import type { ReactionRow } from "@/lib/reactions";
 import type {
   CommentWithAuthor,
   Profile,
@@ -50,6 +52,12 @@ export function CommentThread({
   const [comments, setComments] = React.useState<CommentWithAuthor[] | null>(
     null,
   );
+  /**
+   * Whether the thread could be read at all. A failed load used to set the
+   * list to [] — which renders as "No comments yet. Start the discussion." on
+   * a task that may have twenty, inviting somebody to repeat what was said.
+   */
+  const [loadFailed, setLoadFailed] = React.useState(false);
   const [draft, setDraft] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const endRef = React.useRef<HTMLDivElement>(null);
@@ -67,16 +75,20 @@ export function CommentThread({
     async function load() {
       const { data, error } = await supabase
         .from("comments")
-        .select("*, author:profiles(*)")
+        // Named, because reactions are a second road from a comment to a
+        // profile, and a bare profiles(*) asks PostgREST to pick one. It refuses
+        // rather than guesses, and the thread comes back empty.
+        .select("*, author:profiles!comments_user_id_fkey(*), reactions:comment_reactions(emoji, user_id)")
         .eq("task_id", taskId)
         .order("created_at", { ascending: true });
 
       if (!active) return;
       if (error) {
-        toast.error(t("comment.loadFailed"));
+        setLoadFailed(true);
         setComments([]);
         return;
       }
+      setLoadFailed(false);
       setComments((data ?? []) as unknown as CommentWithAuthor[]);
     }
 
@@ -100,7 +112,15 @@ export function CommentThread({
             if (current.some((comment) => comment.id === row.id)) return current;
             return [
               ...current,
-              { ...row, author: teamById.get(row.user_id ?? "") ?? null },
+              {
+                ...row,
+                author: teamById.get(row.user_id ?? "") ?? null,
+                // A new comment has none yet, and the broadcast carries the
+                // comments row alone. Left off, the chips read `.length` of
+                // undefined — the same shape of crash the board had when
+                // checklists arrived and the task merge did not carry them.
+                reactions: [],
+              },
             ];
           });
         },
@@ -150,6 +170,17 @@ export function CommentThread({
     seen.current = count;
   }, [comments?.length]);
 
+  /** A comment's reactions, replaced in place after a tap. */
+  const setReactions = React.useCallback((commentId: string, rows: ReactionRow[]) => {
+    setComments((current) =>
+      current
+        ? current.map((comment) =>
+            comment.id === commentId ? { ...comment, reactions: rows } : comment,
+          )
+        : current,
+    );
+  }, []);
+
   async function send() {
     const content = draft.trim();
     if (!content || sending) return;
@@ -188,6 +219,10 @@ export function CommentThread({
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-3/4" />
           </div>
+        ) : loadFailed && comments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t("comment.loadFailed")}
+          </p>
         ) : comments.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {t("comment.empty")}
@@ -197,7 +232,7 @@ export function CommentThread({
             const author = comment.author;
 
             return (
-              <div key={comment.id} className="flex items-start gap-2">
+              <div key={comment.id} className="group/comment flex items-start gap-2">
                 <Avatar className="mt-0.5 size-6">
                   {author?.avatar_url && (
                     <AvatarImage src={author.avatar_url} alt="" />
@@ -217,7 +252,25 @@ export function CommentThread({
                   <div className="mt-0.5 text-sm leading-relaxed">
                     <MentionText content={comment.content} team={team} />
                   </div>
+                  <ReactionChips
+                    commentId={comment.id}
+                    rows={comment.reactions ?? []}
+                    me={currentProfile}
+                    teamById={teamById}
+                    onChange={(rows) => setReactions(comment.id, rows)}
+                  />
                 </div>
+
+                {/* With the comment's other controls, and out of the way
+                    until wanted — except on touch, where there is no hover
+                    to bring it out. */}
+                <ReactionPicker
+                  commentId={comment.id}
+                  rows={comment.reactions ?? []}
+                  me={currentProfile}
+                  onChange={(rows) => setReactions(comment.id, rows)}
+                  className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/comment:opacity-100 data-[state=open]:opacity-100 pointer-coarse:opacity-100"
+                />
 
                 {canModerate && (
                   <Button
