@@ -116,7 +116,18 @@ test.describe("the calendar asks for one month", () => {
     await page.getByRole("button", { name: "Next month" }).click();
     await expect(page.getByText("October board meeting")).toBeVisible({ timeout: 15_000 });
 
-    expect(page.url()).toContain("month=2026-10");
+    // The current month has a plain address and any other carries it — so
+    // which of the two to expect depends on when this runs. It used to assume
+    // October 2026 was in the future, and failed on the first of October.
+    // Asked of the browser, because its zone is the one the app reads.
+    const current = await page.evaluate(() =>
+      new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit" })
+        .format(new Date())
+        .slice(0, 7),
+    );
+    const month = new URL(page.url()).searchParams.get("month");
+    expect(month).toBe(current === "2026-10" ? null : "2026-10");
+
     await page.reload();
     await expect(page.getByText("October board meeting")).toBeVisible({ timeout: 15_000 });
   });
