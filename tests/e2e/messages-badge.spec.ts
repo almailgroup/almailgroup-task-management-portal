@@ -59,7 +59,12 @@ test.describe("the messages badge", () => {
 
     // --- he reads it ------------------------------------------------------
     await messages.click();
-    await page.getByText(LINA.name).first().click();
+    // Wait for the list, and click the conversation as a link. By text alone
+    // this raced the navigation: the dashboard is still on screen for a
+    // moment after the click, Lina's name is on it (in the workload card),
+    // and `.first()` took that button instead of her thread.
+    await page.waitForURL(/\/messages$/, { timeout: 15_000 });
+    await page.getByRole("link", { name: new RegExp(LINA.name) }).click();
     await page.waitForURL(/\/messages\/[0-9a-f-]+/, { timeout: 15_000 });
     await expect(page.getByRole("log").getByText(line)).toBeVisible({
       timeout: 15_000,
