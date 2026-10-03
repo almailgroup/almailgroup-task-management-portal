@@ -224,7 +224,10 @@ export function AppShell({
   }, [drawerOpen, assistantOpen, closeAssistant]);
 
   return (
-    <div className="min-h-svh bg-background">
+    // On a wide screen the sidebar and header are one frame, and the page is
+    // a rounded panel set inside it. Tone and shape separate them; there are
+    // no lines between the parts of the chrome any more.
+    <div className="min-h-svh bg-background lg:bg-chrome">
       {/*
        * Without this, reaching the page content by keyboard meant tabbing
        * through the project switcher, five nav links, every project, the
@@ -244,19 +247,19 @@ export function AppShell({
       <aside
         style={{ width: "var(--sidebar-width)" }}
         className={cn(
-          "fixed inset-y-0 start-0 z-30 hidden border-e border-chrome-border bg-chrome lg:block",
+          "fixed inset-y-0 start-0 z-30 hidden bg-chrome lg:block",
           // Only ever on screen above `lg`, where a notch is not in play, but
           // a cover viewport applies to tablets too.
           "pt-[var(--safe-top)] pb-[var(--safe-bottom)]",
           animating && "transition-[width] duration-200 ease-out",
         )}
       >
-        <div className="flex h-14 items-center gap-2.5 border-b border-chrome-border px-4">
+        <div className="flex h-14 items-center gap-2.5 px-4">
           <Link
             href="/today"
-            className="group flex items-center gap-2.5 rounded-md transition-opacity hover:opacity-80"
+            className="group flex items-center gap-2.5 rounded-full transition-opacity hover:opacity-80"
           >
-            <span className="flex size-6 items-center justify-center rounded-md bg-primary text-[10px] font-bold text-primary-foreground">
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
               A
             </span>
             <span className="flex flex-col leading-none">
@@ -305,7 +308,9 @@ export function AppShell({
           />
           <aside
             className={cn(
-              "absolute inset-y-0 start-0 flex max-w-[92vw] flex-col border-e border-chrome-border bg-chrome",
+              // Rounded on its open edge, and no line along it: the scrim
+              // behind is what says it sits over the page.
+              "absolute inset-y-0 start-0 flex max-w-[92vw] flex-col overflow-hidden rounded-e-3xl bg-chrome shadow-[var(--shadow-lg)]",
               // Its foot holds the clock and the assistant launcher, and it
               // runs to the bottom of the screen: without this the home
               // indicator crosses them.
@@ -317,7 +322,7 @@ export function AppShell({
             {/* The drawer is `inset-y-0`, so with a cover viewport its own
                 header sits under the status bar. It carries the notch the same
                 way the page header does. */}
-            <div className="flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between border-b border-chrome-border px-4 pt-[var(--safe-top)]">
+            <div className="flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between px-4 pt-[var(--safe-top)]">
               <span className="text-sm font-medium tracking-tight">
                 {t("shell.brand")}
               </span>
@@ -362,7 +367,7 @@ export function AppShell({
         {/* `pt` and `h-auto`, not a taller box: with a cover viewport the status
             bar overlaps the top of the page, so the header carries the notch
             as padding and keeps its own 3.5rem of content below it. */}
-        <header className="sticky top-0 z-20 flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between gap-3 border-b border-chrome-border bg-chrome/80 px-4 pt-[var(--safe-top)] backdrop-blur-md supports-[backdrop-filter]:bg-chrome/65 sm:px-6">
+        <header className="sticky top-0 z-20 flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between gap-3 bg-chrome/80 px-4 pt-[var(--safe-top)] backdrop-blur-md supports-[backdrop-filter]:bg-chrome/70 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <CommandHint />
           </div>
@@ -384,7 +389,13 @@ export function AppShell({
         <main
           id="content"
           tabIndex={-1}
-          className="min-h-[calc(100svh-3.5rem)] pb-[calc(3.5rem+var(--safe-bottom))] focus:outline-none lg:pb-0"
+          className={cn(
+            "min-h-[calc(100svh-3.5rem-var(--panel-gap))] pb-[calc(3.5rem+var(--safe-bottom))] focus:outline-none lg:pb-0",
+            // The panel. `clip` rather than `hidden` keeps its corners clean
+            // without making it a scroll container, which would strand
+            // anything sticky inside it.
+            "lg:me-[var(--panel-gap)] lg:mb-[var(--panel-gap)] lg:overflow-clip lg:rounded-3xl lg:bg-background lg:shadow-[var(--shadow-xs)]",
+          )}
         >
           {children}
         </main>

@@ -41,11 +41,11 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
     <nav
       aria-label={t("nav.tasks")}
       className={cn(
-        "chrome-touch fixed inset-x-0 bottom-0 z-30 border-t border-chrome-border bg-chrome/90 backdrop-blur-md lg:hidden",
-        // Stands off the home indicator rather than sitting on it. This was
-        // `env(safe-area-inset-bottom)` alone, which was the right idea and
-        // resolved to zero, because the viewport was not `cover`.
-        "pb-[var(--safe-bottom)]",
+        // Floating, rounded, and with no line across the screen. It stands
+        // off the home indicator by the same safe-area gap it used to pad
+        // itself with, so its top edge is exactly where it was — and every
+        // page that measures itself against the bar is still right.
+        "chrome-touch fixed inset-x-3 bottom-[var(--safe-bottom)] z-30 rounded-[1.75rem] bg-chrome/90 shadow-[var(--shadow-lg)] backdrop-blur-md lg:hidden",
       )}
     >
       <ul className="mx-auto flex max-w-lg items-stretch">

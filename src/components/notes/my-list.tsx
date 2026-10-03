@@ -149,7 +149,7 @@ export function MyList({
         // navigation bar past the bottom of the screen and the last lines of
         // a long note sat underneath it.
         "h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))]",
-        "lg:h-[calc(100svh-3.5rem)]",
+        "lg:h-[calc(100svh-3.5rem-var(--panel-gap))]",
       )}
     >
       {/* ---- List ---------------------------------------------------- */}

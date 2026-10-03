@@ -51,7 +51,7 @@ export function MessagesShell({
         // What the shell leaves: the header, and on a phone the navigation
         // bar and the home indicator under it.
         "h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))]",
-        "lg:h-[calc(100svh-3.5rem)]",
+        "lg:h-[calc(100svh-3.5rem-var(--panel-gap))]",
       )}
     >
       <section

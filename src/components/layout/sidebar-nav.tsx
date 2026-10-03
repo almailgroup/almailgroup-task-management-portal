@@ -165,7 +165,7 @@ export function SidebarNav({
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 border-t border-border pt-1.5">
+        <div className="flex flex-col gap-1 pt-2">
           <button
             type="button"
             onClick={onOpenAssistant}

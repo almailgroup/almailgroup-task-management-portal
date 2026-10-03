@@ -30,7 +30,7 @@ export default async function ChatPage() {
          guess at how tall a wrapped heading turns out to be. */
       className={cn(
         "h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))]",
-        "lg:h-[calc(100svh-3.5rem)]",
+        "lg:h-[calc(100svh-3.5rem-var(--panel-gap))]",
       )}
     >
       <PageHeader

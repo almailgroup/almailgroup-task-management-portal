@@ -14,7 +14,7 @@ function Checkbox({
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer size-[1.125rem] shrink-0 rounded-md border border-input transition-all duration-150",
+        "peer size-[1.125rem] shrink-0 rounded-[0.4rem] border border-input transition-all duration-150",
         // The box stays 18px — inflating it would look like a different
         // control — and the target around it grows to 44 on touch. What a
         // thumb has to hit and what the eye has to read are not the same

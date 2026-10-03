@@ -34,10 +34,11 @@
  * ------------------------------------------------------------------------- */
 
 :root {
-  /* 14px. Corners are the loudest signal of when an interface was built: the
-   * old 8px read as a 2018 admin panel. Everything derives from this, so the
+  /* 16px. Corners are the loudest signal of when an interface was built: the
+   * old 8px read as a 2018 admin panel, and 14px still read as squared-off
+   * next to the pill-shaped controls. Everything derives from this, so the
    * whole system rounds together. */
-  --radius: 0.875rem;
+  --radius: 1rem;
 
   /*
    * How far the chrome stands off the bottom of the screen.
@@ -54,6 +55,10 @@
    * authenticated layout when a stored width exists, and by React after
    * hydration; this is the fallback both fall back to. */
   --sidebar-width: 240px;
+
+  /* How far the page panel is set into the frame on a wide screen. Pages that
+   * fill the window subtract it, or they would scroll by exactly this much. */
+  --panel-gap: 0px;
 
   /* Surfaces. The page is a soft grey and cards are pure white, so a panel
    * reads as a raised surface rather than an outline drawn on the same tone. */
@@ -110,8 +115,10 @@
   --warning-surface: #fef3e2;
   --warning-border: #f3d9b0;
 
-  /* Chrome — sidebar and header sit behind the content they frame. */
-  --chrome: #eaeaee;
+  /* Chrome — the frame the page sits in. There is no line between them any
+   * more, so the step in tone is what separates the two: the page is a
+   * rounded panel inside a slightly darker frame. */
+  --chrome: #e5e5ea;
   --chrome-border: #d9dae1;
 }
 
@@ -339,6 +346,12 @@
   --chrome-border: #1c3027;
 }
 
+@media (min-width: 1024px) {
+  :root {
+    --panel-gap: 0.75rem;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -374,6 +387,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 6px);
   --radius-2xl: calc(var(--radius) + 12px);
+  --radius-3xl: calc(var(--radius) + 20px);
 
   /* Elevation. Monochrome interfaces have no colour to lean on, so depth is
    * carried by shadow — wider and softer than before, which is what makes a
