@@ -130,7 +130,7 @@ function NavGlyph({
           // icon too. tests/unit/themes.test.ts holds the icon to 3:1 where
           // the wash is strongest.
           active
-            ? "bg-linear-to-b from-primary/24 to-primary/6 text-primary shadow-[0_6px_20px_-4px_color-mix(in_oklab,var(--primary)_65%,transparent),0_0_30px_-2px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+            ? "bg-linear-to-b from-primary/24 to-primary/6 text-primary shadow-[0_5px_16px_-5px_color-mix(in_oklab,var(--primary)_42%,transparent),0_0_22px_-4px_color-mix(in_oklab,var(--primary)_20%,transparent)]"
             : "group-hover:bg-foreground/[0.06]",
         )}
       >
