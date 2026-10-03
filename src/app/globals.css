@@ -1,8 +1,29 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* next-themes drives dark mode via a class on <html>. */
-@custom-variant dark (&:is(.dark *));
+/*
+ * next-themes puts the theme's name on <html> as a class, and only one: a
+ * theme cannot also carry `dark`. So `dark:` answers to every theme in the
+ * dark family by name. The list is checked against lib/themes.ts by a unit
+ * test — a dark theme missing from it would draw light-mode details.
+ */
+@custom-variant dark (&:is(.dark *, .midnight *, .black *, .forest *));
+
+/*
+ * Native controls — scrollbars, date pickers, autofill — follow the theme's
+ * family rather than the device. next-themes can only set this for themes
+ * literally named light and dark, and left the last value standing when
+ * switching to any other, so it is done here instead.
+ */
+:root {
+  color-scheme: light;
+}
+.dark,
+.midnight,
+.black,
+.forest {
+  color-scheme: dark;
+}
 
 /* ---------------------------------------------------------------------------
  * Almailgroup Task Management Portal — strict monochrome design tokens.
@@ -134,6 +155,190 @@
   --chrome-border: #3d3e46;
 }
 
+/* ---------------------------------------------------------------------------
+ * The other themes.
+ *
+ * Light and Dark above are the house style. These tint the surfaces and the
+ * main action and nothing else; every token is restated so nothing leaks
+ * through from :root. Amber is the same in each family, because it means the
+ * same thing in each: late or urgent work. Contrast for every pair that
+ * carries text is measured, not eyeballed — see tests/unit/themes.test.ts.
+ * ------------------------------------------------------------------------- */
+
+/* Paper — warm off-white, like the company's own letterhead. */
+.paper {
+  --background: #f3efe7;
+  --foreground: #221e18;
+  --card: #fffdf8;
+  --card-foreground: #221e18;
+  --popover: #fffdf8;
+  --popover-foreground: #221e18;
+  --primary: #2b2620;
+  --primary-foreground: #fffdf8;
+  --secondary: #ebe5d9;
+  --secondary-foreground: #221e18;
+  --muted: #ece6da;
+  --muted-foreground: #5c5447;
+  --accent: #e6dfd1;
+  --accent-foreground: #221e18;
+  --destructive: #221e18;
+  --destructive-foreground: #fffdf8;
+  --border: #cfc6b4;
+  --input: #918877;
+  --ring: #221e18;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #e8e1d3;
+  --chrome-border: #d9d0bf;
+}
+
+/* Ocean — cool greys, and the main action in blue. */
+.ocean {
+  --background: #edf2f8;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --secondary: #e2e9f3;
+  --secondary-foreground: #0f172a;
+  --muted: #e5ebf3;
+  --muted-foreground: #475569;
+  --accent: #dce6f5;
+  --accent-foreground: #0f172a;
+  --destructive: #0f172a;
+  --destructive-foreground: #ffffff;
+  --border: #c3cddb;
+  --input: #8792a5;
+  --ring: #1d4ed8;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #e0e7f1;
+  --chrome-border: #d0d9e6;
+}
+
+/* Lavender — soft violet greys, and the main action in violet. */
+.lavender {
+  --background: #f2f0f8;
+  --foreground: #1c1830;
+  --card: #ffffff;
+  --card-foreground: #1c1830;
+  --popover: #ffffff;
+  --popover-foreground: #1c1830;
+  --primary: #6d28d9;
+  --primary-foreground: #ffffff;
+  --secondary: #e9e5f4;
+  --secondary-foreground: #1c1830;
+  --muted: #ebe7f5;
+  --muted-foreground: #554e6a;
+  --accent: #e3dcf5;
+  --accent-foreground: #1c1830;
+  --destructive: #1c1830;
+  --destructive-foreground: #ffffff;
+  --border: #ccc5de;
+  --input: #8f88a4;
+  --ring: #6d28d9;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #e6e1f2;
+  --chrome-border: #d8d1ea;
+}
+
+/* Midnight — deep navy, for working late without a grey glare. */
+.midnight {
+  --background: #111a2e;
+  --foreground: #e8edf7;
+  --card: #1a2440;
+  --card-foreground: #e8edf7;
+  --popover: #1d2846;
+  --popover-foreground: #e8edf7;
+  --primary: #93b6ff;
+  --primary-foreground: #0b1222;
+  --secondary: #243052;
+  --secondary-foreground: #e8edf7;
+  --muted: #222d4c;
+  --muted-foreground: #aab5cc;
+  --accent: #2b3860;
+  --accent-foreground: #e8edf7;
+  --destructive: #e8edf7;
+  --destructive-foreground: #0b1222;
+  --border: #34416a;
+  --input: #7482a3;
+  --ring: #93b6ff;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #3a3226;
+  --warning-border: #6b5326;
+  --chrome: #0b1120;
+  --chrome-border: #1e2846;
+}
+
+/* Black — true black, which an iPhone's OLED screen does not light at all. */
+.black {
+  --background: #0c0c0e;
+  --foreground: #f5f5f7;
+  --card: #17171a;
+  --card-foreground: #f5f5f7;
+  --popover: #1b1b1f;
+  --popover-foreground: #f5f5f7;
+  --primary: #f5f5f7;
+  --primary-foreground: #000000;
+  --secondary: #222226;
+  --secondary-foreground: #f5f5f7;
+  --muted: #1f1f23;
+  --muted-foreground: #a6a6ae;
+  --accent: #29292e;
+  --accent-foreground: #f5f5f7;
+  --destructive: #f5f5f7;
+  --destructive-foreground: #000000;
+  --border: #33333a;
+  --input: #74747c;
+  --ring: #f5f5f7;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #33291b;
+  --warning-border: #6b5326;
+  --chrome: #000000;
+  --chrome-border: #1c1c20;
+}
+
+/* Forest — deep green, and the main action in a light leaf green. */
+.forest {
+  --background: #11211a;
+  --foreground: #e6f2ea;
+  --card: #1a2f25;
+  --card-foreground: #e6f2ea;
+  --popover: #1d3329;
+  --popover-foreground: #e6f2ea;
+  --primary: #86d9a8;
+  --primary-foreground: #0b1a12;
+  --secondary: #223a2e;
+  --secondary-foreground: #e6f2ea;
+  --muted: #20372b;
+  --muted-foreground: #a9c2b3;
+  --accent: #2a4537;
+  --accent-foreground: #e6f2ea;
+  --destructive: #e6f2ea;
+  --destructive-foreground: #0b1a12;
+  --border: #335141;
+  --input: #71907f;
+  --ring: #86d9a8;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #3a3423;
+  --warning-border: #6b5326;
+  --chrome: #0c1813;
+  --chrome-border: #1c3027;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -192,7 +397,10 @@
 
   /* In dark mode the surfaces already step apart by tone, so shadows only
    * muddy them. Depth there comes from the ramp, not from darkness. */
-  .dark {
+  .dark,
+  .midnight,
+  .black,
+  .forest {
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.24);
     --shadow-sm: 0 2px 5px -1px rgb(0 0 0 / 0.32);
     --shadow-md: 0 10px 28px -8px rgb(0 0 0 / 0.48);

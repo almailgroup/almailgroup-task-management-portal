@@ -1,6 +1,8 @@
 "use client";
 
 import { useTheme } from "next-themes";
+
+import { modeOf } from "@/lib/themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 /**
@@ -12,7 +14,8 @@ function Toaster(props: ToasterProps) {
 
   return (
     <Sonner
-      theme={(resolvedTheme as ToasterProps["theme"]) ?? "system"}
+      // Sonner knows light and dark; "midnight" would fall back to light.
+      theme={resolvedTheme ? modeOf(resolvedTheme) : "system"}
       className="toaster group"
       position="bottom-right"
       // Clear of the navigation bar on a phone, which occupies the same

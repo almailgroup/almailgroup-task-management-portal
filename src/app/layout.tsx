@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Noto_Sans_Arabic } from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeColorSync } from "@/components/theme/theme-color-sync";
+import { THEME_IDS } from "@/lib/themes";
 import { I18nProvider } from "@/lib/i18n/client";
 import { directionFor } from "@/lib/i18n";
 import { getLocale, getTimeZone } from "@/lib/i18n/server";
@@ -119,8 +121,14 @@ export default async function RootLayout({
           attribute="class"
           defaultTheme="system"
           enableSystem
+          themes={THEME_IDS}
+          // globals.css sets color-scheme per theme family. next-themes only
+          // knows the names light and dark, and left a stale inline value
+          // behind when switching to any other.
+          enableColorScheme={false}
           disableTransitionOnChange
         >
+          <ThemeColorSync />
           <I18nProvider locale={locale} timeZone={timeZone}>
             <OfflineBar />
             {children}

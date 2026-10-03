@@ -24,6 +24,7 @@ import {
   Users,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { modeOf } from "@/lib/themes";
 import { toast } from "sonner";
 
 import { createNote } from "@/lib/data/note-actions";
@@ -166,8 +167,9 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       { id: "new-note", label: t("palette.newNote"), run: newNote, icon: StickyNote, group: t("palette.group.actions") },
       {
         id: "theme",
-        label: resolvedTheme === "dark" ? t("shell.themeLight") : t("shell.themeDark"),
-        run: () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
+        // Whichever family the current theme is in — Midnight is dark too.
+        label: modeOf(resolvedTheme) === "dark" ? t("shell.themeLight") : t("shell.themeDark"),
+        run: () => setTheme(modeOf(resolvedTheme) === "dark" ? "light" : "dark"),
         icon: Moon,
         group: t("palette.group.actions"),
       },
