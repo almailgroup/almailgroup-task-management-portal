@@ -68,6 +68,24 @@ export const THEMES: readonly ThemeOption[] = [
     swatch: { ground: "#eaf4f7", card: "#ffffff", accent: "#0e7490" },
   },
   {
+    id: "teal",
+    mode: "light",
+    label: "theme.teal",
+    swatch: { ground: "#ebf5f3", card: "#ffffff", accent: "#0f766e" },
+  },
+  {
+    id: "indigo",
+    mode: "light",
+    label: "theme.indigo",
+    swatch: { ground: "#eff0fa", card: "#ffffff", accent: "#4338ca" },
+  },
+  {
+    id: "orchid",
+    mode: "light",
+    label: "theme.orchid",
+    swatch: { ground: "#f7eff8", card: "#ffffff", accent: "#a21caf" },
+  },
+  {
     id: "dark",
     mode: "dark",
     label: "theme.dark",
@@ -108,6 +126,24 @@ export const THEMES: readonly ThemeOption[] = [
     mode: "dark",
     label: "theme.rosewood",
     swatch: { ground: "#24141b", card: "#311c25", accent: "#f9a8d4" },
+  },
+  {
+    id: "lagoon",
+    mode: "dark",
+    label: "theme.lagoon",
+    swatch: { ground: "#0f2226", card: "#173035", accent: "#5eead4" },
+  },
+  {
+    id: "cosmos",
+    mode: "dark",
+    label: "theme.cosmos",
+    swatch: { ground: "#15162e", card: "#1f2142", accent: "#a5b4fc" },
+  },
+  {
+    id: "dim",
+    mode: "dark",
+    label: "theme.dim",
+    swatch: { ground: "#34373e", card: "#3f434b", accent: "#e5e7eb" },
   },
 ];
 

@@ -24,9 +24,9 @@ import { cn } from "@/lib/utils";
  * first, then the light themes and the dark ones, each with a swatch drawn
  * from its own colours so the choice is made by eye rather than by name.
  *
- * Each group sits in two columns. One column of fourteen themes is taller
- * than a small iPhone's screen once every row is a full finger's height, and
- * the menu still scrolls if a screen is shorter than that.
+ * Each group sits in two columns. One column of every theme is far taller
+ * than a phone's screen once each row is a full finger's height, and the
+ * menu scrolls when even two columns do not fit.
  *
  * Renders a stable placeholder until mounted. The stored theme lives in the
  * browser, so the server cannot know it, and drawing a tick next to the wrong

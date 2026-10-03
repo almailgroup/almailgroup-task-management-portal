@@ -1118,4 +1118,10 @@ export const ar: Dictionary = {
   "theme.plum": "برقوقي",
   "theme.graphite": "غرافيتي",
   "theme.rosewood": "خشب الورد",
+  "theme.teal": "فيروزي",
+  "theme.indigo": "نيلي",
+  "theme.orchid": "أوركيد",
+  "theme.lagoon": "بحيرة",
+  "theme.cosmos": "الفضاء",
+  "theme.dim": "خافت",
 };

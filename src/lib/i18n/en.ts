@@ -1030,4 +1030,10 @@ export const en = {
   "theme.plum": "Plum",
   "theme.graphite": "Graphite",
   "theme.rosewood": "Rosewood",
+  "theme.teal": "Teal",
+  "theme.indigo": "Indigo",
+  "theme.orchid": "Orchid",
+  "theme.lagoon": "Lagoon",
+  "theme.cosmos": "Cosmos",
+  "theme.dim": "Dim",
 } as const;

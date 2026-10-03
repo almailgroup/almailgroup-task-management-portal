@@ -7,7 +7,7 @@
  * dark family by name. The list is checked against lib/themes.ts by a unit
  * test — a dark theme missing from it would draw light-mode details.
  */
-@custom-variant dark (&:is(.dark *, .midnight *, .black *, .forest *, .plum *, .graphite *, .rosewood *));
+@custom-variant dark (&:is(.dark *, .midnight *, .black *, .forest *, .plum *, .graphite *, .rosewood *, .lagoon *, .cosmos *, .dim *));
 
 /*
  * Native controls — scrollbars, date pickers, autofill — follow the theme's
@@ -24,7 +24,10 @@
 .forest,
 .plum,
 .graphite,
-.rosewood {
+.rosewood,
+.lagoon,
+.cosmos,
+.dim {
   color-scheme: dark;
 }
 
@@ -349,6 +352,93 @@
   --chrome-border: #cbdfe6;
 }
 
+/* Teal — sea-glass greys, and the main action in deep teal. */
+.teal {
+  --background: #ebf5f3;
+  --foreground: #0d1f1d;
+  --card: #ffffff;
+  --card-foreground: #0d1f1d;
+  --popover: #ffffff;
+  --popover-foreground: #0d1f1d;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #def0ec;
+  --secondary-foreground: #0d1f1d;
+  --muted: #e1efec;
+  --muted-foreground: #425955;
+  --accent: #d4ebe6;
+  --accent-foreground: #0d1f1d;
+  --destructive: #0d1f1d;
+  --destructive-foreground: #ffffff;
+  --border: #bdd6d1;
+  --input: #7a928d;
+  --ring: #0f766e;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #dbebe8;
+  --chrome-border: #cbe0dc;
+}
+
+/* Indigo — cool blue-violet greys, and the main action in indigo. */
+.indigo {
+  --background: #eff0fa;
+  --foreground: #15172e;
+  --card: #ffffff;
+  --card-foreground: #15172e;
+  --popover: #ffffff;
+  --popover-foreground: #15172e;
+  --primary: #4338ca;
+  --primary-foreground: #ffffff;
+  --secondary: #e4e6f6;
+  --secondary-foreground: #15172e;
+  --muted: #e6e8f6;
+  --muted-foreground: #4f5370;
+  --accent: #dde0f6;
+  --accent-foreground: #15172e;
+  --destructive: #15172e;
+  --destructive-foreground: #ffffff;
+  --border: #c7cae4;
+  --input: #8a8ea8;
+  --ring: #4338ca;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #e2e4f4;
+  --chrome-border: #d3d6ec;
+}
+
+/* Orchid — pale mauve, and the main action in deep fuchsia. */
+.orchid {
+  --background: #f7eff8;
+  --foreground: #24122a;
+  --card: #ffffff;
+  --card-foreground: #24122a;
+  --popover: #ffffff;
+  --popover-foreground: #24122a;
+  --primary: #a21caf;
+  --primary-foreground: #ffffff;
+  --secondary: #f0e2f2;
+  --secondary-foreground: #24122a;
+  --muted: #f1e4f3;
+  --muted-foreground: #634b69;
+  --accent: #ecd9ef;
+  --accent-foreground: #24122a;
+  --destructive: #24122a;
+  --destructive-foreground: #ffffff;
+  --border: #dcc7e0;
+  --input: #9a83a0;
+  --ring: #a21caf;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #efe0f1;
+  --chrome-border: #e3d0e6;
+}
+
 /* Midnight — deep navy, for working late without a grey glare. */
 .midnight {
   --background: #111a2e;
@@ -523,6 +613,93 @@
   --chrome-border: #2e1b23;
 }
 
+/* Lagoon — deep teal water, and the main action in bright aqua. */
+.lagoon {
+  --background: #0f2226;
+  --foreground: #e3f3f3;
+  --card: #173035;
+  --card-foreground: #e3f3f3;
+  --popover: #1a343a;
+  --popover-foreground: #e3f3f3;
+  --primary: #5eead4;
+  --primary-foreground: #062421;
+  --secondary: #1f3b40;
+  --secondary-foreground: #e3f3f3;
+  --muted: #1d383d;
+  --muted-foreground: #a3c3c4;
+  --accent: #27474d;
+  --accent-foreground: #e3f3f3;
+  --destructive: #e3f3f3;
+  --destructive-foreground: #062421;
+  --border: #2f5258;
+  --input: #6e9296;
+  --ring: #5eead4;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #36321f;
+  --warning-border: #6b5326;
+  --chrome: #0a1a1d;
+  --chrome-border: #19302f;
+}
+
+/* Cosmos — deep indigo night, and the main action in periwinkle. */
+.cosmos {
+  --background: #15162e;
+  --foreground: #ebebfa;
+  --card: #1f2142;
+  --card-foreground: #ebebfa;
+  --popover: #232548;
+  --popover-foreground: #ebebfa;
+  --primary: #a5b4fc;
+  --primary-foreground: #12132a;
+  --secondary: #282a50;
+  --secondary-foreground: #ebebfa;
+  --muted: #26284c;
+  --muted-foreground: #b0b2d4;
+  --accent: #30335c;
+  --accent-foreground: #ebebfa;
+  --destructive: #ebebfa;
+  --destructive-foreground: #12132a;
+  --border: #3a3d6b;
+  --input: #7b7ea8;
+  --ring: #a5b4fc;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #363022;
+  --warning-border: #6b5326;
+  --chrome: #0e0f22;
+  --chrome-border: #1e2040;
+}
+
+/* Dim — a softer, lighter dark grey, for those who find Dark too heavy. */
+.dim {
+  --background: #34373e;
+  --foreground: #f3f4f6;
+  --card: #3f434b;
+  --card-foreground: #f3f4f6;
+  --popover: #434750;
+  --popover-foreground: #f3f4f6;
+  --primary: #e5e7eb;
+  --primary-foreground: #1f2125;
+  --secondary: #484c55;
+  --secondary-foreground: #f3f4f6;
+  --muted: #474b54;
+  --muted-foreground: #c9ccd2;
+  --accent: #50545e;
+  --accent-foreground: #f3f4f6;
+  --destructive: #f3f4f6;
+  --destructive-foreground: #1f2125;
+  --border: #575c66;
+  --input: #8d929c;
+  --ring: #e5e7eb;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #4a4030;
+  --warning-border: #6b5326;
+  --chrome: #2b2d33;
+  --chrome-border: #3a3d44;
+}
+
 @media (min-width: 1024px) {
   :root {
     --panel-gap: 0.75rem;
@@ -594,7 +771,10 @@
   .forest,
   .plum,
   .graphite,
-  .rosewood {
+  .rosewood,
+  .lagoon,
+  .cosmos,
+  .dim {
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.24);
     --shadow-sm: 0 2px 5px -1px rgb(0 0 0 / 0.32);
     --shadow-md: 0 10px 28px -8px rgb(0 0 0 / 0.48);
