@@ -95,7 +95,7 @@ function itemClass(active: boolean) {
 
 /**
  * The icon and its label. The page you are on rises out of the row: its icon
- * sits in a soft pill tinted with the theme's main colour, and the pair lifts a few
+ * sits in a soft, glowing wash of the theme's main colour, and the pair lifts a few
  * pixels with a little spring, so the choice is seen from the corner of the
  * eye rather than read. Everything else stays flat and quiet, and gives a
  * small press when touched.
@@ -120,10 +120,18 @@ function NavGlyph({
       <span
         className={cn(
           "flex h-8 w-14 items-center justify-center rounded-full transition-[background-color,color,box-shadow] duration-300 motion-reduce:transition-none",
-          // A wash of the theme's colour, not a solid block of it: the
-          // page you are on should be found at a glance, not shouted.
-          // tests/unit/themes.test.ts holds the icon to 3:1 on this tint.
-          active ? "bg-primary/16 text-primary" : "group-hover:bg-foreground/[0.06]",
+          // A wash of the theme's colour rather than a solid block of it,
+          // strongest at the top and thinning towards the bar beneath, and a
+          // glow of the same colour blurred out until it has no edge — so
+          // the pill dissolves into the bar instead of sitting on it.
+          //
+          // The glow is a shadow because a shadow is drawn only outside the
+          // pill: a blurred layer behind it would deepen the wash under the
+          // icon too. tests/unit/themes.test.ts holds the icon to 3:1 where
+          // the wash is strongest.
+          active
+            ? "bg-linear-to-b from-primary/24 to-primary/6 text-primary shadow-[0_6px_20px_-4px_color-mix(in_oklab,var(--primary)_65%,transparent),0_0_30px_-2px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+            : "group-hover:bg-foreground/[0.06]",
         )}
       >
         <Icon className={cn("size-[1.15rem]", active && "stroke-[2.25]")} aria-hidden />

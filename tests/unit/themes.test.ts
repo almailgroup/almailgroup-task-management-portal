@@ -165,10 +165,11 @@ describe.each(THEMES.map((theme) => [theme.id]))("the %s theme", (id) => {
   });
 
   it("marks the phone's current page clearly on its soft tint", () => {
-    // The bottom bar's current page sits in a pill of the main colour at 16%
-    // over the frame, with its icon in the main colour and its label in the
-    // body colour. Icons are held to 3:1 (WCAG 1.4.11), the label to text.
-    const tint = mix(t.chrome, t.primary, 0.16);
+    // The bottom bar's current page sits in a wash of the main colour over
+    // the frame, 24% at its strongest, with its icon in the main colour and
+    // its label in the body colour. Icons are held to 3:1 (WCAG 1.4.11), the
+    // label to text, against the strongest part of the wash.
+    const tint = mix(t.chrome, t.primary, 0.24);
     expect(contrast(t.primary, tint), "icon on its tint").toBeGreaterThanOrEqual(3);
     expect(contrast(t.foreground, tint), "label on its tint").toBeGreaterThanOrEqual(AA);
   });
