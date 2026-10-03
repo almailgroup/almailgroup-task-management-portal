@@ -7,7 +7,7 @@
  * dark family by name. The list is checked against lib/themes.ts by a unit
  * test — a dark theme missing from it would draw light-mode details.
  */
-@custom-variant dark (&:is(.dark *, .midnight *, .black *, .forest *));
+@custom-variant dark (&:is(.dark *, .midnight *, .black *, .forest *, .plum *, .graphite *, .rosewood *));
 
 /*
  * Native controls — scrollbars, date pickers, autofill — follow the theme's
@@ -21,7 +21,10 @@
 .dark,
 .midnight,
 .black,
-.forest {
+.forest,
+.plum,
+.graphite,
+.rosewood {
   color-scheme: dark;
 }
 
@@ -259,6 +262,93 @@
   --chrome-border: #d8d1ea;
 }
 
+/* Mint — fresh green-tinted greys, and the main action in a deep green. */
+.mint {
+  --background: #ecf5f0;
+  --foreground: #0f1f18;
+  --card: #ffffff;
+  --card-foreground: #0f1f18;
+  --popover: #ffffff;
+  --popover-foreground: #0f1f18;
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --secondary: #e1eee7;
+  --secondary-foreground: #0f1f18;
+  --muted: #e3efe8;
+  --muted-foreground: #45584e;
+  --accent: #d7ebe0;
+  --accent-foreground: #0f1f18;
+  --destructive: #0f1f18;
+  --destructive-foreground: #ffffff;
+  --border: #c1d6ca;
+  --input: #7a9184;
+  --ring: #047857;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #deebe4;
+  --chrome-border: #cde0d5;
+}
+
+/* Rose — blush greys, and the main action in a deep pink. */
+.rose {
+  --background: #f8eff3;
+  --foreground: #2a1220;
+  --card: #ffffff;
+  --card-foreground: #2a1220;
+  --popover: #ffffff;
+  --popover-foreground: #2a1220;
+  --primary: #be185d;
+  --primary-foreground: #ffffff;
+  --secondary: #f2e3ea;
+  --secondary-foreground: #2a1220;
+  --muted: #f3e5eb;
+  --muted-foreground: #68495a;
+  --accent: #f0dae4;
+  --accent-foreground: #2a1220;
+  --destructive: #2a1220;
+  --destructive-foreground: #ffffff;
+  --border: #e0c8d2;
+  --input: #9c8290;
+  --ring: #be185d;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #f1e2e8;
+  --chrome-border: #e6d2db;
+}
+
+/* Sky — clear blue-green greys, and the main action in teal-blue. */
+.sky {
+  --background: #eaf4f7;
+  --foreground: #0c1f26;
+  --card: #ffffff;
+  --card-foreground: #0c1f26;
+  --popover: #ffffff;
+  --popover-foreground: #0c1f26;
+  --primary: #0e7490;
+  --primary-foreground: #ffffff;
+  --secondary: #deedf2;
+  --secondary-foreground: #0c1f26;
+  --muted: #e1eef2;
+  --muted-foreground: #435a62;
+  --accent: #d5eaf1;
+  --accent-foreground: #0c1f26;
+  --destructive: #0c1f26;
+  --destructive-foreground: #ffffff;
+  --border: #bed4dc;
+  --input: #7d939b;
+  --ring: #0e7490;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #dbeaf0;
+  --chrome-border: #cbdfe6;
+}
+
 /* Midnight — deep navy, for working late without a grey glare. */
 .midnight {
   --background: #111a2e;
@@ -346,6 +436,93 @@
   --chrome-border: #1c3027;
 }
 
+/* Plum — deep violet, and the main action in a soft lilac. */
+.plum {
+  --background: #1c1426;
+  --foreground: #f0eaf7;
+  --card: #271c35;
+  --card-foreground: #f0eaf7;
+  --popover: #2a1f39;
+  --popover-foreground: #f0eaf7;
+  --primary: #c4a5ff;
+  --primary-foreground: #170f22;
+  --secondary: #31243f;
+  --secondary-foreground: #f0eaf7;
+  --muted: #2e223d;
+  --muted-foreground: #b8aac8;
+  --accent: #392a4b;
+  --accent-foreground: #f0eaf7;
+  --destructive: #f0eaf7;
+  --destructive-foreground: #170f22;
+  --border: #463659;
+  --input: #85759a;
+  --ring: #c4a5ff;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #3a2f24;
+  --warning-border: #6b5326;
+  --chrome: #140e1c;
+  --chrome-border: #261c32;
+}
+
+/* Graphite — blue-grey slate, quieter than Dark and warmer than Black. */
+.graphite {
+  --background: #1b1f24;
+  --foreground: #e7ebf0;
+  --card: #252a31;
+  --card-foreground: #e7ebf0;
+  --popover: #282e35;
+  --popover-foreground: #e7ebf0;
+  --primary: #cbd5e1;
+  --primary-foreground: #11151a;
+  --secondary: #2e343c;
+  --secondary-foreground: #e7ebf0;
+  --muted: #2c3239;
+  --muted-foreground: #a9b2bd;
+  --accent: #353c45;
+  --accent-foreground: #e7ebf0;
+  --destructive: #e7ebf0;
+  --destructive-foreground: #11151a;
+  --border: #3d454f;
+  --input: #788390;
+  --ring: #cbd5e1;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #362f22;
+  --warning-border: #6b5326;
+  --chrome: #13161a;
+  --chrome-border: #232830;
+}
+
+/* Rosewood — deep berry, and the main action in a soft pink. */
+.rosewood {
+  --background: #24141b;
+  --foreground: #f7e9ee;
+  --card: #311c25;
+  --card-foreground: #f7e9ee;
+  --popover: #351f29;
+  --popover-foreground: #f7e9ee;
+  --primary: #f9a8d4;
+  --primary-foreground: #22101a;
+  --secondary: #3c2530;
+  --secondary-foreground: #f7e9ee;
+  --muted: #39222d;
+  --muted-foreground: #c8aab7;
+  --accent: #452b37;
+  --accent-foreground: #f7e9ee;
+  --destructive: #f7e9ee;
+  --destructive-foreground: #22101a;
+  --border: #563643;
+  --input: #9a7584;
+  --ring: #f9a8d4;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #3a2b22;
+  --warning-border: #6b5326;
+  --chrome: #1a0e13;
+  --chrome-border: #2e1b23;
+}
+
 @media (min-width: 1024px) {
   :root {
     --panel-gap: 0.75rem;
@@ -414,7 +591,10 @@
   .dark,
   .midnight,
   .black,
-  .forest {
+  .forest,
+  .plum,
+  .graphite,
+  .rosewood {
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.24);
     --shadow-sm: 0 2px 5px -1px rgb(0 0 0 / 0.32);
     --shadow-md: 0 10px 28px -8px rgb(0 0 0 / 0.48);

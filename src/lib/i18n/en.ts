@@ -1024,4 +1024,10 @@ export const en = {
   "theme.midnight": "Midnight",
   "theme.black": "Black",
   "theme.forest": "Forest",
+  "theme.mint": "Mint",
+  "theme.rose": "Rose",
+  "theme.sky": "Sky",
+  "theme.plum": "Plum",
+  "theme.graphite": "Graphite",
+  "theme.rosewood": "Rosewood",
 } as const;

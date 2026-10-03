@@ -1112,4 +1112,10 @@ export const ar: Dictionary = {
   "theme.midnight": "منتصف الليل",
   "theme.black": "أسود",
   "theme.forest": "غابة",
+  "theme.mint": "نعناعي",
+  "theme.rose": "وردي",
+  "theme.sky": "سماوي",
+  "theme.plum": "برقوقي",
+  "theme.graphite": "غرافيتي",
+  "theme.rosewood": "خشب الورد",
 };

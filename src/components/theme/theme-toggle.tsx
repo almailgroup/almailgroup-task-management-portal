@@ -20,10 +20,13 @@ import { cn } from "@/lib/utils";
 /**
  * Choosing a theme.
  *
- * This was a light/dark switch. There are eight now, so it opens a menu: the
- * device's own choice first, then the light themes and the dark ones, each
- * with a swatch drawn from its own colours so the choice is made by eye
- * rather than by name.
+ * This was a light/dark switch. Now it opens a menu: the device's own choice
+ * first, then the light themes and the dark ones, each with a swatch drawn
+ * from its own colours so the choice is made by eye rather than by name.
+ *
+ * Each group sits in two columns. One column of fourteen themes is taller
+ * than a small iPhone's screen once every row is a full finger's height, and
+ * the menu still scrolls if a screen is shorter than that.
  *
  * Renders a stable placeholder until mounted. The stored theme lives in the
  * browser, so the server cannot know it, and drawing a tick next to the wrong
@@ -51,7 +54,10 @@ export function ThemeToggle() {
           <Palette className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent
+        align="end"
+        className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-[19rem] overflow-y-auto"
+      >
         <DropdownMenuItem onSelect={() => setTheme("system")} className="gap-2.5">
           <span className="flex size-6 items-center justify-center rounded-full bg-muted [&_svg]:size-3.5">
             <MonitorSmartphone />
@@ -62,25 +68,29 @@ export function ThemeToggle() {
 
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{t("theme.groupLight")}</DropdownMenuLabel>
-        {light.map((option) => (
-          <ThemeItem
-            key={option.id}
-            option={option}
-            active={active === option.id}
-            onSelect={() => setTheme(option.id)}
-          />
-        ))}
+        <div className="grid grid-cols-2 gap-0.5">
+          {light.map((option) => (
+            <ThemeItem
+              key={option.id}
+              option={option}
+              active={active === option.id}
+              onSelect={() => setTheme(option.id)}
+            />
+          ))}
+        </div>
 
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{t("theme.groupDark")}</DropdownMenuLabel>
-        {dark.map((option) => (
-          <ThemeItem
-            key={option.id}
-            option={option}
-            active={active === option.id}
-            onSelect={() => setTheme(option.id)}
-          />
-        ))}
+        <div className="grid grid-cols-2 gap-0.5">
+          {dark.map((option) => (
+            <ThemeItem
+              key={option.id}
+              option={option}
+              active={active === option.id}
+              onSelect={() => setTheme(option.id)}
+            />
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -99,7 +109,7 @@ function ThemeItem({
   return (
     <DropdownMenuItem onSelect={onSelect} className="gap-2.5">
       <Swatch option={option} />
-      <span className="flex-1">{t(option.label)}</span>
+      <span className="min-w-0 flex-1 truncate">{t(option.label)}</span>
       {active && <Check className="size-4" />}
     </DropdownMenuItem>
   );
