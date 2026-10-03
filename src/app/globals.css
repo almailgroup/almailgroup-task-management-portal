@@ -7,7 +7,7 @@
  * dark family by name. The list is checked against lib/themes.ts by a unit
  * test — a dark theme missing from it would draw light-mode details.
  */
-@custom-variant dark (&:is(.dark *, .midnight *, .black *, .forest *, .plum *, .graphite *, .rosewood *, .lagoon *, .cosmos *, .dim *));
+@custom-variant dark (&:is(.dark *, .midnight *, .black *, .forest *, .plum *, .graphite *, .rosewood *, .lagoon *, .cosmos *, .dim *, .garnet *, .moss *, .abyss *, .espresso *, .fjord *));
 
 /*
  * Native controls — scrollbars, date pickers, autofill — follow the theme's
@@ -27,7 +27,12 @@
 .rosewood,
 .lagoon,
 .cosmos,
-.dim {
+.dim,
+.garnet,
+.moss,
+.abyss,
+.espresso,
+.fjord {
   color-scheme: dark;
 }
 
@@ -439,6 +444,151 @@
   --chrome-border: #e3d0e6;
 }
 
+/* Sage — soft grey-green, and the main action in deep olive. */
+.sage {
+  --background: #eff2ec;
+  --foreground: #1a2015;
+  --card: #ffffff;
+  --card-foreground: #1a2015;
+  --popover: #ffffff;
+  --popover-foreground: #1a2015;
+  --primary: #3f6212;
+  --primary-foreground: #ffffff;
+  --secondary: #e5eade;
+  --secondary-foreground: #1a2015;
+  --muted: #e6ebe0;
+  --muted-foreground: #4f5946;
+  --accent: #dde5d3;
+  --accent-foreground: #1a2015;
+  --destructive: #1a2015;
+  --destructive-foreground: #ffffff;
+  --border: #c9d2be;
+  --input: #87917c;
+  --ring: #3f6212;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #e3e8dc;
+  --chrome-border: #d3dbca;
+}
+
+/* Slate — cool blue-greys, and the main action in slate. */
+.slate {
+  --background: #f0f2f5;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #334155;
+  --primary-foreground: #ffffff;
+  --secondary: #e5e8ed;
+  --secondary-foreground: #111827;
+  --muted: #e7eaee;
+  --muted-foreground: #4b5563;
+  --accent: #dfe3e9;
+  --accent-foreground: #111827;
+  --destructive: #111827;
+  --destructive-foreground: #ffffff;
+  --border: #c8ced8;
+  --input: #858d9a;
+  --ring: #334155;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #e2e6ec;
+  --chrome-border: #d2d8e0;
+}
+
+/* Ruby — faint rose-red greys, and the main action in deep red. */
+.ruby {
+  --background: #f9efef;
+  --foreground: #2a1111;
+  --card: #ffffff;
+  --card-foreground: #2a1111;
+  --popover: #ffffff;
+  --popover-foreground: #2a1111;
+  --primary: #b91c1c;
+  --primary-foreground: #ffffff;
+  --secondary: #f3e3e3;
+  --secondary-foreground: #2a1111;
+  --muted: #f4e5e5;
+  --muted-foreground: #6b4a4a;
+  --accent: #f1dada;
+  --accent-foreground: #2a1111;
+  --destructive: #2a1111;
+  --destructive-foreground: #ffffff;
+  --border: #e2c9c9;
+  --input: #a08585;
+  --ring: #b91c1c;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #f2e2e2;
+  --chrome-border: #e8d2d2;
+}
+
+/* Navy — crisp blue-greys, and the main action in dark navy. */
+.navy {
+  --background: #eef1f6;
+  --foreground: #0f1a2e;
+  --card: #ffffff;
+  --card-foreground: #0f1a2e;
+  --popover: #ffffff;
+  --popover-foreground: #0f1a2e;
+  --primary: #1e3a5f;
+  --primary-foreground: #ffffff;
+  --secondary: #e2e7ef;
+  --secondary-foreground: #0f1a2e;
+  --muted: #e4e9f0;
+  --muted-foreground: #4a5568;
+  --accent: #dbe2ec;
+  --accent-foreground: #0f1a2e;
+  --destructive: #0f1a2e;
+  --destructive-foreground: #ffffff;
+  --border: #c4cdda;
+  --input: #8590a2;
+  --ring: #1e3a5f;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #e0e6ee;
+  --chrome-border: #d0d8e4;
+}
+
+/* Ink — black on white with strong edges, for the most contrast a light theme can give. */
+.ink {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #000000;
+  --muted: #f0f0f0;
+  --muted-foreground: #3a3a3a;
+  --accent: #e8e8e8;
+  --accent-foreground: #000000;
+  --destructive: #000000;
+  --destructive-foreground: #ffffff;
+  --border: #8a8a8a;
+  --input: #595959;
+  --ring: #000000;
+  --warning: #b45309;
+  --warning-marker: #c2610a;
+  --warning-surface: #fef3e2;
+  --warning-border: #f3d9b0;
+  --chrome: #ebebeb;
+  --chrome-border: #b0b0b0;
+}
+
 /* Midnight — deep navy, for working late without a grey glare. */
 .midnight {
   --background: #111a2e;
@@ -700,6 +850,151 @@
   --chrome-border: #3a3d44;
 }
 
+/* Garnet — deep red-brown, and the main action in soft coral-pink. */
+.garnet {
+  --background: #241012;
+  --foreground: #f8e8e8;
+  --card: #321719;
+  --card-foreground: #f8e8e8;
+  --popover: #361a1c;
+  --popover-foreground: #f8e8e8;
+  --primary: #fca5a5;
+  --primary-foreground: #2a0e0e;
+  --secondary: #3d2022;
+  --secondary-foreground: #f8e8e8;
+  --muted: #3a1e20;
+  --muted-foreground: #cfaaaa;
+  --accent: #472628;
+  --accent-foreground: #f8e8e8;
+  --destructive: #f8e8e8;
+  --destructive-foreground: #2a0e0e;
+  --border: #5a3335;
+  --input: #9c7678;
+  --ring: #fca5a5;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #3a2a1e;
+  --warning-border: #6b5326;
+  --chrome: #1a0b0c;
+  --chrome-border: #2f1719;
+}
+
+/* Moss — dark olive green, and the main action in fresh leaf green. */
+.moss {
+  --background: #161c12;
+  --foreground: #eaf1e3;
+  --card: #20281a;
+  --card-foreground: #eaf1e3;
+  --popover: #232c1d;
+  --popover-foreground: #eaf1e3;
+  --primary: #b5dd8b;
+  --primary-foreground: #141c0c;
+  --secondary: #29331f;
+  --secondary-foreground: #eaf1e3;
+  --muted: #27311e;
+  --muted-foreground: #aebaa0;
+  --accent: #303c25;
+  --accent-foreground: #eaf1e3;
+  --destructive: #eaf1e3;
+  --destructive-foreground: #141c0c;
+  --border: #3b482e;
+  --input: #77866a;
+  --ring: #b5dd8b;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #36321f;
+  --warning-border: #6b5326;
+  --chrome: #10150d;
+  --chrome-border: #202819;
+}
+
+/* Abyss — deep sea blue, and the main action in clear sky blue. */
+.abyss {
+  --background: #0a1c28;
+  --foreground: #e4f1f8;
+  --card: #11293a;
+  --card-foreground: #e4f1f8;
+  --popover: #142d40;
+  --popover-foreground: #e4f1f8;
+  --primary: #7dd3fc;
+  --primary-foreground: #062030;
+  --secondary: #19334a;
+  --secondary-foreground: #e4f1f8;
+  --muted: #173046;
+  --muted-foreground: #9fbccd;
+  --accent: #1f3c55;
+  --accent-foreground: #e4f1f8;
+  --destructive: #e4f1f8;
+  --destructive-foreground: #062030;
+  --border: #2a4a63;
+  --input: #6c8aa0;
+  --ring: #7dd3fc;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #33301f;
+  --warning-border: #6b5326;
+  --chrome: #061420;
+  --chrome-border: #132a3b;
+}
+
+/* Espresso — dark roasted brown, with a plain cream main action. */
+.espresso {
+  --background: #1e1814;
+  --foreground: #f3ece6;
+  --card: #2a221d;
+  --card-foreground: #f3ece6;
+  --popover: #2e2520;
+  --popover-foreground: #f3ece6;
+  --primary: #e5e1dc;
+  --primary-foreground: #1e1814;
+  --secondary: #342b25;
+  --secondary-foreground: #f3ece6;
+  --muted: #322923;
+  --muted-foreground: #bfb2a7;
+  --accent: #3c322b;
+  --accent-foreground: #f3ece6;
+  --destructive: #f3ece6;
+  --destructive-foreground: #1e1814;
+  --border: #493d35;
+  --input: #8a7c71;
+  --ring: #e5e1dc;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #3b3020;
+  --warning-border: #6b5326;
+  --chrome: #16110e;
+  --chrome-border: #2a221d;
+}
+
+/* Fjord — arctic blue-grey, and the main action in frost blue. */
+.fjord {
+  --background: #2e3440;
+  --foreground: #eceff4;
+  --card: #3b4252;
+  --card-foreground: #eceff4;
+  --popover: #3f4657;
+  --popover-foreground: #eceff4;
+  --primary: #88c0d0;
+  --primary-foreground: #1f242d;
+  --secondary: #434c5e;
+  --secondary-foreground: #eceff4;
+  --muted: #434c5e;
+  --muted-foreground: #c3cad6;
+  --accent: #4c566a;
+  --accent-foreground: #eceff4;
+  --destructive: #eceff4;
+  --destructive-foreground: #1f242d;
+  --border: #556075;
+  --input: #8a94a8;
+  --ring: #88c0d0;
+  --warning: #fbbf24;
+  --warning-marker: #fbbf24;
+  --warning-surface: #4a4232;
+  --warning-border: #6b5326;
+  --chrome: #252a33;
+  --chrome-border: #343a47;
+}
+
 @media (min-width: 1024px) {
   :root {
     --panel-gap: 0.75rem;
@@ -774,7 +1069,12 @@
   .rosewood,
   .lagoon,
   .cosmos,
-  .dim {
+  .dim,
+  .garnet,
+  .moss,
+  .abyss,
+  .espresso,
+  .fjord {
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.24);
     --shadow-sm: 0 2px 5px -1px rgb(0 0 0 / 0.32);
     --shadow-md: 0 10px 28px -8px rgb(0 0 0 / 0.48);
