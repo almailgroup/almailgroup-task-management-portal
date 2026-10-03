@@ -61,6 +61,11 @@
   --safe-bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
   /* The notch, or nothing. */
   --safe-top: env(safe-area-inset-top, 0px);
+  /* What the phone's floating navigation takes from the bottom of a page:
+   * the bar itself (4.25rem) and a little air above it, so the last card is
+   * not pressed against it. Every page that sizes itself to the screen
+   * subtracts this, so the space is changed here and nowhere else. */
+  --nav-space: 4.75rem;
 
   /* Sidebar width. Overwritten before first paint by the script in the
    * authenticated layout when a stored width exists, and by React after

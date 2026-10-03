@@ -148,7 +148,7 @@ export function MyList({
         // It used to subtract only the header, so on a phone it ran a whole
         // navigation bar past the bottom of the screen and the last lines of
         // a long note sat underneath it.
-        "h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))]",
+        "h-[calc(100svh-3.5rem-var(--nav-space)-var(--safe-top)-var(--safe-bottom))]",
         "lg:h-[calc(100svh-3.5rem-var(--panel-gap))]",
       )}
     >

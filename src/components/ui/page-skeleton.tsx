@@ -106,7 +106,7 @@ export function FormSkeleton() {
  */
 export function MessagesSkeleton() {
   return (
-    <div className="flex h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))] flex-col lg:h-[calc(100svh-3.5rem-var(--panel-gap))] lg:flex-row">
+    <div className="flex h-[calc(100svh-3.5rem-var(--nav-space)-var(--safe-top)-var(--safe-bottom))] flex-col lg:h-[calc(100svh-3.5rem-var(--panel-gap))] lg:flex-row">
       <div className="flex min-h-0 flex-col gap-2 border-border p-3 lg:w-80 lg:shrink-0 lg:border-e xl:w-96">
         <Skeleton className="h-9 rounded-lg" />
         {Array.from({ length: 7 }).map((_, index) => (

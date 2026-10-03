@@ -19,8 +19,14 @@ function Toaster(props: ToasterProps) {
       className="toaster group"
       position="bottom-right"
       // Clear of the navigation bar on a phone, which occupies the same
-      // corner a toast would otherwise land in.
-      mobileOffset={{ bottom: "4.75rem", left: "1rem", right: "1rem" }}
+      // corner a toast would otherwise land in. The bar stands off the home
+      // indicator, so the toast has to as well: a fixed 4.75rem put it
+      // across the bar on every iPhone with one.
+      mobileOffset={{
+        bottom: "calc(var(--nav-space) + var(--safe-bottom))",
+        left: "1rem",
+        right: "1rem",
+      }}
       toastOptions={{
         classNames: {
           toast:

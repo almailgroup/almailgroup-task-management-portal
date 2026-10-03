@@ -334,7 +334,7 @@ export function TaskTable({
             <li
               key={task.id}
               className={cn(
-                "lift relative rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)]",
+                "lift relative rounded-2xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)]",
                 isSelected && "border-foreground/40 bg-accent/50",
               )}
             >
@@ -342,7 +342,7 @@ export function TaskTable({
                 type="button"
                 onClick={() => onOpenTask(task)}
                 aria-label={t("table.openTask", { title: task.title })}
-                className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="absolute inset-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               />
 
               {/* Passes taps through to the overlay behind it. */}
@@ -352,7 +352,9 @@ export function TaskTable({
                     for two things used now and then. Rescheduling goes beside
                     the title, which never wraps — put on the meta row it was
                     pushed onto a line of its own the moment a status and a
-                    date filled that row. */}
+                    date filled that row. The people go there too, for the
+                    same reason: last on the meta row, they wrapped onto a
+                    line of their own whenever the row was full. */}
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-[0.9375rem] font-medium leading-snug">
@@ -364,6 +366,11 @@ export function TaskTable({
                       </p>
                     )}
                   </div>
+                  {task.assignees.length > 0 && (
+                    <span className="shrink-0 pt-0.5">
+                      <AssigneeStack assignees={task.assignees} max={3} />
+                    </span>
+                  )}
                   {canReschedule && (
                     <span className="pointer-events-auto -me-1.5 -mt-1.5 shrink-0">
                       <RescheduleMenu task={task} compact />
@@ -386,9 +393,6 @@ export function TaskTable({
                   <DueDate dueAt={task.due_at} status={task.status} />
                   <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                   <ChecklistProgressBadge progress={task.checklist} />
-                  <span className="ms-auto">
-                    <AssigneeStack assignees={task.assignees} max={3} />
-                  </span>
                 </div>
               </div>
             </li>

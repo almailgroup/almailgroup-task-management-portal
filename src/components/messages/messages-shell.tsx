@@ -50,7 +50,7 @@ export function MessagesShell({
         "flex flex-col lg:flex-row",
         // What the shell leaves: the header, and on a phone the navigation
         // bar and the home indicator under it.
-        "h-[calc(100svh-7rem-var(--safe-top)-var(--safe-bottom))]",
+        "h-[calc(100svh-3.5rem-var(--nav-space)-var(--safe-top)-var(--safe-bottom))]",
         "lg:h-[calc(100svh-3.5rem-var(--panel-gap))]",
       )}
     >

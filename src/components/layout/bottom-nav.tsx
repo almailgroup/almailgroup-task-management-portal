@@ -9,6 +9,7 @@ import {
   ListFilter,
   Menu,
   Sunrise,
+  type LucideIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -41,17 +42,18 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
     <nav
       aria-label={t("nav.tasks")}
       className={cn(
-        // Floating, rounded, and with no line across the screen. It stands
-        // off the home indicator by the same safe-area gap it used to pad
-        // itself with, so its top edge is exactly where it was — and every
-        // page that measures itself against the bar is still right.
-        "chrome-touch fixed inset-x-3 bottom-[var(--safe-bottom)] z-30 rounded-[1.75rem] bg-chrome/90 shadow-[var(--shadow-lg)] backdrop-blur-md lg:hidden",
+        // A floating pill, with no line across the screen. It stands off the
+        // home indicator by the safe-area gap, and every page that sizes
+        // itself to the screen leaves --nav-space for it.
+        "chrome-touch fixed inset-x-3 bottom-[var(--safe-bottom)] z-30 h-[4.25rem] rounded-full lg:hidden",
+        // Solid, not frosted: at any translucency the card underneath showed
+        // through as ghosted text behind the labels.
+        "bg-chrome shadow-[0_8px_30px_-6px_rgb(0_0_0/0.22),0_2px_8px_-2px_rgb(0_0_0/0.12)] ring-1 ring-foreground/[0.06]",
       )}
     >
-      <ul className="mx-auto flex max-w-lg items-stretch">
+      <ul className="mx-auto flex h-full max-w-lg items-stretch px-1.5">
         {ITEMS.map((item) => {
           const active = pathname === ("match" in item ? item.match : item.href);
-
           return (
             <li key={item.href} className="flex-1">
               <Link
@@ -60,26 +62,9 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
                 // their skeletons. See the note on the sidebar's NavLink.
                 prefetch
                 aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.6875rem] transition-colors",
-                  active
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
+                className={itemClass(active)}
               >
-                <item.icon
-                  className={cn("size-5", active && "stroke-[2.25]")}
-                  aria-hidden
-                />
-                <span className="truncate">{t(item.label)}</span>
-                {/* A dot rather than a fill: the bar should read as a set of
-                    labels, not as four buttons competing with the page. */}
-                <span
-                  className={cn(
-                    "h-0.5 w-5 rounded-full transition-colors",
-                    active ? "bg-foreground" : "bg-transparent",
-                  )}
-                />
+                <NavGlyph icon={item.icon} label={t(item.label)} active={active} />
               </Link>
             </li>
           );
@@ -90,14 +75,66 @@ export function BottomNav({ onOpenMore }: { onOpenMore: () => void }) {
             type="button"
             onClick={onOpenMore}
             aria-label={t("shell.moreLabel")}
-            className="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.6875rem] text-muted-foreground transition-colors hover:text-foreground"
+            className={itemClass(false)}
           >
-            <Menu className="size-5" aria-hidden />
-            <span>{t("shell.more")}</span>
-            <span className="h-0.5 w-5" />
+            <NavGlyph icon={Menu} label={t("shell.more")} active={false} />
           </button>
         </li>
       </ul>
     </nav>
+  );
+}
+
+function itemClass(active: boolean) {
+  return cn(
+    "group flex h-full w-full flex-col items-center justify-center rounded-full outline-none",
+    "focus-visible:ring-2 focus-visible:ring-ring",
+    active ? "text-foreground" : "text-muted-foreground",
+  );
+}
+
+/**
+ * The icon and its label. The page you are on rises out of the row: its icon
+ * sits in a filled pill in the theme's main colour, and the pair lifts a few
+ * pixels with a little spring, so the choice is seen from the corner of the
+ * eye rather than read. Everything else stays flat and quiet, and gives a
+ * small press when touched.
+ */
+function NavGlyph({
+  icon: Icon,
+  label,
+  active,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <span
+      data-active={active || undefined}
+      className={cn(
+        "flex flex-col items-center gap-1 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none",
+        active ? "-translate-y-1" : "group-active:scale-90",
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-8 w-14 items-center justify-center rounded-full transition-[background-color,color,box-shadow] duration-300 motion-reduce:transition-none",
+          active
+            ? "bg-primary text-primary-foreground shadow-[0_6px_14px_-4px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
+            : "group-hover:bg-foreground/[0.06]",
+        )}
+      >
+        <Icon className={cn("size-[1.15rem]", active && "stroke-[2.25]")} aria-hidden />
+      </span>
+      <span
+        className={cn(
+          "max-w-full truncate px-0.5 text-[0.6875rem] leading-none",
+          active ? "font-semibold" : "font-medium",
+        )}
+      >
+        {label}
+      </span>
+    </span>
   );
 }
