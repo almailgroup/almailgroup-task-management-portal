@@ -69,6 +69,18 @@ function hue(hex: string): { h: number; s: number } {
   return { h: (h * 60 + 360) % 360, s };
 }
 
+/** `over` laid on `base` at this opacity, as the browser composites it. */
+function mix(base: string, over: string, alpha: number): string {
+  const channel = (hex: string, i: number) => parseInt(hex.slice(i, i + 2), 16);
+  return (
+    "#" +
+    [1, 3, 5]
+      .map((i) => Math.round(channel(base, i) * (1 - alpha) + channel(over, i) * alpha))
+      .map((v) => v.toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
 describe("the theme list and the stylesheet", () => {
   it("has colours for every theme it offers", () => {
     for (const id of THEME_IDS) {
@@ -150,6 +162,15 @@ describe.each(THEMES.map((theme) => [theme.id]))("the %s theme", (id) => {
     const { h, s } = hue(t.primary);
     const amberish = s > 0.25 && h >= 15 && h <= 65;
     expect(amberish, `primary ${t.primary} is hue ${h.toFixed(0)}°`).toBe(false);
+  });
+
+  it("marks the phone's current page clearly on its soft tint", () => {
+    // The bottom bar's current page sits in a pill of the main colour at 16%
+    // over the frame, with its icon in the main colour and its label in the
+    // body colour. Icons are held to 3:1 (WCAG 1.4.11), the label to text.
+    const tint = mix(t.chrome, t.primary, 0.16);
+    expect(contrast(t.primary, tint), "icon on its tint").toBeGreaterThanOrEqual(3);
+    expect(contrast(t.foreground, tint), "label on its tint").toBeGreaterThanOrEqual(AA);
   });
 
   it("sets the page apart from the frame around it", () => {
