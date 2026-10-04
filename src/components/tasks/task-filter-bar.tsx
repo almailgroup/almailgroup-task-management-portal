@@ -38,6 +38,7 @@ export function TaskFilterBar({
   onExport,
   searchLabel,
   children,
+  actions,
 }: {
   filters: TaskListFilters;
   onChange: (patch: Partial<TaskListFilters>) => void;
@@ -51,6 +52,8 @@ export function TaskFilterBar({
   searchLabel?: string;
   /** Whatever sits at the left of the bar — typically the view tabs. */
   children?: React.ReactNode;
+  /** Small controls for the search row, beside the count — the phone's sort. */
+  actions?: React.ReactNode;
 }) {
   const { t } = useI18n();
   const active = filtersActive(filters);
@@ -148,6 +151,7 @@ export function TaskFilterBar({
         <span className="tabular-nums">
           {t("browser.countOf", { shown, total })}
         </span>
+        {actions}
         {onExport && shown > 0 && (
           <Button
             variant="ghost"

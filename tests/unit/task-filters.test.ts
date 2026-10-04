@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TASK_FILTERS, applyTaskFilter, isTaskFilter } from "@/lib/task-filters";
+import { TASK_FILTERS, applyTaskFilter, isTaskFilter, nextSort } from "@/lib/task-filters";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 const hours = (h: number) => new Date(Date.now() + h * 3600_000).toISOString();
@@ -60,5 +60,22 @@ describe("isTaskFilter", () => {
     expect(isTaskFilter("overdue")).toBe(true);
     expect(isTaskFilter("archived")).toBe(false);
     expect(isTaskFilter(undefined)).toBe(false);
+  });
+});
+
+describe("nextSort", () => {
+  it("sorts by a new column, then flips it, then goes back to the board's order", () => {
+    const asc = nextSort(null, "due");
+    expect(asc).toEqual({ key: "due", direction: "asc" });
+    const desc = nextSort(asc, "due");
+    expect(desc).toEqual({ key: "due", direction: "desc" });
+    expect(nextSort(desc, "due")).toBeNull();
+  });
+
+  it("starts a different column from the top, whatever the last one was doing", () => {
+    expect(nextSort({ key: "due", direction: "desc" }, "priority")).toEqual({
+      key: "priority",
+      direction: "asc",
+    });
   });
 });

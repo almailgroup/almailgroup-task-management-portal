@@ -16,13 +16,14 @@ import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskFilterBar } from "@/components/tasks/task-filter-bar";
+import { TaskSortMenu } from "@/components/tasks/task-sort-menu";
 import { TaskTable } from "@/components/tasks/task-table";
 import { FollowUpList } from "@/components/tasks/follow-up-list";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
 import { csvFilename, tasksToCsv } from "@/lib/csv";
 import { downloadText } from "@/lib/download";
-import { matchesFilters } from "@/lib/task-filters";
+import { matchesFilters, type TaskSort } from "@/lib/task-filters";
 import { useTaskFilters } from "@/lib/use-task-filters";
 import { useI18n } from "@/lib/i18n/client";
 import type {
@@ -56,6 +57,9 @@ export function GeneralTasks({
   );
   const { filters, update: updateFilters, clear: clearFilters } = useTaskFilters();
 
+  // The list's order. Held here, not in the list, because on a phone the
+  // control for it sits in the filter bar's search row.
+  const [sort, setSort] = React.useState<TaskSort | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(
     null,
@@ -113,6 +117,11 @@ export function GeneralTasks({
         shown={filtered.length}
         total={liveTasks.length}
         searchLabel={t("general.search")}
+        actions={
+          view === "list" && (
+            <TaskSortMenu sort={sort} onSortChange={setSort} className="md:hidden" />
+          )
+        }
         onExport={() =>
           downloadText(csvFilename("general tasks"), tasksToCsv(filtered, undefined, t))
         }
@@ -172,6 +181,8 @@ export function GeneralTasks({
             canComplete={canManage}
             canDelete={canManage}
             canReschedule={canManage}
+            sort={sort}
+            onSortChange={setSort}
           />
         </div>
       )}

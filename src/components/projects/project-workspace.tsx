@@ -33,12 +33,13 @@ import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { TaskFilterBar } from "@/components/tasks/task-filter-bar";
+import { TaskSortMenu } from "@/components/tasks/task-sort-menu";
 import { TaskTable } from "@/components/tasks/task-table";
 import { useTaskStream } from "@/lib/realtime/use-task-stream";
 import { deleteProject, setProjectArchived } from "@/lib/data/project-actions";
 import { csvFilename, tasksToCsv } from "@/lib/csv";
 import { downloadText } from "@/lib/download";
-import { matchesFilters } from "@/lib/task-filters";
+import { matchesFilters, type TaskSort } from "@/lib/task-filters";
 import { useTaskFilters } from "@/lib/use-task-filters";
 import { Emphasised, MARK, useI18n } from "@/lib/i18n/client";
 import type {
@@ -83,6 +84,9 @@ export function ProjectWorkspace({
   const [view, setView] = React.useState<View>("board");
   const { filters, update: updateFilters, clear: clearFilters } = useTaskFilters();
 
+  // The list's order. Held here, not in the list, because on a phone the
+  // control for it sits in the filter bar's search row.
+  const [sort, setSort] = React.useState<TaskSort | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = React.useState(false);
   const [activeTask, setActiveTask] = React.useState<TaskWithAssignees | null>(
     null,
@@ -233,6 +237,11 @@ export function ProjectWorkspace({
         team={team}
         shown={filtered.length}
         total={liveTasks.length}
+        actions={
+          view === "list" && (
+            <TaskSortMenu sort={sort} onSortChange={setSort} className="md:hidden" />
+          )
+        }
         onExport={() =>
           downloadText(csvFilename(project.name), tasksToCsv(filtered, undefined, t))
         }
@@ -270,6 +279,8 @@ export function ProjectWorkspace({
             canComplete={canComplete}
             canDelete={canComplete}
             canReschedule={canComplete}
+            sort={sort}
+            onSortChange={setSort}
           />
         </div>
       )}

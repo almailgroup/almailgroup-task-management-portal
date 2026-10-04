@@ -7,14 +7,7 @@ import { toast } from "sonner";
 
 import { BulkActionBar } from "@/components/tasks/bulk-action-bar";
 import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteTask, moveTask, restoreTask } from "@/lib/data/task-actions";
 import type { TaskStatus } from "@/lib/supabase/database.types";
@@ -29,7 +22,7 @@ import { StatusBadge } from "@/components/tasks/task-meta";
 import { statusMeta } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/client";
 import {
-  TASK_SORT_LABELS,
+  nextSort,
   sortTasks,
   type TaskSort,
   type TaskSortKey,
@@ -52,6 +45,8 @@ export function TaskTable({
   projectName,
   canReschedule = false,
   emptyState,
+  sort,
+  onSortChange,
 }: {
   tasks: TaskWithAssignees[];
   onOpenTask: (task: TaskWithAssignees) => void;
@@ -70,25 +65,26 @@ export function TaskTable({
   canReschedule?: boolean;
   /** Overrides the default "no matches" panel. */
   emptyState?: React.ReactNode;
+  /**
+   * The order, held by the page rather than here: on a phone the control
+   * that changes it sits in the page's own search row (see TaskSortMenu),
+   * and the desktop column headings have to agree with it. No sort is a
+   * state, and keeps the board's own order.
+   */
+  sort: TaskSort | null;
+  onSortChange: (sort: TaskSort | null) => void;
 }) {
   const router = useRouter();
   const { t, tn } = useI18n();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
-  // No sort is a state: the list then keeps the board's own order.
-  const [sort, setSort] = React.useState<TaskSort | null>(null);
   const rows = React.useMemo(
     () => sortTasks(tasks, sort, projectName),
     [tasks, sort, projectName],
   );
 
   /** Click a column: sort by it, click again to flip, a third time to clear. */
-  const toggleSort = (key: TaskSortKey) =>
-    setSort((current) => {
-      if (current?.key !== key) return { key, direction: "asc" };
-      if (current.direction === "asc") return { key, direction: "desc" };
-      return null;
-    });
+  const toggleSort = (key: TaskSortKey) => onSortChange(nextSort(sort, key));
 
   // Selecting is only offered to people who can act on a selection.
   const selectable = canComplete || canDelete;
@@ -296,36 +292,6 @@ export function TaskTable({
        * is the tap target — a full-size overlay rather than a wrapper, since
        * a <button> may not contain other controls.
        */}
-      <div className="flex justify-end md:hidden">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <ArrowUpDown />
-              {sort ? `${t(TASK_SORT_LABELS[sort.key])} ${sort.direction === "asc" ? "↑" : "↓"}` : t("sort.label")}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {(Object.keys(TASK_SORT_LABELS) as TaskSortKey[])
-              .filter((key) => key !== "project" || projectName)
-              .map((key) => (
-                <DropdownMenuItem key={key} onSelect={() => toggleSort(key)}>
-                  {t(TASK_SORT_LABELS[key])}
-                  {sort?.key === key && (
-                    <span className="ms-auto text-muted-foreground">
-                      {sort.direction === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </DropdownMenuItem>
-              ))}
-            {sort && (
-              <DropdownMenuItem onSelect={() => setSort(null)}>
-                {t("table.boardOrder")}
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
       <ul className="flex flex-col gap-2 md:hidden">
         {rows.map((task) => {
           const isSelected = selected.has(task.id);

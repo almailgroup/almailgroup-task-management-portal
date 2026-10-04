@@ -9,11 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TaskSortMenu } from "@/components/tasks/task-sort-menu";
 import { TaskTable } from "@/components/tasks/task-table";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { csvFilename, tasksToCsv } from "@/lib/csv";
 import { downloadText } from "@/lib/download";
-import { TASK_FILTERS, filterLabel, type TaskFilter } from "@/lib/task-filters";
+import {
+  TASK_FILTERS,
+  filterLabel,
+  type TaskFilter,
+  type TaskSort,
+} from "@/lib/task-filters";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
 import type {
@@ -58,6 +64,9 @@ export function TaskBrowser({
     null,
   );
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  // The list's order. Held here, not in the list, because on a phone the
+  // control for it sits in this page's search row.
+  const [sort, setSort] = React.useState<TaskSort | null>(null);
 
   /**
    * `?task=<id>` opens that task straight away.
@@ -165,6 +174,12 @@ export function TaskBrowser({
               {t("browser.narrowToSeeRest", { shown: tasks.length })}
             </span>
           )}
+          <TaskSortMenu
+            sort={sort}
+            onSortChange={setSort}
+            withProject
+            className="md:hidden"
+          />
           {visible.length > 0 && (
             <Button
               variant="ghost"
@@ -197,6 +212,8 @@ export function TaskBrowser({
         canDelete={canManage}
         projectName={projectName}
         canReschedule={canManage}
+        sort={sort}
+        onSortChange={setSort}
         emptyState={
           <EmptyState
             icon={<FolderOpen />}

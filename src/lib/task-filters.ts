@@ -188,6 +188,17 @@ export const TASK_SORT_LABELS: Record<TaskSortKey, TranslationKey> = {
 };
 
 /**
+ * What choosing a column does: sort by it, choose it again to flip, a third
+ * time to go back to the board's order. The table's headings and the phone's
+ * sort menu both go through this, so they cannot disagree.
+ */
+export function nextSort(current: TaskSort | null, key: TaskSortKey): TaskSort | null {
+  if (current?.key !== key) return { key, direction: "asc" };
+  if (current.direction === "asc") return { key, direction: "desc" };
+  return null;
+}
+
+/**
  * A sorted copy. With no sort the list keeps the order it arrived in — the
  * board's own position order — which is the right default and is why "none"
  * is a state rather than a column.
