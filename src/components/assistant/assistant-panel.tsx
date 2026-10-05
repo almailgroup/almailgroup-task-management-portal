@@ -120,7 +120,7 @@ export function AssistantPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-start justify-between gap-2 border-b border-chrome-border px-3 py-2.5">
+      <header className="flex items-start justify-between gap-2 px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
             aria-hidden
@@ -190,7 +190,7 @@ export function AssistantPanel({
       </div>
 
       <form
-        className="border-t border-chrome-border p-2.5"
+        className="p-2.5"
         onSubmit={(event) => {
           event.preventDefault();
           voice.stop();
@@ -202,7 +202,7 @@ export function AssistantPanel({
             Putting that in the textarea would move the caret under anyone
             trying to correct what has already settled. */}
         {voice.listening && (
-          <div className="mb-1.5 flex flex-col gap-1 rounded-xl border border-border bg-muted/60 px-2.5 py-2">
+          <div className="mb-1.5 flex flex-col gap-1 rounded-2xl bg-muted/60 px-2.5 py-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span
                 aria-hidden
@@ -249,7 +249,7 @@ export function AssistantPanel({
           */}
         <div
           className={cn(
-            "flex flex-col gap-1 rounded-2xl border border-input bg-card px-3 py-2",
+            "flex flex-col gap-1 rounded-3xl bg-card shadow-[var(--shadow-xs)] px-3 py-2",
             "transition-[border-color,box-shadow]",
             "focus-within:border-foreground focus-within:shadow-[var(--shadow-xs)]",
             pending && "opacity-60",
@@ -273,7 +273,7 @@ export function AssistantPanel({
               "max-h-40 min-h-0 resize-none overflow-y-auto border-0 bg-transparent p-0 text-sm leading-relaxed",
               // The container carries the focus affordance. Without this the
               // global focus ring drew a second rounded box inside the first.
-              "shadow-none focus-visible:border-0 focus-visible:shadow-none",
+              "shadow-none focus-visible:shadow-none",
               "focus-visible:ring-0 focus-visible:ring-offset-0",
             )}
             aria-label={t("assistant.ask")}
@@ -367,8 +367,8 @@ function Welcome({
             disabled={disabled}
             onClick={() => onPick(t(starter))}
             className={cn(
-              "max-w-full rounded-full border border-border px-3 py-1.5 text-start text-xs transition-colors",
-              "text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
+              "max-w-full rounded-full bg-foreground/[0.05] px-3 py-1.5 text-start text-xs transition-colors",
+              "text-muted-foreground hover:bg-accent hover:text-foreground",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -401,7 +401,7 @@ function Bubble({
       {!mine && (
         <span
           aria-hidden
-          className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border border-border bg-muted"
+          className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-xl bg-muted"
         >
           <Sparkles className="size-2.5" />
         </span>
@@ -412,7 +412,7 @@ function Bubble({
           "max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[0.8125rem] leading-relaxed",
           mine
             ? "bg-primary text-primary-foreground"
-            : "border border-border bg-card",
+            : "bg-card shadow-[var(--shadow-xs)]",
         )}
       >
         <span className="sr-only">
@@ -467,7 +467,7 @@ function Proposal({
   if (!preview) return null;
 
   return (
-    <div className="mt-2.5 rounded-xl border border-border bg-background p-2.5">
+    <div className="mt-2.5 rounded-2xl bg-background shadow-[var(--shadow-xs)] p-2.5">
       <p className="text-xs font-semibold leading-tight">{preview.heading}</p>
 
       <dl className="mt-2 flex flex-col gap-1">
@@ -577,11 +577,11 @@ function Thinking() {
     <div className="flex items-center gap-2" aria-live="polite">
       <span
         aria-hidden
-        className="flex size-5 shrink-0 items-center justify-center rounded-md border border-border bg-muted"
+        className="flex size-5 shrink-0 items-center justify-center rounded-xl bg-muted"
       >
         <Sparkles className="size-2.5" />
       </span>
-      <span className="flex items-center gap-1 rounded-2xl border border-border bg-card px-3.5 py-3">
+      <span className="flex items-center gap-1 rounded-3xl bg-card shadow-[var(--shadow-xs)] px-3.5 py-3">
         {[0, 1, 2].map((dot) => (
           <span
             key={dot}

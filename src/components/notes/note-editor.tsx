@@ -266,7 +266,7 @@ export function NoteEditor({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-1 border-b border-border px-2 py-2 sm:px-3">
+      <header className="flex items-center gap-1 px-2 py-2 sm:px-3">
         <Button
           variant="ghost"
           size="sm"
@@ -342,14 +342,14 @@ export function NoteEditor({
                there was nothing on screen to say this was a place you could
                type: the title and the body read as printed text, and the empty
                half of the pane read as nothing at all. `border-input` rather
-               than the lighter `border-border` for the same reason the rest of
+               than the lighter `` for the same reason the rest of
                the system uses it — on a control the outline *is* the
                component, which WCAG asks to reach 3:1 against its surface. */
             className={cn(
-              "w-full rounded-xl border border-input bg-card px-3.5 py-2.5 text-xl font-semibold tracking-tight",
+              "w-full rounded-2xl bg-card shadow-[var(--shadow-xs)] px-3.5 py-2.5 text-xl font-semibold tracking-tight",
               "transition-[border-color,box-shadow]",
               "placeholder:font-normal placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:border-foreground focus-visible:shadow-[var(--shadow-xs)]",
+              "focus-visible:outline-none focus-visible:shadow-[var(--shadow-xs)]",
             )}
           />
 
@@ -371,8 +371,8 @@ export function NoteEditor({
                     "press mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150",
                     "pointer-coarse:size-7",
                     item.done
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-input hover:border-foreground/40",
+                      ? "bg-foreground text-background"
+                      : "border-input",
                   )}
                 >
                   {item.done && <Check className="size-3.5 animate-pop" />}
@@ -441,7 +441,7 @@ export function NoteEditor({
               "hover:text-foreground disabled:opacity-50",
             )}
           >
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-input pointer-coarse:size-7">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground/[0.05] pointer-coarse:size-7">
               <Plus className="size-3.5" />
             </span>
             {t("notes.addTodo")}
@@ -458,10 +458,10 @@ export function NoteEditor({
                short box with dead space under it — the part you write in
                should be the part that is enclosed. */
             className={cn(
-              "min-h-40 w-full flex-1 resize-none rounded-xl border border-input bg-card px-3.5 py-2.5 text-[0.9375rem] leading-relaxed",
+              "min-h-40 w-full flex-1 resize-none rounded-2xl bg-card shadow-[var(--shadow-xs)] px-3.5 py-2.5 text-[0.9375rem] leading-relaxed",
               "transition-[border-color,box-shadow]",
               "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:border-foreground focus-visible:shadow-[var(--shadow-xs)]",
+              "focus-visible:outline-none focus-visible:shadow-[var(--shadow-xs)]",
             )}
           />
         </div>

@@ -91,7 +91,7 @@ export function FollowUpPanel({
 
   if (!editing) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2.5 py-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-foreground/[0.05] px-2.5 py-2">
         <PhoneCall className="size-3.5 shrink-0 text-muted-foreground" />
 
         {task.follow_up_at ? (
@@ -143,7 +143,7 @@ export function FollowUpPanel({
   }
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-md border border-border p-3">
+    <div className="flex flex-col gap-2.5 rounded-xl bg-foreground/[0.05] p-3">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="followUpAt">{t("follow.onLabel")}</Label>
         <Input
@@ -164,7 +164,7 @@ export function FollowUpPanel({
               key={option.label}
               type="button"
               onClick={() => setWhen(toLocalInput(option.value()))}
-              className="rounded-md border border-border px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="rounded-full bg-foreground/[0.05] px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.09] hover:text-foreground"
             >
               {option.label}
             </button>

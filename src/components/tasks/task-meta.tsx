@@ -183,7 +183,7 @@ export function DueDate({
         overdue
           // The one place colour is allowed. A dotted underline was easy to
           // scan straight past on a board full of dates.
-          ? "rounded-full border border-warning-border bg-warning-surface px-2 py-0.5 font-semibold text-warning"
+          ? "rounded-full bg-warning-surface px-2 py-0.5 font-semibold text-warning"
           : "text-muted-foreground",
         className,
       )}
@@ -227,7 +227,7 @@ export function AssigneeStack({
         </Avatar>
       ))}
       {overflow > 0 && (
-        <span className="flex size-5 items-center justify-center rounded-full border border-border bg-muted text-[9px] font-medium text-muted-foreground ring-1 ring-background">
+        <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground ring-1 ring-background">
           +{overflow}
         </span>
       )}
@@ -254,7 +254,7 @@ export function TaskProvenance({
   const name = creator?.full_name ?? creator?.email ?? null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
       <span className="inline-flex min-w-0 items-center gap-1.5">
         <Avatar className="size-5">
           {creator?.avatar_url && <AvatarImage src={creator.avatar_url} alt="" />}

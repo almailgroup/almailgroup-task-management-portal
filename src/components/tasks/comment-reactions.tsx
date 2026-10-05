@@ -93,11 +93,11 @@ export function ReactionChips({
           aria-label={t("reaction.label", { emoji: chip.emoji, n: chip.count })}
           title={chip.userIds.map(nameOf).join(", ")}
           className={cn(
-            "inline-flex h-6 items-center gap-1 rounded-full border px-1.5 text-xs tabular-nums transition-colors",
+            "inline-flex h-6 items-center gap-1 rounded-full px-1.5 text-xs tabular-nums transition-colors",
             "pointer-coarse:h-8 pointer-coarse:px-2",
             chip.mine
-              ? "border-foreground/40 bg-accent text-foreground"
-              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+              ? "bg-primary/15 text-foreground"
+              : "bg-foreground/[0.06] text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
           <span aria-hidden>{chip.emoji}</span>

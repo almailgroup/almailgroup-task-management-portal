@@ -154,7 +154,7 @@ export function ReminderSettings({
                 {t("remind.disconnectTelegram")}
               </Button>
             ) : code ? (
-              <div className="rounded-md border border-border bg-muted p-3 text-sm">
+              <div className="rounded-xl bg-muted p-3 text-sm">
                 <p className="leading-relaxed">
                   {t("remind.openBot", { bot: MARK })
                     .split(MARK)
@@ -181,7 +181,7 @@ export function ReminderSettings({
                     )}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <code className="rounded border border-border bg-background px-2 py-1 font-mono text-sm tracking-widest">
+                  <code className="rounded-md bg-background shadow-[var(--shadow-xs)] px-2 py-1 font-mono text-sm tracking-widest">
                     /start {code}
                   </code>
                   <Button
@@ -327,7 +327,7 @@ function Channel({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border p-3",
+        "rounded-2xl bg-foreground/[0.05] p-3",
         !available && "opacity-70",
       )}
     >

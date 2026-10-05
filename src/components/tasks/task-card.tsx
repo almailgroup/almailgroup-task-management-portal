@@ -79,7 +79,7 @@ export const TaskCard = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "group lift rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)] sm:p-4",
+        "group lift rounded-2xl bg-card p-3.5 shadow-[var(--shadow-sm)] sm:p-4",
         "hover:border-foreground/30",
         // The whole card opens the task. Only the title did, which is a small
         // target on something that looks pressable end to end — and on a phone

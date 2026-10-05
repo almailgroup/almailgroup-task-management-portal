@@ -17,9 +17,9 @@ const buttonVariants = cva(
         /** Inverted fill — the single strongest emphasis in the UI. */
         default:
           "bg-primary text-primary-foreground shadow-[var(--shadow-sm)] hover:bg-primary/90 hover:shadow-[var(--shadow-md)]",
-        /** 1px micro-border, the workhorse for most actions. */
+        /** A soft filled pill, the workhorse for most actions. No outline: the fill is the shape. */
         outline:
-          "border border-input bg-card hover:border-foreground/40 hover:bg-accent hover:text-accent-foreground hover:shadow-[var(--shadow-xs)]",
+          "bg-foreground/[0.06] text-foreground hover:bg-foreground/[0.1] hover:shadow-[var(--shadow-xs)]",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",

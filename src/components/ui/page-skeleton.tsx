@@ -60,7 +60,7 @@ export function BoardSkeleton() {
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, column) => (
-          <div key={column} className="flex flex-col gap-2 rounded-lg border border-border bg-chrome/60 p-2">
+          <div key={column} className="flex flex-col gap-2 rounded-3xl bg-foreground/[0.04] p-2">
             <Skeleton className="h-4 w-24" />
             {Array.from({ length: column === 0 ? 3 : 2 }).map((_, card) => (
               <Skeleton key={card} className="h-[4.5rem] rounded-md" />
@@ -107,7 +107,7 @@ export function FormSkeleton() {
 export function MessagesSkeleton() {
   return (
     <div className="flex h-[calc(100svh-3.5rem-var(--nav-space)-var(--safe-top)-var(--safe-bottom))] flex-col lg:h-[calc(100svh-3.5rem-var(--panel-gap))] lg:flex-row">
-      <div className="flex min-h-0 flex-col gap-2 border-border p-3 lg:w-80 lg:shrink-0 lg:border-e xl:w-96">
+      <div className="flex min-h-0 flex-col gap-2 p-3 lg:w-80 lg:shrink-0 xl:w-96">
         <Skeleton className="h-9 rounded-lg" />
         {Array.from({ length: 7 }).map((_, index) => (
           <Skeleton key={index} className="h-14 rounded-lg" />

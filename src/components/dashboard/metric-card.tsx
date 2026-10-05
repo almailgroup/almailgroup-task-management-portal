@@ -19,17 +19,15 @@ export function MetricCard({
   value: number | string;
   hint?: string;
   icon?: React.ReactNode;
-  /** Draws the stronger border used for items that need attention. */
+  /** Tints the tile amber, for items that need attention. */
   emphasis?: boolean;
   /** Makes the whole tile a link to the matching task list. */
   href?: string;
 }) {
   const className = cn(
-    "group block rounded-2xl border bg-card p-3 shadow-[var(--shadow-sm)] sm:p-5",
-    emphasis
-      ? "border-warning-border bg-warning-surface"
-      : "border-border",
-    href && "lift hover:border-foreground/40 focus-visible:outline-none",
+    "group block rounded-3xl bg-card p-3 shadow-[var(--shadow-sm)] sm:p-5",
+    emphasis && "bg-warning-surface",
+    href && "lift focus-visible:outline-none",
   );
 
   const body = (
@@ -46,8 +44,11 @@ export function MetricCard({
         {icon && (
           <span
             className={cn(
-              "[&_svg]:size-3.5",
-              emphasis ? "text-warning" : "text-muted-foreground",
+              // The icon in a small tinted bubble of the theme's colour
+              // rather than loose beside the label: a touch of colour on
+              // every tile, and it swells a little when the tile is hovered.
+              "flex size-7 items-center justify-center rounded-full transition-transform duration-300 ease-[var(--ease-spring)] group-hover:scale-110 sm:size-8 [&_svg]:size-3.5 sm:[&_svg]:size-4",
+              emphasis ? "bg-warning/15 text-warning" : "bg-primary/10 text-primary",
             )}
           >
             {icon}

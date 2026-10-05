@@ -259,7 +259,7 @@ export function TeamChat({
           role="log"
           aria-label={t("chat.transcript")}
           tabIndex={0}
-          className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border border-border bg-card px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-3"
+          className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto rounded-3xl bg-card shadow-[var(--shadow-xs)] px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-3"
         >
           {messages.length === 0 ? (
             <p className="m-auto max-w-sm text-center text-sm leading-relaxed text-muted-foreground">
@@ -324,7 +324,7 @@ export function TeamChat({
               of the field once it does. */}
           <div
             className={cn(
-              "flex items-end gap-1 rounded-2xl border border-input bg-card p-1.5",
+              "flex items-end gap-1 rounded-3xl bg-card shadow-[var(--shadow-xs)] p-1.5",
               "transition-[border-color,box-shadow]",
               "focus-within:border-foreground focus-within:shadow-[var(--shadow-xs)]",
             )}
@@ -366,7 +366,7 @@ export function TeamChat({
                 "max-h-40 border-0 bg-transparent",
                 // The container carries the focus affordance. Without this the
                 // global focus ring drew a second rounded box inside the first.
-                "shadow-none focus-visible:border-0 focus-visible:shadow-none",
+                "shadow-none focus-visible:shadow-none",
                 "focus-visible:ring-0 focus-visible:ring-offset-0",
               )}
               aria-label={t("chat.placeholder")}
@@ -407,7 +407,7 @@ export function TeamChat({
           same side of the screen. */}
       <aside
         aria-label={t("chat.members")}
-        className="hidden w-60 shrink-0 flex-col rounded-2xl border border-border bg-card p-3 lg:flex"
+        className="hidden w-60 shrink-0 flex-col rounded-3xl bg-card shadow-[var(--shadow-xs)] p-3 lg:flex"
       >
         <Roster people={people} me={profile} here={here} onlineCount={onlineCount} />
       </aside>

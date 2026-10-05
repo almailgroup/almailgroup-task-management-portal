@@ -304,10 +304,10 @@ export function SidebarClock() {
         <div
           aria-live="polite"
           className={cn(
-            "mt-3 rounded-xl border px-3 py-2.5",
+            "mt-3 rounded-xl px-3 py-2.5",
             selected
-              ? "border-border bg-muted/60"
-              : "border-dashed border-border",
+              ? "bg-muted/60"
+              : "bg-foreground/[0.04]",
           )}
         >
           {selected && gap !== null ? (

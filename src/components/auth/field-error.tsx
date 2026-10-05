@@ -28,7 +28,7 @@ export function FormError({ message }: { message?: string | null }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-xl border border-foreground/40 bg-muted px-3 py-2.5 text-sm font-medium text-foreground"
+      className="flex items-start gap-2 rounded-2xl bg-muted px-3 py-2.5 text-sm font-medium text-foreground"
     >
       <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>{tm(message)}</span>

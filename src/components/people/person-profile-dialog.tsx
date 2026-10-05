@@ -65,7 +65,7 @@ export function PersonProfileDialog({
           <Badge variant="outline">{t(roleMeta(person.role).label)}</Badge>
         </div>
 
-        <dl className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 text-sm">
+        <dl className="flex flex-col gap-2 rounded-2xl bg-card shadow-[var(--shadow-xs)] p-3 text-sm">
           <div className="flex items-baseline justify-between gap-3">
             <dt className="shrink-0 text-xs text-muted-foreground">
               {t("person.email")}

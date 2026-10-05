@@ -156,12 +156,12 @@ export function MyList({
       <section
         aria-label={t("notes.yours")}
         className={cn(
-          "flex min-h-0 flex-col border-border lg:w-80 lg:shrink-0 lg:border-e xl:w-96",
+          "flex min-h-0 flex-col lg:w-80 lg:shrink-0 xl:w-96",
           // One screen at a time on a phone.
           active ? "hidden lg:flex" : "flex",
         )}
       >
-        <header className="flex flex-col gap-3 border-b border-border px-4 py-3.5">
+        <header className="flex flex-col gap-3 px-4 py-3.5">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-lg font-semibold tracking-tight">{t("nav.myList")}</h1>
             <Button size="sm" onClick={onCreate} disabled={creating}>
@@ -205,7 +205,7 @@ export function MyList({
               />
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="flex flex-col gap-1 p-2">
               {visible.map((note) => (
                 <li key={note.id}>
                   <button
@@ -213,10 +213,10 @@ export function MyList({
                     onClick={() => setActiveId(note.id)}
                     aria-current={note.id === activeId ? "true" : undefined}
                     className={cn(
-                      "flex w-full flex-col gap-1 px-4 py-3 text-start transition-colors",
+                      "flex w-full flex-col gap-1 rounded-2xl px-3 py-3 text-start transition-colors",
                       note.id === activeId
-                        ? "bg-accent"
-                        : "hover:bg-accent/60",
+                        ? "bg-primary/[0.09] shadow-[var(--shadow-xs)]"
+                        : "hover:bg-foreground/[0.05]",
                     )}
                   >
                     <span className="flex items-center gap-1.5">

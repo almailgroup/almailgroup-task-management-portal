@@ -40,7 +40,7 @@ export function ConversationList({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+      <header className="flex items-center justify-between gap-3 px-4 py-3">
         <h1 className="text-lg font-semibold tracking-tight">{t("dm.title")}</h1>
         <Button size="sm" onClick={onNew}>
           <Plus />
@@ -64,7 +64,7 @@ export function ConversationList({
           />
         </div>
       ) : (
-        <ul className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <ul className="stagger scrollbar-thin flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
           {conversations.map((conversation) => {
             const name =
               conversation.other?.full_name ?? conversation.other?.email ?? "—";
@@ -75,9 +75,9 @@ export function ConversationList({
                 <Link
                   href={`/messages/${conversation.id}`}
                   className={cn(
-                    "chrome-touch flex items-center gap-3 border-b border-border px-4 py-3 transition-colors",
-                    "hover:bg-accent/50",
-                    conversation.id === active && "bg-accent",
+                    "chrome-touch flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors",
+                    "hover:bg-foreground/[0.05]",
+                    conversation.id === active && "bg-primary/[0.09] shadow-[var(--shadow-xs)]",
                   )}
                 >
                   <Avatar className="size-9 shrink-0">

@@ -130,7 +130,7 @@ export function PushDevices({
   }
 
   return (
-    <div className="rounded-lg border border-border p-3">
+    <div className="rounded-2xl bg-foreground/[0.05] p-3">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 text-muted-foreground [&_svg]:size-4">
           <BellRing />

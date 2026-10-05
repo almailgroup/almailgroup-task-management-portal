@@ -108,7 +108,7 @@ export function ActivityLog({
         return (
           <li key={entry.id} className="flex items-start gap-2 text-sm">
             <span
-              className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-[9px] font-medium text-muted-foreground"
+              className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground"
               aria-hidden
             >
               {initialsFrom(actor?.full_name, actor?.email)}

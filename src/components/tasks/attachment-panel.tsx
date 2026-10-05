@@ -213,7 +213,7 @@ export function AttachmentPanel({
       {showLinkForm && (
         <form
           onSubmit={onAddLink}
-          className="flex flex-col gap-2 rounded-md border border-border p-3"
+          className="flex flex-col gap-2 rounded-xl bg-foreground/[0.05] p-3"
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="attachment-name">{t("attach.label")}</Label>
@@ -267,7 +267,7 @@ export function AttachmentPanel({
           {items.map((attachment) => (
             <li
               key={attachment.id}
-              className="flex items-center gap-2 rounded-md border border-border px-2.5 py-2"
+              className="flex items-center gap-2 rounded-xl bg-foreground/[0.05] px-2.5 py-2"
             >
               {attachment.kind === "link" ? (
                 <Link2 className="size-4 shrink-0 text-muted-foreground" />

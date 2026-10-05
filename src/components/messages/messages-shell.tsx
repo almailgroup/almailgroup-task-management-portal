@@ -56,7 +56,7 @@ export function MessagesShell({
     >
       <section
         className={cn(
-          "flex min-h-0 flex-col border-border lg:w-80 lg:shrink-0 lg:border-e xl:w-96",
+          "flex min-h-0 flex-col lg:w-80 lg:shrink-0 xl:w-96",
           openThread ? "hidden lg:flex" : "flex",
         )}
       >

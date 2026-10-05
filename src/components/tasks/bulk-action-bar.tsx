@@ -55,7 +55,7 @@ export function BulkActionBar({
         // desktop, where there is no such bar, it sits at the bottom as before.
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(var(--nav-space)+var(--safe-bottom))] lg:pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        <div className="animate-rise pointer-events-auto flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-popover p-2 shadow-[var(--shadow-lg)]">
+        <div className="animate-rise pointer-events-auto flex flex-wrap items-center gap-2 rounded-3xl bg-popover p-2 shadow-[var(--shadow-lg)]">
           <span className="px-2 text-sm font-medium tabular-nums">
             {tn("count.selected", count)}
           </span>

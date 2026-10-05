@@ -1043,12 +1043,13 @@
   --radius-2xl: calc(var(--radius) + 12px);
   --radius-3xl: calc(var(--radius) + 20px);
 
-  /* Elevation. Monochrome interfaces have no colour to lean on, so depth is
-   * carried by shadow — wider and softer than before, which is what makes a
-   * card read as floating above the page instead of printed onto it. */
-  --shadow-xs: 0 1px 2px 0 rgb(17 18 22 / 0.06);
-  --shadow-sm: 0 2px 4px -1px rgb(17 18 22 / 0.08), 0 1px 2px -1px rgb(17 18 22 / 0.05);
-  --shadow-md: 0 8px 24px -6px rgb(17 18 22 / 0.13), 0 3px 8px -3px rgb(17 18 22 / 0.07);
+  /* Elevation. There are no outlines: a card's edge is where its shadow
+   * starts. So the shadows are two layers — a tight one that draws the edge
+   * and a wide, soft one that lifts the card off the page — which is what
+   * makes it read as floating instead of printed on. */
+  --shadow-xs: 0 1px 2px 0 rgb(17 18 22 / 0.05), 0 2px 6px -2px rgb(17 18 22 / 0.05);
+  --shadow-sm: 0 1px 2px 0 rgb(17 18 22 / 0.04), 0 6px 18px -6px rgb(17 18 22 / 0.11);
+  --shadow-md: 0 2px 4px 0 rgb(17 18 22 / 0.04), 0 14px 34px -10px rgb(17 18 22 / 0.18);
   --shadow-lg: 0 24px 56px -16px rgb(17 18 22 / 0.26), 0 8px 20px -8px rgb(17 18 22 / 0.12);
 
   /* One timing for everything, so the interface moves as a single system.
@@ -1264,7 +1265,7 @@
     transition:
       transform 0.18s var(--ease-out),
       box-shadow 0.18s var(--ease-out),
-      border-color 0.18s var(--ease-out);
+      background-color 0.18s var(--ease-out);
   }
   @media (hover: hover) {
     .lift:hover {
@@ -1302,8 +1303,44 @@
     }
   }
 
+  /* A group that arrives one after another — the dashboard's tiles, a
+   * list's first rows — rather than all at once. Short steps, and only the
+   * first ten wait at all, so a long list is not kept waiting. */
+  .stagger > * {
+    animation: rise 0.28s var(--ease-out) backwards;
+  }
+  .stagger > :nth-child(2) { animation-delay: 30ms; }
+  .stagger > :nth-child(3) { animation-delay: 60ms; }
+  .stagger > :nth-child(4) { animation-delay: 90ms; }
+  .stagger > :nth-child(5) { animation-delay: 120ms; }
+  .stagger > :nth-child(6) { animation-delay: 150ms; }
+  .stagger > :nth-child(7) { animation-delay: 180ms; }
+  .stagger > :nth-child(8) { animation-delay: 210ms; }
+  .stagger > :nth-child(9) { animation-delay: 240ms; }
+  .stagger > :nth-child(n + 10) { animation-delay: 270ms; }
+
+  /* The page's light. A faint wash of the theme's own colour from the top
+   * corner of the page, so Ocean feels blue and Forest green before a single
+   * button is noticed — and the page has some atmosphere instead of a flat
+   * fill. Faint enough that nothing on it changes contrast. */
+  .ambient {
+    background-image:
+      radial-gradient(
+        60rem 22rem at 100% -6rem,
+        color-mix(in oklab, var(--primary) 9%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        40rem 18rem at 0% -8rem,
+        color-mix(in oklab, var(--primary) 5%, transparent),
+        transparent 70%
+      );
+    background-repeat: no-repeat;
+  }
+
   /* Respect a user who has asked for less motion. */
   @media (prefers-reduced-motion: reduce) {
+    .stagger > *,
     .animate-rise,
     .animate-pop {
       animation: none;

@@ -221,7 +221,7 @@ export function DirectThread({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center gap-2 border-b border-border px-2 py-2 sm:px-3">
+      <header className="flex items-center gap-2 px-2 py-2 sm:px-3">
         {/* One screen at a time on a phone; both panes from `lg`. */}
         <Button variant="ghost" size="icon-sm" asChild className="lg:hidden">
           <Link href="/messages" aria-label={t("dm.back")}>
@@ -322,7 +322,7 @@ export function DirectThread({
       >
         <div
           className={cn(
-            "flex items-end gap-1 rounded-2xl border border-input bg-card p-1.5",
+            "flex items-end gap-1 rounded-3xl bg-card shadow-[var(--shadow-xs)] p-1.5",
             "transition-[border-color,box-shadow]",
             "focus-within:border-foreground focus-within:shadow-[var(--shadow-xs)]",
           )}
@@ -344,7 +344,7 @@ export function DirectThread({
             className={cn(
               "min-h-0 flex-1 resize-none overflow-y-auto px-2 py-1.5 text-sm leading-6",
               "max-h-40 border-0 bg-transparent",
-              "shadow-none focus-visible:border-0 focus-visible:shadow-none",
+              "shadow-none focus-visible:shadow-none",
               "focus-visible:ring-0 focus-visible:ring-offset-0",
             )}
             aria-label={t("dm.placeholder", { name })}
@@ -446,7 +446,7 @@ function Bubble({
           "max-w-[82%] rounded-2xl px-3 py-2 text-sm leading-relaxed sm:max-w-[70%]",
           mine
             ? "bg-primary text-primary-foreground"
-            : "border border-border bg-card",
+            : "bg-card shadow-[var(--shadow-xs)]",
           // The corner nearest the speaker is clipped, which is what makes a
           // bubble point at whoever said it.
           mine ? "rounded-ee-md" : "rounded-es-md",

@@ -87,7 +87,7 @@ export default async function DashboardPage() {
               set of predicates in lib/task-filters, so they cannot disagree. */}
           {/* Two up on a phone: six full-width tiles meant six screens of
               scrolling before the first list came into view. */}
-          <section className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <section className="stagger grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-6">
             <MetricCard
               label={t("status.todo")}
               value={metrics.todo}
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
 
           {/* A card that summarises a list should open that list. This one
               is about every task there is. */}
-          <Card className="lift transition-colors hover:border-foreground/25">
+          <Card className="lift transition-colors">
             <Link href="/tasks?filter=all" className="block focus-visible:outline-none">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between gap-2">
@@ -225,7 +225,7 @@ function TaskListCard({
               // phone there is not: the meta cluster used to be `shrink-0`,
               // which pushed the card 175px past the edge of the screen and
               // left Safari shrinking the whole page to fit.
-              className="flex flex-col gap-1.5 rounded-lg border border-border px-2.5 py-2 transition-colors hover:border-foreground/25 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              className="flex flex-col gap-1.5 rounded-2xl bg-foreground/[0.05] px-2.5 py-2 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
               <span className="flex min-w-0 items-center gap-2">
                 <PriorityIndicator priority={task.priority} />

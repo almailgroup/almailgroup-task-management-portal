@@ -130,11 +130,11 @@ export function TaskBrowser({
               href={`/tasks?filter=${entry.value}`}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all duration-150",
+                "press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all duration-150",
                 "pointer-coarse:min-h-11 pointer-coarse:px-3",
                 active
-                  ? "border-transparent bg-primary text-primary-foreground"
-                  : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-foreground/[0.06] text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
               {t(entry.label)}

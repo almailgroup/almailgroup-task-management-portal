@@ -20,7 +20,7 @@ export async function ErrorLog({ errors }: { errors: AppError[] }) {
   if (errors.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+    <div className="flex flex-col gap-2 rounded-2xl bg-foreground/[0.05] p-3">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 text-muted-foreground [&_svg]:size-4">
           <Bug />

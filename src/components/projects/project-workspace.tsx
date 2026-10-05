@@ -160,7 +160,7 @@ export function ProjectWorkspace({
       {/* An archived project is still readable, and should say what it is
           the moment somebody arrives on it from a link or a search. */}
       {project.archived_at && (
-        <p className="flex items-start gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+        <p className="flex items-start gap-2 rounded-2xl bg-muted px-3 py-2 text-xs text-muted-foreground">
           <Archive className="mt-0.5 size-3.5 shrink-0" />
           {t("project.archivedNote")}
         </p>

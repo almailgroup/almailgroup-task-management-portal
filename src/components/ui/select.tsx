@@ -22,7 +22,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-full border border-input bg-card px-3.5 py-1 text-sm transition-[border-color,box-shadow] pointer-coarse:min-h-11",
+        "flex w-full items-center justify-between gap-2 rounded-full bg-foreground/[0.055] shadow-[inset_0_1px_2px_rgb(0_0_0/0.06)] hover:bg-foreground/[0.08] px-4 py-1 text-sm transition-[background-color,box-shadow] duration-200 pointer-coarse:min-h-11",
         "data-[placeholder]:text-muted-foreground focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "[&>span]:line-clamp-1 [&>span]:text-start",
@@ -51,7 +51,7 @@ function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-[var(--shadow-lg)]",
+          "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-2xl bg-popover text-popover-foreground shadow-[var(--shadow-lg)]",
           "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
@@ -126,7 +126,7 @@ function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn("-mx-1 my-1 h-px bg-border", className)}
+      className={cn("my-1 h-1", className)}
       {...props}
     />
   );

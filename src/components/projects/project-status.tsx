@@ -59,7 +59,7 @@ export function ProjectStatus({
 
   if (updates === null) {
     return (
-      <p className="rounded-2xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+      <p className="rounded-3xl bg-card shadow-[var(--shadow-xs)] px-4 py-3 text-xs text-muted-foreground">
         {t("health.unavailable")}
       </p>
     );
@@ -105,7 +105,7 @@ export function ProjectStatus({
   return (
     <section
       aria-label={t("health.title")}
-      className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-[var(--shadow-xs)]"
+      className="flex flex-col gap-3 rounded-3xl bg-card px-4 py-3 shadow-[var(--shadow-xs)]"
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-xs font-medium text-muted-foreground">
@@ -152,7 +152,7 @@ export function ProjectStatus({
       )}
 
       {writing && (
-        <form onSubmit={submit} className="flex flex-col gap-2 border-t border-border pt-3">
+        <form onSubmit={submit} className="flex flex-col gap-2 pt-3">
           <div
             role="radiogroup"
             aria-label={t("health.pick")}
@@ -166,15 +166,15 @@ export function ProjectStatus({
                 aria-checked={status === option}
                 onClick={() => setStatus(option)}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                   "pointer-coarse:min-h-10",
                   status === option
                     ? option === "on_track"
-                      ? "border-foreground bg-foreground text-background"
+                      ? "bg-foreground text-background"
                       : option === "at_risk"
-                        ? "border-warning bg-warning-surface text-warning"
-                        : "border-warning bg-warning text-background"
-                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+                        ? "bg-warning-surface text-warning"
+                        : "bg-warning text-background"
+                    : "bg-foreground/[0.06] text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
                 {t(`health.${option}`)}
@@ -211,7 +211,7 @@ export function ProjectStatus({
       )}
 
       {earlier.length > 0 && (
-        <div className="border-t border-border pt-2">
+        <div className="pt-2">
           <button
             type="button"
             onClick={() => setShowEarlier((open) => !open)}
@@ -298,7 +298,7 @@ export function StatusPill({
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
         status === "on_track" && "bg-muted text-foreground",
-        status === "at_risk" && "border border-warning-border bg-warning-surface text-warning",
+        status === "at_risk" &&" bg-warning-surface text-warning",
         status === "off_track" && "bg-warning text-background",
         className,
       )}

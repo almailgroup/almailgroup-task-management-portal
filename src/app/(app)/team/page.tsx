@@ -48,11 +48,11 @@ export default async function TeamPage() {
         actions={isAdmin ? <AddMemberDialog configured={serviceRole} /> : undefined}
       />
 
-      <Card className="divide-y divide-border">
+      <Card className="stagger flex flex-col gap-1 p-1 sm:p-1.5">
         {team.map((member) => (
           <div
             key={member.id}
-            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 p-3.5 sm:gap-y-3 sm:p-4"
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 rounded-[1.25rem] px-2.5 py-3 transition-colors hover:bg-foreground/[0.04] sm:gap-y-3 sm:p-3.5"
           >
             {/* The name and the face are the target. A person in a list
                 reads as something you can act on, and this one was text. */}

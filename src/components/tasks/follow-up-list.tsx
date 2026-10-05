@@ -100,8 +100,9 @@ function Group({
           <li
             key={task.id}
             className={cn(
-              "flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border bg-card p-4 shadow-[var(--shadow-sm)]",
-              overdue ? "border-foreground/30" : "border-border",
+              "flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl bg-card p-4 shadow-[var(--shadow-sm)]",
+              // Overdue is late work, which is what amber means everywhere.
+              overdue && "bg-warning-surface",
             )}
           >
             <button

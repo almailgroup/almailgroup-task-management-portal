@@ -202,7 +202,7 @@ export function TodayView({
                 key={task.id}
                 type="button"
                 onClick={() => openTask(task)}
-                className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2.5 py-2 text-start transition-colors hover:border-foreground/25"
+                className="flex flex-wrap items-center gap-2 rounded-xl bg-foreground/[0.05] px-2.5 py-2 text-start transition-colors"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[0.9375rem] font-medium">
@@ -320,7 +320,7 @@ function Section({
       className={cn(
         emphasis &&
           tasks.length > 0 &&
-          "border-warning-border bg-warning-surface",
+          "bg-warning-surface",
       )}
     >
       <CardHeader>
@@ -410,7 +410,7 @@ function TodayRow({
   return (
     <div
       onClick={open}
-      className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 shadow-[var(--shadow-sm)] transition-colors hover:border-foreground/25 sm:px-3.5"
+      className="flex cursor-pointer items-center gap-2.5 rounded-2xl bg-card px-3 py-2.5 shadow-[var(--shadow-sm)] transition-colors sm:px-3.5"
     >
       <PriorityIndicator priority={task.priority} />
 

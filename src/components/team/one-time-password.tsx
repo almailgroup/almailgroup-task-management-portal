@@ -37,7 +37,7 @@ export function OneTimePassword({
 
   return (
     <>
-      <dl className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-3.5">
+      <dl className="flex flex-col gap-3 rounded-2xl bg-muted/40 p-3.5">
         <div className="flex flex-col gap-0.5">
           <dt className="text-xs text-muted-foreground">{t("auth.email")}</dt>
           <dd className="break-all font-mono text-sm">{email}</dd>

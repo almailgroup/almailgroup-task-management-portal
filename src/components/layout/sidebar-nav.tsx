@@ -171,7 +171,7 @@ export function SidebarNav({
             onClick={onOpenAssistant}
             data-assistant-launcher
             className={cn(
-              "group/assistant lift flex items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-start shadow-[var(--shadow-xs)]",
+              "group/assistant lift flex items-center gap-2.5 rounded-2xl bg-card px-2.5 py-2.5 text-start shadow-[var(--shadow-xs)]",
               "hover:border-foreground/25 hover:bg-accent",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
             )}

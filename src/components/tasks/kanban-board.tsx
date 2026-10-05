@@ -265,7 +265,7 @@ export function KanbanBoard({
               </SortableContext>
 
               {columnTasks.length === 0 && !canCreate && (
-                <p className="rounded-md border border-dashed border-border px-2 py-6 text-center text-xs text-muted-foreground">
+                <p className="rounded-xl bg-foreground/[0.05] px-2 py-6 text-center text-xs text-muted-foreground">
                   {t("kanban.nothingHere")}
                 </p>
               )}
@@ -297,7 +297,7 @@ function DragPreview({ task }: { task: TaskWithAssignees | null }) {
       {task && (
         <TaskCard
           task={task}
-          className="rotate-1 border-foreground/30 shadow-lg"
+          className="rotate-1 shadow-[var(--shadow-lg)]"
         />
       )}
     </DragOverlay>
@@ -334,9 +334,10 @@ function Column({
       ref={setNodeRef}
       aria-label={label}
       className={cn(
-        "flex min-h-[10rem] flex-col gap-2 rounded-2xl border border-border/70 bg-chrome/60 p-2.5 transition-colors duration-200",
-        // A dashed ring on the target column reads faster than a fill change.
-        isOver && "border-dashed border-foreground/50 bg-accent/60 scale-[1.01]",
+        "flex min-h-[10rem] flex-col gap-2 rounded-3xl bg-chrome/60 p-2.5 transition-colors duration-200",
+        // The column a card is over glows in the theme's colour and swells a
+        // little, so the drop target is plain without drawing a line round it.
+        isOver && "bg-primary/[0.08] scale-[1.01]",
       )}
     >
       <header className="flex items-center justify-between gap-2 px-1">

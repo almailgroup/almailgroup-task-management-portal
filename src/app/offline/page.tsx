@@ -23,7 +23,7 @@ export default async function OfflinePage() {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
       <span
-        className="flex size-12 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground [&_svg]:size-5"
+        className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5"
         aria-hidden
       >
         <CloudOff />

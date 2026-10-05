@@ -57,8 +57,8 @@ export function StatusMoveMenu({
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
           className={cn(
-            "press inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium",
-            "transition-colors hover:border-foreground/40 hover:bg-accent",
+            "press inline-flex items-center gap-1 rounded-full bg-card shadow-[var(--shadow-xs)] px-2.5 py-1 text-xs font-medium",
+            "transition-colors hover:bg-accent",
             "pointer-coarse:min-h-11 pointer-coarse:px-3",
             className,
           )}

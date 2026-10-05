@@ -184,10 +184,13 @@ export function TaskTable({
   return (
     <>
       {/* Desktop */}
-      <div className="hidden overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-sm)] md:block">
-        <table className="w-full border-collapse text-sm">
+      {/* No rules between rows: each row is its own rounded band, told
+          apart by spacing and a faint alternating tint, and it lights up as
+          a pill under the pointer. */}
+      <div className="hidden overflow-hidden rounded-3xl bg-card p-2 shadow-[var(--shadow-sm)] md:block">
+        <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/60 text-start">
+            <tr className="text-start">
               {selectable && (
                 <Th className="w-10">
                   <Checkbox
@@ -226,8 +229,9 @@ export function TaskTable({
                 key={task.id}
                 onClick={() => onOpenTask(task)}
                 className={cn(
-                  "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-accent/50",
-                  selected.has(task.id) && "bg-accent/60",
+                  "cursor-pointer transition-colors even:bg-foreground/[0.025] hover:bg-foreground/[0.06]",
+                  "[&>td:first-child]:rounded-s-2xl [&>td:last-child]:rounded-e-2xl",
+                  selected.has(task.id) && "bg-primary/[0.08] even:bg-primary/[0.08] hover:bg-primary/[0.11]",
                 )}
               >
                 {selectable && (
@@ -292,7 +296,7 @@ export function TaskTable({
        * is the tap target — a full-size overlay rather than a wrapper, since
        * a <button> may not contain other controls.
        */}
-      <ul className="flex flex-col gap-2 md:hidden">
+      <ul className="stagger flex flex-col gap-2 md:hidden">
         {rows.map((task) => {
           const isSelected = selected.has(task.id);
 
@@ -300,8 +304,8 @@ export function TaskTable({
             <li
               key={task.id}
               className={cn(
-                "lift relative rounded-2xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)]",
-                isSelected && "border-foreground/40 bg-accent/50",
+                "lift relative rounded-3xl bg-card p-3.5 shadow-[var(--shadow-sm)]",
+                isSelected && "bg-primary/[0.07] shadow-[var(--shadow-md)]",
               )}
             >
               <button

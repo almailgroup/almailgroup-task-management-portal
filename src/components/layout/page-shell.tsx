@@ -60,7 +60,9 @@ export function PageHeader({
       <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
         <div className="flex items-center gap-2">
           {icon && (
-            <span className="text-muted-foreground [&_svg]:size-5">{icon}</span>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary [&_svg]:size-[1.125rem]">
+              {icon}
+            </span>
           )}
           <h1 className="truncate">{title}</h1>
           {meta}

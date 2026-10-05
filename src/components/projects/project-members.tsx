@@ -110,7 +110,7 @@ export function ProjectMembers({
           </DialogHeader>
 
           {members.length === 0 && (
-            <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+            <p className="rounded-2xl bg-foreground/[0.05] px-3 py-4 text-center text-sm text-muted-foreground">
               {t("members.nobody")}
             </p>
           )}

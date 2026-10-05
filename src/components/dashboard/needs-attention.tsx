@@ -37,7 +37,7 @@ export async function NeedsAttention({
   if (items.length === 0) return null;
 
   return (
-    <Card className="border-warning-border">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Flag className="size-4 text-warning" />
@@ -50,7 +50,7 @@ export async function NeedsAttention({
           <Link
             key={item.projectId}
             href={`/projects/${item.projectId}`}
-            className="group flex flex-col gap-1.5 rounded-lg border border-border px-3 py-2.5 transition-colors hover:border-foreground/25"
+            className="group flex flex-col gap-1.5 rounded-2xl bg-foreground/[0.05] px-3 py-2.5 transition-colors"
           >
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-sm font-medium">{item.name}</span>

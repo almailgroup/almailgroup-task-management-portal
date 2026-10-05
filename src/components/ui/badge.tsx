@@ -9,15 +9,15 @@ import { cn } from "@/lib/utils";
  * border rather than hue, keeping the board strictly monochrome.
  */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium leading-none whitespace-nowrap transition-colors [&_svg]:size-3 [&_svg]:pointer-events-none",
+  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium leading-none whitespace-nowrap transition-colors [&_svg]:size-3 [&_svg]:pointer-events-none",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        outline: "border-border text-foreground",
-        muted: "border-transparent bg-muted text-muted-foreground",
-        subtle: "border-border bg-card text-muted-foreground",
+        default: "bg-primary text-primary-foreground",
+        secondary: "bg-secondary text-secondary-foreground",
+        outline: "bg-foreground/[0.07] text-foreground",
+        muted: "bg-muted text-muted-foreground",
+        subtle: "bg-foreground/[0.05] text-muted-foreground",
       },
     },
     defaultVariants: {

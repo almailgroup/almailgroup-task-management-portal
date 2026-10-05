@@ -288,7 +288,7 @@ export function CalendarView({
 
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-sm)] transition-opacity",
+          "overflow-hidden rounded-3xl bg-card p-1.5 shadow-[var(--shadow-sm)] transition-opacity sm:p-2",
           // Dimmed rather than replaced: a skeleton here would throw the grid
           // away and put it back a moment later, which reads as the page
           // reloading rather than as a month arriving.
@@ -296,7 +296,7 @@ export function CalendarView({
         )}
         aria-busy={loading}
       >
-        <div className="grid grid-cols-7 border-b border-border bg-muted/60 text-center text-[0.6875rem] font-medium text-muted-foreground sm:text-xs">
+        <div className="grid grid-cols-7 text-center text-[0.6875rem] font-medium text-muted-foreground sm:text-xs">
           {weekdays.map((day) => (
             <div key={day} className="py-2">
               {day}
@@ -304,7 +304,9 @@ export function CalendarView({
           ))}
         </div>
 
-        <div className="grid grid-cols-7" role="grid" aria-label={t("cal.gridLabel")}>
+        {/* Days are separate rounded cells with space between them, not
+            squares in a ruled grid. */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5" role="grid" aria-label={t("cal.gridLabel")}>
           {days.map((day) => {
             const key = dayKey(day);
             const list = byDay.get(key) ?? [];
@@ -319,10 +321,12 @@ export function CalendarView({
                 role="gridcell"
                 aria-selected={selected}
                 className={cn(
-                  "relative flex min-h-[4.25rem] flex-col border-b border-e border-border p-1 sm:min-h-[6.5rem] sm:p-1.5 [&:nth-child(7n)]:border-e-0",
-                  !inMonth(day) && "bg-muted/30 text-muted-foreground",
-                  weekend && inMonth(day) && "bg-muted/15",
-                  selected && "bg-accent",
+                  "relative flex min-h-[4.25rem] flex-col rounded-xl bg-foreground/[0.035] p-1 transition-colors sm:min-h-[6.5rem] sm:rounded-2xl sm:p-1.5",
+                  "hover:bg-foreground/[0.06]",
+                  !inMonth(day) && "bg-transparent text-muted-foreground",
+                  weekend && inMonth(day) && "bg-foreground/[0.055]",
+                  isToday && "bg-primary/[0.07]",
+                  selected && "bg-primary/[0.12] shadow-[var(--shadow-xs)]",
                 )}
               >
                 {/* The whole square is the control, laid underneath what it
@@ -369,7 +373,7 @@ export function CalendarView({
                           "w-full truncate rounded-md px-1.5 py-0.5 text-start text-xs transition-colors hover:bg-accent",
                           task.status === "done" && "text-muted-foreground line-through",
                           isOverdue(task.due_at, task.status) &&
-                            "border border-warning-border bg-warning-surface text-warning",
+                            "bg-warning-surface text-warning",
                         )}
                       >
                         {task.title}
@@ -423,7 +427,7 @@ export function CalendarView({
                   <button
                     type="button"
                     onClick={() => openTask(task)}
-                    className="lift flex w-full flex-col gap-1.5 rounded-xl border border-border bg-card p-3 text-start shadow-[var(--shadow-xs)] sm:flex-row sm:items-center sm:justify-between"
+                    className="lift flex w-full flex-col gap-1.5 rounded-2xl bg-card p-3 text-start shadow-[var(--shadow-xs)] sm:flex-row sm:items-center sm:justify-between"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <PriorityIndicator priority={task.priority} />

@@ -30,7 +30,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[9rem] overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-lg)] focus-visible:ring-0 focus-visible:ring-offset-0",
+          "z-50 min-w-[9rem] overflow-hidden rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-lg)] focus-visible:ring-0 focus-visible:ring-offset-0",
           contentMotion,
           className,
         )}
@@ -127,7 +127,7 @@ function DropdownMenuSeparator({
   return (
     <DropdownMenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("-mx-1 my-1 h-px bg-border", className)}
+      className={cn("my-1 h-1", className)}
       {...props}
     />
   );
@@ -182,7 +182,7 @@ function DropdownMenuSubContent({
     <DropdownMenuPrimitive.SubContent
       data-slot="dropdown-menu-sub-content"
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-lg)] focus-visible:ring-0 focus-visible:ring-offset-0",
+        "z-50 min-w-[8rem] overflow-hidden rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-lg)] focus-visible:ring-0 focus-visible:ring-offset-0",
         contentMotion,
         className,
       )}

@@ -76,7 +76,7 @@ export function QuickAddTask({
           requestAnimationFrame(() => inputRef.current?.focus());
         }}
         className={cn(
-          "flex w-full items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground transition-colors",
+          "flex w-full items-center gap-2 rounded-2xl bg-foreground/[0.05] px-3 py-2.5 text-sm text-muted-foreground transition-colors",
           "hover:border-foreground/30 hover:bg-accent hover:text-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "pointer-coarse:min-h-11",
@@ -92,7 +92,7 @@ export function QuickAddTask({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 shadow-[var(--shadow-xs)]",
+        "flex items-center gap-2 rounded-2xl bg-card px-3 py-1.5 shadow-[var(--shadow-xs)]",
         // The ring belongs to the box, not to the bare input inside it —
         // otherwise focus draws two outlines, one inside the other.
         "focus-within:border-foreground focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
@@ -126,7 +126,7 @@ export function QuickAddTask({
       {saving ? (
         <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
       ) : (
-        <kbd className="hidden shrink-0 rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4 text-muted-foreground sm:inline">
+        <kbd className="hidden shrink-0 rounded-md bg-muted px-1 font-mono text-[10px] leading-4 text-muted-foreground sm:inline">
           ↵
         </kbd>
       )}

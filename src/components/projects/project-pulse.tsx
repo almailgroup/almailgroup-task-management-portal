@@ -29,7 +29,7 @@ export function ProjectPulse({ tasks }: { tasks: TaskWithAssignees[] }) {
   ].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card px-4 py-3 shadow-[var(--shadow-xs)]">
+    <div className="flex flex-col gap-1.5 rounded-3xl bg-card px-4 py-3 shadow-[var(--shadow-xs)]">
       <div className="flex items-center justify-between gap-3 text-xs">
         <span className="text-muted-foreground">{parts.join(" · ")}</span>
         <span className="font-medium tabular-nums">{percent}%</span>

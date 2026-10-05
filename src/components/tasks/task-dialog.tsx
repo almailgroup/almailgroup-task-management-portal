@@ -327,7 +327,7 @@ export function TaskDialog({
                         key={option.key}
                         type="button"
                         onClick={() => setDue(option.value())}
-                        className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground pointer-coarse:min-h-11"
+                        className="rounded-full bg-foreground/[0.05] px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.09] hover:text-foreground pointer-coarse:min-h-11"
                       >
                         {option.label}
                       </button>
@@ -412,7 +412,7 @@ export function TaskDialog({
                 screen. The form is tall enough on a phone that Save sat some
                 seven hundred pixels down, and the way you found it was to
                 scroll looking for it. */}
-            <div className="sticky bottom-0 z-10 -mx-5 mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-popover px-5 py-3">
+            <div className="sticky bottom-0 z-10 -mx-5 mt-1 flex flex-wrap items-center justify-between gap-2 bg-popover px-5 py-3">
               {editing ? (
                 <Button
                   type="button"

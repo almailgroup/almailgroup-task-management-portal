@@ -146,8 +146,10 @@ describe.each(THEMES.map((theme) => [theme.id]))("the %s theme", (id) => {
     expect(contrast(t["destructive-foreground"], t.destructive)).toBeGreaterThanOrEqual(AA);
   });
 
-  it("draws form fields and the focus ring at 3:1, as WCAG 1.4.11 asks", () => {
-    expect(contrast(t.input, t.card), "input on card").toBeGreaterThanOrEqual(3);
+  it("draws checkboxes and the focus ring at 3:1, as WCAG 1.4.11 asks", () => {
+    // Text fields are filled wells with no outline now; `input` is the ring
+    // of an unticked checkbox, the one control with nothing else to show it.
+    expect(contrast(t.input, t.card), "checkbox ring on card").toBeGreaterThanOrEqual(3);
     expect(contrast(t.ring, t.background), "ring on background").toBeGreaterThanOrEqual(3);
   });
 

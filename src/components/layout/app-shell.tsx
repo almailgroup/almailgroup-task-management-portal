@@ -390,7 +390,7 @@ export function AppShell({
           id="content"
           tabIndex={-1}
           className={cn(
-            "min-h-[calc(100svh-3.5rem-var(--panel-gap))] pb-[calc(var(--nav-space)+var(--safe-bottom))] focus:outline-none lg:pb-0",
+            "ambient min-h-[calc(100svh-3.5rem-var(--panel-gap))] pb-[calc(var(--nav-space)+var(--safe-bottom))] focus:outline-none lg:pb-0",
             // The panel. `clip` rather than `hidden` keeps its corners clean
             // without making it a scroll container, which would strand
             // anything sticky inside it.

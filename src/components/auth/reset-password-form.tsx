@@ -45,7 +45,7 @@ export function ResetPasswordForm() {
   if (done) {
     return (
       <div className="flex flex-col items-center gap-3 py-4 text-center">
-        <span className="flex size-11 items-center justify-center rounded-full border border-border bg-muted">
+        <span className="flex size-11 items-center justify-center rounded-full bg-muted">
           <CheckCircle2 className="size-5" />
         </span>
         <p className="font-medium">{t("auth.passwordChanged")}</p>

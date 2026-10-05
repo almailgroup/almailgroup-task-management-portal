@@ -338,7 +338,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         <DialogTitle className="sr-only">{t("palette.title")}</DialogTitle>
         <DialogDescription className="sr-only">{t("palette.description")}</DialogDescription>
 
-        <div className="flex items-center gap-2 border-b border-border px-3">
+        <div className="flex items-center gap-2 px-3">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
             ref={inputRef}
@@ -408,7 +408,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
           </ul>
         )}
 
-        <div className="flex items-center justify-between border-t border-border px-3 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground">
           <span>
             <Kbd>↑</Kbd> <Kbd>↓</Kbd> {t("palette.move")} · <Kbd>↵</Kbd> {t("palette.open")}
           </span>
@@ -424,7 +424,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4">
+    <kbd className="rounded-md bg-muted px-1 font-mono text-[10px] leading-4">
       {children}
     </kbd>
   );
@@ -442,11 +442,11 @@ export function CommandHint() {
         )
       }
       aria-label={t("shell.search")}
-      className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center pointer-coarse:px-3"
+      className="flex items-center gap-2 rounded-2xl bg-foreground/[0.05] px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.09] hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center pointer-coarse:px-3"
     >
       <Search className="size-4 sm:size-3.5" />
       <span className="hidden sm:inline">{t("shell.search")}</span>
-      <kbd className="hidden rounded border border-border bg-muted px-1 font-mono text-[10px] leading-4 sm:inline">
+      <kbd className="hidden rounded-md bg-muted px-1 font-mono text-[10px] leading-4 sm:inline">
         ⌘K
       </kbd>
     </button>
