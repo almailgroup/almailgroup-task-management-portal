@@ -324,9 +324,14 @@ export function TeamChat({
               of the field once it does. */}
           <div
             className={cn(
-              "flex items-end gap-1 rounded-3xl bg-card shadow-[var(--shadow-xs)] p-1.5",
-              "transition-[border-color,box-shadow]",
-              "focus-within:border-foreground focus-within:shadow-[var(--shadow-xs)]",
+              "flex items-end gap-1 rounded-3xl bg-card p-1.5 shadow-[var(--shadow-xs)]",
+              // Lit as one control when the caret is in it: a soft glow of the
+              // theme's colour round the whole box, nothing inside it. A glow, not
+              // a ring: these boxes hold the caret for long stretches (the
+              // assistant focuses its own the moment it opens), and a ring read as
+              // an outline round the box the whole time.
+              "transition-shadow duration-200",
+              "focus-within:shadow-[0_6px_24px_-6px_color-mix(in_oklab,var(--primary)_45%,transparent)]",
             )}
           >
             {/* The roster is a column of its own from `lg` up. Below that
@@ -362,8 +367,10 @@ export function TeamChat({
                 // 24px of line in 12px of padding is 36px, which is exactly
                 // the height of the buttons beside it, so one line of text
                 // sits on their centre line without being nudged there.
-                "min-h-0 flex-1 resize-none overflow-y-auto px-2 py-1.5 text-sm leading-6",
-                "max-h-40 border-0 bg-transparent",
+                "min-h-0 flex-1 resize-none overflow-y-auto rounded-none px-3 py-1.5 text-[0.9375rem] leading-6",
+                // Bold, so a message being written is easy to read back.
+                "font-semibold placeholder:font-semibold",
+                "max-h-40 bg-transparent hover:bg-transparent focus-visible:bg-transparent",
                 // The container carries the focus affordance. Without this the
                 // global focus ring drew a second rounded box inside the first.
                 "shadow-none focus-visible:shadow-none",

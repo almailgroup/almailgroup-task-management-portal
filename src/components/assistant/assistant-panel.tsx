@@ -243,15 +243,26 @@ export function AssistantPanel({
           *
           * The box and the two buttons each had their own border and their own
           * rounding, so the foot of the panel read as a pile of parts rather
-          * than somewhere to type. The border is on the container now and the
+          * than somewhere to type. The shape is on the container now and the
           * textarea inside it is bare; the whole thing lights up together when
           * the caret is in it, which is what makes it read as one control.
+          *
+          * The box's corners are deep, so the padding sets the first line well
+          * clear of where the curve is still turning — text that starts there
+          * looks crowded into it. The text also starts on the same line as the
+          * microphone icon below it — 16px of padding, the button's -4px,
+          * and the icon centred in its 36px — so the two read as one column.
           */}
         <div
           className={cn(
-            "flex flex-col gap-1 rounded-3xl bg-card shadow-[var(--shadow-xs)] px-3 py-2",
-            "transition-[border-color,box-shadow]",
-            "focus-within:border-foreground focus-within:shadow-[var(--shadow-xs)]",
+            "flex flex-col gap-1 rounded-3xl bg-card px-4 pt-3 pb-2 shadow-[var(--shadow-xs)]",
+            // Lit as one control when the caret is in it: a soft glow of the
+            // theme's colour round the whole box, nothing inside it. A glow, not
+            // a ring: these boxes hold the caret for long stretches (the
+            // assistant focuses its own the moment it opens), and a ring read as
+            // an outline round the box the whole time.
+            "transition-shadow duration-200",
+            "focus-within:shadow-[0_6px_24px_-6px_color-mix(in_oklab,var(--primary)_45%,transparent)]",
             pending && "opacity-60",
           )}
         >
@@ -270,7 +281,11 @@ export function AssistantPanel({
             rows={1}
             maxLength={2000}
             className={cn(
-              "max-h-40 min-h-0 resize-none overflow-y-auto border-0 bg-transparent p-0 text-sm leading-relaxed",
+              "max-h-40 min-h-0 resize-none overflow-y-auto rounded-none bg-transparent px-[7px] py-0",
+              // Bold, and a size up: the one thing on the panel meant to be
+              // read at a glance, typed or not.
+              "text-[0.9375rem] leading-6 font-semibold placeholder:font-semibold",
+              "hover:bg-transparent focus-visible:bg-transparent",
               // The container carries the focus affordance. Without this the
               // global focus ring drew a second rounded box inside the first.
               "shadow-none focus-visible:shadow-none",
