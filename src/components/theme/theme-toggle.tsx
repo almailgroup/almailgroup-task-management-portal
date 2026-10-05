@@ -30,6 +30,11 @@ import { cn } from "@/lib/utils";
  * light and fifteen dark are three rows each, and the whole menu fits on the
  * smallest iPhone. It still scrolls if a screen is shorter than that.
  *
+ * Choosing does not close it. A theme is something you try on: pick one, see
+ * the page in it, pick another. The menu used to shut on every choice, so
+ * comparing two meant opening it again each time. It closes the usual ways —
+ * a tap outside it, Escape, or the palette button again.
+ *
  * Renders a stable placeholder until mounted. The stored theme lives in the
  * browser, so the server cannot know it, and drawing a tick next to the wrong
  * one for a frame is a hydration mismatch.
@@ -61,7 +66,7 @@ export function ThemeToggle() {
         collisionPadding={8}
         className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-[21rem] overflow-y-auto"
       >
-        <DropdownMenuItem onSelect={() => setTheme("system")} className="gap-2.5">
+        <DropdownMenuItem onSelect={keepOpen(() => setTheme("system"))} className="gap-2.5">
           <span className="flex size-6 items-center justify-center rounded-full bg-muted [&_svg]:size-3.5">
             <MonitorSmartphone />
           </span>
@@ -77,7 +82,7 @@ export function ThemeToggle() {
               key={option.id}
               option={option}
               active={active === option.id}
-              onSelect={() => setTheme(option.id)}
+              onSelect={keepOpen(() => setTheme(option.id))}
             />
           ))}
         </div>
@@ -90,13 +95,24 @@ export function ThemeToggle() {
               key={option.id}
               option={option}
               active={active === option.id}
-              onSelect={() => setTheme(option.id)}
+              onSelect={keepOpen(() => setTheme(option.id))}
             />
           ))}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+/**
+ * Wraps a menu item's choice so the menu stays open after it. Radix closes a
+ * menu on select unless the event is cancelled.
+ */
+function keepOpen(choose: () => void) {
+  return (event: Event) => {
+    event.preventDefault();
+    choose();
+  };
 }
 
 function ThemeItem({
@@ -106,7 +122,7 @@ function ThemeItem({
 }: {
   option: ThemeOption;
   active: boolean;
-  onSelect: () => void;
+  onSelect: (event: Event) => void;
 }) {
   const { t } = useI18n();
   return (

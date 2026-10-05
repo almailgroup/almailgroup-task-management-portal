@@ -14,10 +14,21 @@ test.describe("themes", () => {
     await signIn(page);
 
     await page.getByRole("button", { name: "Theme" }).click();
-    await page.getByRole("menuitem", { name: "Midnight" }).click();
-
+    const menu = page.getByRole("menu");
     const html = page.locator("html");
+
+    // Choosing does not close the menu: themes are tried on one after
+    // another without opening it again each time.
+    await page.getByRole("menuitem", { name: "Ocean" }).click();
+    await expect(html).toHaveClass(/\bocean\b/);
+    await expect(menu).toBeVisible();
+    await page.getByRole("menuitem", { name: "Midnight" }).click();
     await expect(html).toHaveClass(/\bmidnight\b/);
+    await expect(html).not.toHaveClass(/\bocean\b/);
+    await expect(menu).toBeVisible();
+    // It closes the usual way.
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
 
     // The page is wearing Midnight's ground, not Light's.
     const ground = () =>
@@ -47,5 +58,6 @@ test.describe("themes", () => {
     await page.getByRole("button", { name: "Theme" }).click();
     await page.getByRole("menuitem", { name: "Match this device" }).click();
     await expect(html).not.toHaveClass(/\bmidnight\b/);
+    await page.keyboard.press("Escape");
   });
 });
