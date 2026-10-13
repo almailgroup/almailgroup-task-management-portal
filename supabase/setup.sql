@@ -41,6 +41,8 @@
 --   20260930000031_guard_telegram_chat.sql
 --   20261002000032_project_status_updates.sql
 --   20261002000033_comment_reactions.sql
+--   20261013000034_close_self_registration.sql
+--   20261013000035_attachment_files_follow_task.sql
 -- ---------------------------------------------------------------------------
 
 -- =========================================================================
@@ -5601,3 +5603,147 @@ create policy "people take back their own reactions"
   using (user_id = auth.uid());
 
 grant select, insert, delete on public.comment_reactions to authenticated;
+
+-- =========================================================================
+-- 20261013000034_close_self_registration.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Accounts are added, not taken.
+--
+-- This portal is for one company's staff. Until now anybody who found its
+-- address could register: the sign-in page offered "Create one", and the
+-- Supabase project accepts sign-ups unless they are switched off in its
+-- settings. A stranger who did that could see nothing of the work — tasks and
+-- projects are guarded — but could read the team chat, see every colleague's
+-- name, email and role, and message any of them.
+--
+-- The app no longer offers registration. This closes it underneath as well,
+-- so it holds even if the project's sign-up setting is left on, and even for
+-- somebody who calls Supabase's sign-up endpoint directly with the public key.
+--
+-- An account is accepted only when an admin added it. The Team page's "Add
+-- teammate" does that through the server's service key and records which
+-- admin asked in the account's app_metadata — which only the service key can
+-- write; somebody signing themselves up can set user_metadata, not this. The
+-- trigger checks that the id recorded there belongs to an admin.
+--
+-- The first account in an empty database is still let in and made admin, as
+-- before, so a fresh deployment can bootstrap itself.
+--
+-- One consequence: adding a user from the Supabase dashboard is refused too,
+-- because the dashboard cannot set app_metadata on creation. Add people from
+-- the Team page.
+--
+-- Run in the Supabase SQL editor. Safe to run more than once.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  assigned_role public.user_role;
+  added_by_text text := new.raw_app_meta_data ->> 'added_by';
+  added_by uuid;
+begin
+  if not exists (select 1 from public.profiles) then
+    -- An empty database: this is the person setting it up.
+    assigned_role := 'admin';
+  else
+    -- Checked before casting, so a malformed value is refused with the
+    -- message below rather than with a cast error.
+    if added_by_text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+      added_by := added_by_text::uuid;
+    end if;
+
+    if added_by is null or not exists (
+      select 1 from public.profiles p
+      where p.id = added_by and p.role = 'admin'
+    ) then
+      raise exception 'Accounts are added by an admin from the Team page.'
+        using errcode = '42501';
+    end if;
+
+    assigned_role := 'member';
+  end if;
+
+  insert into public.profiles (id, email, full_name, avatar_url, role)
+  values (
+    new.id,
+    new.email,
+    nullif(btrim(coalesce(new.raw_user_meta_data ->> 'full_name', '')), ''),
+    nullif(btrim(coalesce(new.raw_user_meta_data ->> 'avatar_url', '')), ''),
+    assigned_role
+  )
+  on conflict (id) do nothing;
+
+  return new;
+end;
+$$;
+
+-- The trigger itself is unchanged; it is restated so this file stands alone.
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- =========================================================================
+-- 20261013000035_attachment_files_follow_task.sql
+-- =========================================================================
+
+-- ---------------------------------------------------------------------------
+-- A task's files are as private as the task.
+--
+-- Attachments live in two places: a row in task_attachments, which says what
+-- the file is called and which task it belongs to, and the file itself in the
+-- task-attachments storage bucket. The row has followed the task since
+-- project membership arrived — you only see the attachments of tasks you can
+-- see. The file never did: the bucket's read rule let any signed-in account
+-- read any file in it, and reading includes listing. So a member who may only
+-- see the tasks assigned to them could list the bucket and download the files
+-- of every other task, in every project.
+--
+-- Every file is stored under its task's id — "<task id>/<file>" — which is
+-- also what the upload rule checks. Reading now asks the same question the
+-- rest of the app asks about the task itself: can_view_task.
+--
+-- Run in the Supabase SQL editor. Safe to run more than once.
+-- ---------------------------------------------------------------------------
+
+-- The task a stored file belongs to, from the first segment of its path, or
+-- null when that is not a task id. Checked before casting, so a stray object
+-- with an odd name is simply unreadable rather than an error for everybody
+-- listing the bucket.
+create or replace function public.attachment_task_id(object_name text)
+returns uuid
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+  select case
+    when split_part(object_name, '/', 1)
+      ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    then split_part(object_name, '/', 1)::uuid
+  end
+$$;
+
+do $$
+begin
+  if to_regclass('storage.objects') is null then
+    raise notice 'storage schema not found - skipping the attachment read policy';
+    return;
+  end if;
+
+  execute $p$drop policy if exists "attachment objects readable by authenticated" on storage.objects$p$;
+  execute $p$drop policy if exists "attachment objects readable with their task" on storage.objects$p$;
+  execute $p$create policy "attachment objects readable with their task"
+    on storage.objects for select
+    to authenticated
+    using (
+      bucket_id = 'task-attachments'
+      and public.can_view_task(public.attachment_task_id(name))
+    )$p$;
+end $$;

@@ -17,17 +17,17 @@ import { getI18n } from "@/lib/i18n/server";
 import { emailSchema, userRoleSchema } from "@/lib/validation";
 
 /**
- * Adding somebody to the workspace directly.
+ * Adding somebody to the workspace — the only way in.
  *
- * Self-registration depends on a confirmation email, and the mail service a
- * Supabase project starts with sends only a handful an hour — enough for
- * testing, not enough to onboard a company, which is what "email rate limit
- * exceeded" means when it appears on the sign-up form.
+ * This is a company portal: people are added by whoever is responsible for
+ * access, rather than admitting themselves. There is no sign-up page, and the
+ * database refuses any account an admin did not add (close_self_registration),
+ * which is why the account created here records who added it.
  *
- * This route sends nothing. An admin creates the account with a one-time
- * password, already confirmed, and passes it on however they normally would.
- * It is also simply the right shape for a company portal: people are added by
- * whoever is responsible for access, rather than admitting themselves.
+ * It sends nothing. An admin creates the account with a one-time password,
+ * already confirmed, and passes it on however they normally would — which also
+ * keeps clear of the handful of emails an hour that a Supabase project's own
+ * mail service allows.
  */
 
 const newMemberSchema = z.object({
@@ -115,7 +115,7 @@ export async function addTeamMember(
 
   const permitted = await requireAdmin();
   if ("error" in permitted) return fail(permitted.error);
-  const { supabase, admin } = permitted;
+  const { supabase, admin, userId } = permitted;
 
   const password = temporaryPassword();
 
@@ -125,6 +125,11 @@ export async function addTeamMember(
     // Confirmed on creation: nothing is emailed, so nothing can be missed and
     // no send quota is spent.
     email_confirm: true,
+    // Which admin added them. The database lets an account in only when this
+    // names an admin (close_self_registration), and app_metadata is the half
+    // of an account only the service key can write — somebody signing
+    // themselves up cannot set it.
+    app_metadata: { added_by: userId },
     user_metadata: {
       full_name: parsed.data.fullName,
       // The app asks them to choose their own on first sign-in, and clears

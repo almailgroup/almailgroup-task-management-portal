@@ -74,9 +74,6 @@ export default async function Home() {
                 <ArrowRight className="rtl:-scale-x-100" />
               </Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/register">{t("landing.createAccount")}</Link>
-            </Button>
           </div>
         </div>
 

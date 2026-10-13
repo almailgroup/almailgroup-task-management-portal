@@ -16,7 +16,6 @@ import {
   emailSchema,
   loginSchema,
   passwordSchema,
-  registerSchema,
 } from "@/lib/validation";
 
 /**
@@ -91,47 +90,6 @@ export async function signIn(
 
   revalidatePath("/", "layout");
   return ok({ redirectTo: safeRedirect(formData.get("next")) });
-}
-
-export async function signUp(
-  _prev: unknown,
-  formData: FormData,
-): Promise<ActionResult<{ needsConfirmation: boolean }>> {
-  const parsed = registerSchema.safeParse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-
-  if (!parsed.success) {
-    return fail("action.checkFields", fieldErrorsFrom(parsed.error.issues));
-  }
-
-  const supabase = await createClient();
-  const origin = await siteOrigin();
-
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      // Read by the handle_new_user trigger to populate profiles.full_name.
-      data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    return fail(describeAuthError(error));
-  }
-
-  // With email confirmation enabled Supabase returns a user but no session.
-  const needsConfirmation = Boolean(data.user) && !data.session;
-
-  if (!needsConfirmation) {
-    revalidatePath("/", "layout");
-  }
-
-  return ok({ needsConfirmation });
 }
 
 export async function signOut(): Promise<void> {

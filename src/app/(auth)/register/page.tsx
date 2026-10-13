@@ -1,28 +1,11 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AuthFormShell } from "@/components/auth/auth-form-shell";
-import { getI18n } from "@/lib/i18n/server";
-import { RegisterForm } from "@/components/auth/register-form";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getI18n();
-  return { title: t("auth.register.title") };
-}
-
-export default async function RegisterPage() {
-  const { t } = await getI18n();
-
-  return (
-    <AuthFormShell
-      title={t("auth.register.title")}
-      subtitle={t("auth.register.subtitle")}
-      footer={{
-        prompt: t("auth.register.prompt"),
-        linkLabel: t("auth.signIn"),
-        href: "/login",
-      }}
-    >
-      <RegisterForm />
-    </AuthFormShell>
-  );
+/**
+ * There is no registering. The portal is for the company's staff, and
+ * accounts are added by an admin from the Team page — the database refuses an
+ * account nobody added (see the close_self_registration migration). The
+ * address is kept so an old link or bookmark lands on sign-in, not on a 404.
+ */
+export default function RegisterPage(): never {
+  redirect("/login");
 }

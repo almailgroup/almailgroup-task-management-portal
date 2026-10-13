@@ -18,15 +18,6 @@ export const loginSchema = z.object({
   password: z.string().min(1, "validation.passwordRequired"),
 });
 
-export const registerSchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(2, "validation.enterFullName")
-    .max(120, "validation.nameMax"),
-  email: emailSchema,
-  password: passwordSchema,
-});
 
 export const profileSchema = z.object({
   fullName: z
@@ -129,7 +120,6 @@ export const commentSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
-export type RegisterInput = z.infer<typeof registerSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type ProjectInput = z.infer<typeof projectSchema>;
 export type TaskInput = z.infer<typeof taskSchema>;

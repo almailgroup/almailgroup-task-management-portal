@@ -21,9 +21,10 @@ monochrome interface.
 
 ## Features
 
-- **Auth** — email/password sign-in and registration, email confirmation,
-  profile management. The first account to register becomes the admin, and
-  admins add everyone else from Team → Add teammate, which needs no email.
+- **Auth** — email/password sign-in, password reset, profile management.
+  There is no self sign-up: admins add everyone from Team → Add teammate,
+  which needs no email, and the database refuses any account an admin did not
+  add. The very first account in an empty database becomes the admin.
 - **Roles** — Admin, Manager, Team Member, enforced in the database.
 - **Projects** — multi-project workspace with a switcher; create, edit, delete.
 - **Tasks** — title, description, priority (Low/Medium/High/Urgent), status
@@ -145,11 +146,13 @@ or editing one, regenerate with `npm run db:bundle` so the bundle cannot drift.
 | `…0014_reminders.sql`             | Reminder preferences and outbound queue       |
 | `…0015_members_see_only_assigned.sql` | Members see only their own tasks          |
 
-### 3. Register the first user
+### 3. Create the first user
 
-Visit `/register`. **The first account created becomes the admin**, so a fresh
-deployment is never locked out of project creation. Everyone after that joins as
-a Team Member; an admin can change roles on `/team`.
+In the Supabase dashboard, **Authentication → Users → Add user → Create new
+user**, with *Auto Confirm User* ticked. **The first account in an empty
+database becomes the admin**, so a fresh deployment is never locked out. That
+is the only account the dashboard can make: from then on the database accepts
+only accounts an admin added from the Team page.
 
 ### 4. Adding everyone else
 
@@ -173,39 +176,44 @@ on the profile page — and never learns the password anybody ends up using. It
 is the one route that does not depend on email at all, which matters when the
 alternative is a reset link and a mail quota.
 
-Self-registration at `/register` still works, but it depends on a confirmation
-email, and that is where a new Supabase project has a sharp edge — see below.
+**There is no self sign-up.** This is a company portal: people are added by
+whoever is responsible for access. The app offers no way to register — an old
+link to `/register` lands on sign-in — and the database enforces it underneath
+(`…0034_close_self_registration.sql`): an account is accepted only if its
+`app_metadata` names the admin who added it, which only the server's service
+key can write. Somebody calling Supabase's sign-up endpoint directly with the
+public key is refused, whatever the project's sign-up setting. As a second
+lock, turn that setting off too: **Authentication → Sign In / Providers →
+Allow new users to sign up**. Team → Add teammate keeps working either way.
+
+Adding a user from the Supabase dashboard is refused once the first admin
+exists, because the dashboard cannot set `app_metadata` on creation. Add people
+from the Team page.
 
 #### "email rate limit exceeded"
 
 A Supabase project starts with a **shared, development-only mail service that
-sends a handful of messages an hour** across confirmations and password resets
-together. Onboarding a company through the sign-up form exhausts it quickly, and
-the sign-up form then reports that no account was created. It is a quota, not a
-fault, and it clears on its own within the hour.
+sends a handful of messages an hour**. Adding people sends nothing, so it never
+gets in the way of onboarding — Team → Add teammate needs only
+`SUPABASE_SERVICE_ROLE_KEY` in the server environment, the same key the
+reminder dispatcher already uses.
 
-Two ways past it, and they are worth doing both:
-
-1. **Add people from Team → Add teammate**, which sends nothing at all. This
-   needs `SUPABASE_SERVICE_ROLE_KEY` in the server environment — the same key
-   the reminder dispatcher already uses.
-2. **Connect your own mail service** in Supabase → Project Settings → Auth →
-   SMTP Settings. Password resets go through the same quota, so until this is
-   set, "Forgot password" is unreliable for exactly the same reason. If you are
-   already sending reminders through Resend, the same account works as SMTP:
-   host `smtp.resend.com`, port `465`, username `resend`, password your Resend
-   API key, and a sender on a domain you have verified.
-
-If you would rather people simply registered themselves without any of this,
-turn off Authentication → Sign In / Providers → **Confirm email**. Sign-up then
-returns a session straight away and no mail is sent — at the cost of nobody
-proving they own the address they typed.
+Password resets do go through it, so until you **connect your own mail
+service** in Supabase → Project Settings → Auth → SMTP Settings, "Forgot
+password" stops working once the hour's handful is spent. (An admin's Team → ⋯
+→ Reset password needs no email and always works.) If you are already sending
+reminders through Resend, the same account works as SMTP: host
+`smtp.resend.com`, port `465`, username `resend`, password your Resend API key,
+and a sender on a domain you have verified.
 
 ## Authorisation model
 
 **Projects are private to their members.** If you are not on a project you do
 not see it, its tasks, its comments, its files or its history — it is simply
-absent from your sidebar. Admins see every project so the workspace stays
+absent from your sidebar. Files are held to the same rule as the task they are
+attached to, in storage as well as in the list
+(`…0035_attachment_files_follow_task.sql`): a file can be downloaded only by
+somebody who can see its task. Admins see every project so the workspace stays
 administrable.
 
 Membership is granted two ways, so assigning work can never produce a task its
@@ -379,7 +387,7 @@ src/
 │   │   ├── projects/[id]/      # board + list workspace
 │   │   ├── profile/
 │   │   └── team/               # roster, admin role management
-│   ├── (auth)/                 # login, register
+│   ├── (auth)/                 # login, password reset (no sign-up)
 │   ├── auth/callback/          # email confirmation exchange
 │   ├── error.tsx, not-found.tsx
 │   ├── globals.css             # monochrome design tokens
@@ -1598,7 +1606,7 @@ runs from the password straight to the submit button, and Caps Lock is called
 out when it is on — the other half of the same problem, since a masked field
 gives no way to notice.
 
-The strength meter on sign-up rates length above cleverness. It is not a
+The strength meter where a password is chosen rates length above cleverness. It is not a
 percentage and not a score: those imply a precision nobody has, and they
 reward `P@ssw0rd!` for containing a symbol. It never blocks anything; the
 eight-character minimum is enforced by the schema on the server.
@@ -1726,10 +1734,11 @@ few minutes out with each reminder channel switched on.
    - *Redirect URLs*: add `https://<your-domain>/auth/callback`, and
      `https://*-<your-team>.vercel.app/auth/callback` if you want preview
      deployments to handle email confirmation
-5. **Deploy**, then visit `/register` to create the admin account.
+5. **Deploy**, then create the admin account in the Supabase dashboard — see
+   [Create the first user](#3-create-the-first-user).
 
-Set `NEXT_PUBLIC_SITE_URL` to the deployment's own URL. It is what confirmation
-emails link back to, so a stale value sends new users to the wrong host.
+Set `NEXT_PUBLIC_SITE_URL` to the deployment's own URL. It is what password
+reset emails link back to, so a stale value sends people to the wrong host.
 
 ### Deployment protection and the manifest
 

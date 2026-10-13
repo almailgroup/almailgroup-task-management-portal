@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const PAGES = ["/", "/login", "/register", "/forgot-password"];
+const PAGES = ["/", "/login", "/forgot-password"];
 
 for (const path of PAGES) {
   test.describe(path, () => {
@@ -93,10 +93,31 @@ test("a signed-out visitor is sent to sign in, keeping their destination", async
   expect(new URL(page.url()).searchParams.get("next")).toBe("/dashboard");
 });
 
-test("the sign-in page offers a route to sign up, and back", async ({ page }) => {
-  await page.goto("/login");
-  await page.getByRole("link", { name: "Create one" }).click();
-  await page.waitForURL(/\/register/);
-  await page.getByRole("link", { name: "Sign in" }).click();
-  await page.waitForURL(/\/login/);
+/**
+ * Nobody signs themselves up. Accounts are added by an admin from the Team
+ * page, and the database refuses any other kind — proven against Postgres in
+ * supabase/tests/self-registration.sql. What a browser can check is that the
+ * portal no longer offers it.
+ */
+test.describe("no self sign-up", () => {
+  test("sign-in says who adds people, and offers no way to make an account", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await expect(page.getByText("No account yet? Ask your admin to add you.")).toBeVisible();
+    await expect(page.getByRole("link", { name: /create/i })).toHaveCount(0);
+    await expect(page.locator('a[href="/register"]')).toHaveCount(0);
+  });
+
+  test("the front page offers only sign-in", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator('a[href="/register"]')).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /create an account/i })).toHaveCount(0);
+  });
+
+  test("an old link to the sign-up page lands on sign-in", async ({ page }) => {
+    await page.goto("/register");
+    await page.waitForURL(/\/login/);
+    await expect(page.locator("#password")).toBeVisible();
+  });
 });
