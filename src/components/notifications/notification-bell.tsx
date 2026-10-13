@@ -174,7 +174,7 @@ export function NotificationBell({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between px-3 py-2">
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
           <span className="text-xs font-medium text-muted-foreground">
             {t("bell.label")}
           </span>
@@ -193,11 +193,11 @@ export function NotificationBell({
         <Separator />
 
         {items.length === 0 ? (
-          <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+          <p className="px-5 py-8 text-center text-sm text-muted-foreground">
             {t("bell.empty")}
           </p>
         ) : (
-          <ul className="scrollbar-thin max-h-96 overflow-y-auto">
+          <ul className="scrollbar-thin flex max-h-96 flex-col gap-0.5 overflow-y-auto p-1.5 pt-0">
             {items.map((notification) => {
               const Icon = ICONS[notification.type] ?? Bell;
               // A private message points at the conversation it came from;
@@ -216,7 +216,7 @@ export function NotificationBell({
                     href={href}
                     onClick={() => onOpenItem(notification)}
                     className={cn(
-                      "flex items-start gap-2.5 px-3 py-2.5 transition-colors hover:bg-accent/60",
+                      "flex items-start gap-2.5 rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/60",
                       notification.read_at === null && "bg-accent/40",
                     )}
                   >

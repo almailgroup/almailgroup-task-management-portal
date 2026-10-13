@@ -183,7 +183,7 @@ export function DueDate({
         overdue
           // The one place colour is allowed. A dotted underline was easy to
           // scan straight past on a board full of dates.
-          ? "rounded-full bg-warning-surface px-2 py-0.5 font-semibold text-warning"
+          ? "rounded-full bg-warning-surface px-2.5 py-0.5 font-semibold text-warning"
           : "text-muted-foreground",
         className,
       )}

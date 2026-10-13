@@ -410,7 +410,7 @@ function TodayRow({
   return (
     <div
       onClick={open}
-      className="flex cursor-pointer items-center gap-2.5 rounded-2xl bg-card px-3 py-2.5 shadow-[var(--shadow-sm)] transition-colors sm:px-3.5"
+      className="flex cursor-pointer items-center gap-2.5 rounded-[1.25rem] bg-card px-3.5 py-2.5 shadow-[var(--shadow-sm)] transition-colors sm:px-4"
     >
       <PriorityIndicator priority={task.priority} />
 

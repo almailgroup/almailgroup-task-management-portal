@@ -450,7 +450,7 @@ function Bubble({
     >
       <div
         className={cn(
-          "max-w-[82%] rounded-2xl px-3 py-2 text-sm leading-relaxed sm:max-w-[70%]",
+          "max-w-[82%] rounded-[1.25rem] px-3.5 py-2 text-sm leading-relaxed sm:max-w-[70%]",
           mine
             ? "bg-primary text-primary-foreground"
             : "bg-card shadow-[var(--shadow-xs)]",

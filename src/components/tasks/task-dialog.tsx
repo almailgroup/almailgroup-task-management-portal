@@ -400,7 +400,10 @@ export function TaskDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>{t("table.assignees")}</Label>
+              {/* The picker leads with hidden form inputs, so the stylesheet's
+                  label rule cannot see its button; indented by hand to the
+                  same 16px, over the button's icon. */}
+              <Label className="ps-4">{t("table.assignees")}</Label>
               <AssigneePicker
                 team={team}
                 value={assigneeIds}

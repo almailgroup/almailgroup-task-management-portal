@@ -202,7 +202,7 @@ export function AssistantPanel({
             Putting that in the textarea would move the caret under anyone
             trying to correct what has already settled. */}
         {voice.listening && (
-          <div className="mb-1.5 flex flex-col gap-1 rounded-2xl bg-muted/60 px-2.5 py-2">
+          <div className="mb-1.5 flex flex-col gap-1 rounded-[1.25rem] bg-muted/60 px-3.5 py-2.5">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span
                 aria-hidden
@@ -424,7 +424,7 @@ function Bubble({
 
       <div
         className={cn(
-          "max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[0.8125rem] leading-relaxed",
+          "max-w-[88%] rounded-[1.25rem] px-3.5 py-2.5 text-[0.8125rem] leading-relaxed",
           mine
             ? "bg-primary text-primary-foreground"
             : "bg-card shadow-[var(--shadow-xs)]",
@@ -482,7 +482,7 @@ function Proposal({
   if (!preview) return null;
 
   return (
-    <div className="mt-2.5 rounded-2xl bg-background shadow-[var(--shadow-xs)] p-2.5">
+    <div className="mt-2.5 rounded-[1.25rem] bg-background p-3 shadow-[var(--shadow-xs)]">
       <p className="text-xs font-semibold leading-tight">{preview.heading}</p>
 
       <dl className="mt-2 flex flex-col gap-1">

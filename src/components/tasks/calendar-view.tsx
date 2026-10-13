@@ -321,7 +321,7 @@ export function CalendarView({
                 role="gridcell"
                 aria-selected={selected}
                 className={cn(
-                  "relative flex min-h-[4.25rem] flex-col rounded-xl bg-foreground/[0.035] p-1 transition-colors sm:min-h-[6.5rem] sm:rounded-2xl sm:p-1.5",
+                  "relative flex min-h-[4.25rem] flex-col rounded-[1rem] bg-foreground/[0.035] p-1 transition-colors sm:min-h-[6.5rem] sm:rounded-[1.25rem] sm:p-2",
                   "hover:bg-foreground/[0.06]",
                   !inMonth(day) && "bg-transparent text-muted-foreground",
                   weekend && inMonth(day) && "bg-foreground/[0.055]",
@@ -339,12 +339,14 @@ export function CalendarView({
                     date: day.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long" }),
                     n: list.length,
                   })}
-                  className="absolute inset-0 rounded-lg transition-colors hover:bg-accent/60"
+                  className="absolute inset-0 rounded-[inherit] transition-colors hover:bg-accent/60"
                 />
 
                 <span
                   className={cn(
-                    "pointer-events-none relative mb-0.5 flex size-6 items-center justify-center rounded-full text-xs tabular-nums",
+                    // Centred, under its weekday heading: in the corner it sat in the
+                    // curve, and out of line with the heading above it.
+                    "pointer-events-none relative mb-0.5 flex size-6 items-center justify-center self-center rounded-full text-xs tabular-nums sm:size-7",
                     isToday && "bg-primary font-semibold text-primary-foreground",
                   )}
                 >
@@ -354,7 +356,7 @@ export function CalendarView({
                 {list.length > 0 && (
                   <span
                     className={cn(
-                      "pointer-events-none relative mt-auto self-start rounded-full px-1.5 text-[0.6875rem] font-medium tabular-nums md:hidden",
+                      "pointer-events-none relative mt-auto self-center rounded-full px-2 text-[0.6875rem] font-medium tabular-nums md:hidden",
                       late > 0 ? "bg-warning-surface text-warning" : "bg-muted text-foreground",
                     )}
                   >
@@ -370,7 +372,7 @@ export function CalendarView({
                         onClick={() => openTask(task)}
                         title={task.title}
                         className={cn(
-                          "w-full truncate rounded-md px-1.5 py-0.5 text-start text-xs transition-colors hover:bg-accent",
+                          "w-full truncate rounded-full px-2.5 py-0.5 text-start text-xs transition-colors hover:bg-accent",
                           task.status === "done" && "text-muted-foreground line-through",
                           isOverdue(task.due_at, task.status) &&
                             "bg-warning-surface text-warning",
@@ -385,7 +387,7 @@ export function CalendarView({
                       <button
                         type="button"
                         onClick={() => openDay(day)}
-                        className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        className="px-2.5 text-xs text-muted-foreground hover:text-foreground"
                       >
                         {t("cal.more", { n: list.length - 3 })}
                       </button>

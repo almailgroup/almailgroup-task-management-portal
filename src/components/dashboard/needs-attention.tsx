@@ -50,7 +50,7 @@ export async function NeedsAttention({
           <Link
             key={item.projectId}
             href={`/projects/${item.projectId}`}
-            className="group flex flex-col gap-1.5 rounded-2xl bg-foreground/[0.05] px-3 py-2.5 transition-colors"
+            className="group flex flex-col gap-1.5 rounded-[1.25rem] bg-foreground/[0.05] px-3.5 py-2.5 transition-colors"
           >
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-sm font-medium">{item.name}</span>

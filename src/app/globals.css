@@ -1145,6 +1145,31 @@
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
+  /* Forms. Fields are rounded, and their text starts 16px in from the edge.
+   * A label above a field, and a hint or an error under it, start on that
+   * same line — so a form reads as one column of text, rather than labels
+   * and messages hanging out past the curve of the fields they belong to.
+   *
+   * Matched by shape, not by page: a label directly before a field, or
+   * before a wrapper that leads with one, up to two levels deep (the
+   * password field sits in a wrapper inside a wrapper, so its eye button and
+   * caps-lock warning can sit beside it); a label inside a row that sits
+   * directly before such a field (sign-in's password label shares its row
+   * with "Forgot password?"); and paragraphs after a field in its group. A
+   * field with a leading icon, such as search, has its text further in and is
+   * left alone. */
+  [data-slot="label"]:has(+ :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"])),
+  [data-slot="label"]:has(+ * > :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):first-child),
+  [data-slot="label"]:has(+ * > :first-child > :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):first-child),
+  :has(+ :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"])) > [data-slot="label"],
+  :has(+ * > :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):first-child) > [data-slot="label"],
+  :has(+ * > :first-child > :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):first-child) > [data-slot="label"],
+  :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) ~ p,
+  :has(> :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):first-child) ~ p,
+  :has(> :first-child > :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):first-child) ~ p {
+    padding-inline-start: 1rem;
+  }
+
   ::selection {
     background: var(--foreground);
     color: var(--background);

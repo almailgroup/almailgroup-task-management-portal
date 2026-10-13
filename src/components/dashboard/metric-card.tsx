@@ -25,7 +25,7 @@ export function MetricCard({
   href?: string;
 }) {
   const className = cn(
-    "group block rounded-3xl bg-card p-3 shadow-[var(--shadow-sm)] sm:p-5",
+    "group block rounded-[1.5rem] bg-card p-3.5 shadow-[var(--shadow-sm)] sm:rounded-3xl sm:p-5",
     emphasis && "bg-warning-surface",
     href && "lift focus-visible:outline-none",
   );

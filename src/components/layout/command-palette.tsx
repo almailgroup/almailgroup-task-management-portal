@@ -338,7 +338,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         <DialogTitle className="sr-only">{t("palette.title")}</DialogTitle>
         <DialogDescription className="sr-only">{t("palette.description")}</DialogDescription>
 
-        <div className="flex items-center gap-2 px-3">
+        <div className="flex items-center gap-2.5 px-4 pt-1">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
             ref={inputRef}
@@ -346,7 +346,9 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={t("palette.placeholder")}
-            className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            // The caret shows where typing goes; the dialog is the focus. The
+            // global ring drew a square frame here, against a round dialog.
+            className="h-12 w-full bg-transparent text-[0.9375rem] outline-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
             autoFocus
             aria-label={t("shell.search")}
           />
@@ -408,7 +410,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
           </ul>
         )}
 
-        <div className="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between px-5 pt-2 pb-3.5 text-xs text-muted-foreground">
           <span>
             <Kbd>↑</Kbd> <Kbd>↓</Kbd> {t("palette.move")} · <Kbd>↵</Kbd> {t("palette.open")}
           </span>
@@ -424,7 +426,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="rounded-md bg-muted px-1 font-mono text-[10px] leading-4">
+    <kbd className="rounded-md bg-muted px-1.5 font-mono text-[10px] leading-4">
       {children}
     </kbd>
   );

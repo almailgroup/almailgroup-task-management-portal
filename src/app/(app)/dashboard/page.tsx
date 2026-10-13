@@ -225,7 +225,7 @@ function TaskListCard({
               // phone there is not: the meta cluster used to be `shrink-0`,
               // which pushed the card 175px past the edge of the screen and
               // left Safari shrinking the whole page to fit.
-              className="flex flex-col gap-1.5 rounded-2xl bg-foreground/[0.05] px-2.5 py-2 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              className="flex flex-col gap-1.5 rounded-[1.25rem] bg-foreground/[0.05] px-3.5 py-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
               <span className="flex min-w-0 items-center gap-2">
                 <PriorityIndicator priority={task.priority} />

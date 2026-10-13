@@ -304,7 +304,7 @@ export function TaskTable({
             <li
               key={task.id}
               className={cn(
-                "lift relative rounded-3xl bg-card p-3.5 shadow-[var(--shadow-sm)]",
+                "lift relative rounded-[1.75rem] bg-card p-3.5 shadow-[var(--shadow-sm)]",
                 isSelected && "bg-primary/[0.07] shadow-[var(--shadow-md)]",
               )}
             >
@@ -312,7 +312,7 @@ export function TaskTable({
                 type="button"
                 onClick={() => onOpenTask(task)}
                 aria-label={t("table.openTask", { title: task.title })}
-                className="absolute inset-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               />
 
               {/* Passes taps through to the overlay behind it. */}

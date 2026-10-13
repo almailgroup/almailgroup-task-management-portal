@@ -105,7 +105,7 @@ export function ProjectStatus({
   return (
     <section
       aria-label={t("health.title")}
-      className="flex flex-col gap-3 rounded-3xl bg-card px-4 py-3 shadow-[var(--shadow-xs)]"
+      className="flex flex-col gap-3 rounded-[1.75rem] bg-card px-5 py-4 shadow-[var(--shadow-xs)]"
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-xs font-medium text-muted-foreground">
@@ -296,7 +296,7 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
         status === "on_track" && "bg-muted text-foreground",
         status === "at_risk" &&" bg-warning-surface text-warning",
         status === "off_track" && "bg-warning text-background",

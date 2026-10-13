@@ -338,18 +338,16 @@ export function NoteEditor({
             placeholder={t("notes.titlePlaceholder")}
             maxLength={200}
             aria-label={t("notes.titleLabel")}
-            /* Bordered like every other field in the app, because without one
+            /* A raised card rather than bare text, because without a shape
                there was nothing on screen to say this was a place you could
                type: the title and the body read as printed text, and the empty
-               half of the pane read as nothing at all. `border-input` rather
-               than the lighter `` for the same reason the rest of
-               the system uses it — on a control the outline *is* the
-               component, which WCAG asks to reach 3:1 against its surface. */
+               half of the pane read as nothing at all. Focus rings it softly,
+               like every other field. */
             className={cn(
-              "w-full rounded-2xl bg-card shadow-[var(--shadow-xs)] px-3.5 py-2.5 text-xl font-semibold tracking-tight",
-              "transition-[border-color,box-shadow]",
+              "w-full rounded-[1.25rem] bg-card px-4 py-2.5 text-xl font-semibold tracking-tight shadow-[var(--shadow-xs)]",
+              "transition-shadow duration-200",
               "placeholder:font-normal placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:shadow-[var(--shadow-xs)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0",
             )}
           />
 
@@ -408,6 +406,9 @@ export function NoteEditor({
                   maxLength={1000}
                   className={cn(
                     "min-h-7 w-full bg-transparent py-0.5 text-[0.9375rem] leading-relaxed outline-none",
+                    // A line of a list: the caret is the focus. The global
+                    // ring drew a square frame round it.
+                    "focus-visible:ring-0 focus-visible:ring-offset-0",
                     "placeholder:text-muted-foreground",
                     item.done && "text-muted-foreground line-through",
                   )}
@@ -458,10 +459,10 @@ export function NoteEditor({
                short box with dead space under it — the part you write in
                should be the part that is enclosed. */
             className={cn(
-              "min-h-40 w-full flex-1 resize-none rounded-2xl bg-card shadow-[var(--shadow-xs)] px-3.5 py-2.5 text-[0.9375rem] leading-relaxed",
-              "transition-[border-color,box-shadow]",
+              "min-h-40 w-full flex-1 resize-none rounded-[1.25rem] bg-card px-4 py-3 text-[0.9375rem] leading-relaxed shadow-[var(--shadow-xs)]",
+              "transition-shadow duration-200",
               "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:shadow-[var(--shadow-xs)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0",
             )}
           />
         </div>
