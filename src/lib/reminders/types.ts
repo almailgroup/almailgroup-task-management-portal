@@ -4,7 +4,7 @@ export type QueuedReminder = {
   user_id: string;
   task_id: string | null;
   channel: "email" | "telegram" | "whatsapp" | "push";
-  kind: "assigned" | "due_soon" | "overdue" | "follow_up";
+  kind: "assigned" | "due_soon" | "overdue" | "follow_up" | "summary";
   recipient: string;
   subject: string | null;
   body: string;

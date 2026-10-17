@@ -807,11 +807,32 @@ would compile them into the browser bundle. See `.env.example` for the full list
 
 ### Scheduling
 
-`vercel.json` registers a daily cron at 07:00 UTC — 08:00 in Zurich in winter,
-09:00 in summer, so the digest lands around the start of the working day. **Vercel's Hobby plan only
-allows one run per day** — enough for a morning digest, but "due in 2 hours"
-will not be accurate. For finer granularity either upgrade to Pro, or drive it
-from Supabase instead, which has no such limit:
+`vercel.json` registers a daily cron at 05:00 UTC — 08:00 in Kuwait, which
+keeps no summer time, so the same hour all year.
+
+The run keeps office hours (`src/lib/work-week.ts`, `src/lib/reminders/sweep.ts`):
+
+- **Nothing goes out on a day off** — Friday, Saturday, or a company holiday
+  from Settings. The next working morning's run looks at the board as it is
+  then, so a task that went from "due soon" to overdue over the weekend is
+  reported once, as overdue.
+- **Nothing goes out before 07:00 or from 19:00**, Kuwait time, however often
+  the dispatcher is called.
+- **The morning summary** — one message per person listing what is overdue,
+  due today and to follow up — goes out with the first run of a working
+  morning, for whoever switched it on in Profile, and not after noon.
+- **Being assigned something** is not held back: it is sent the moment it
+  happens, because somebody at work just did it.
+- Times in messages are Kuwait's (`public.company_time_zone()`).
+
+Housekeeping (emptying the bin, trimming the error log) runs every time,
+including days off.
+
+**Vercel's Hobby plan only allows one run per day**, and only promises it
+somewhere within the hour — enough for the morning, but "due in 2 hours" will
+not be accurate. For finer granularity either upgrade to Pro, or drive it from
+Supabase instead, which has no such limit; the office-hours rule above still
+applies, so a run every 15 minutes is quiet at night and at weekends:
 
 ```sql
 -- In the Supabase SQL editor, once.

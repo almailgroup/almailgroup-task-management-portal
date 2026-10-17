@@ -161,6 +161,8 @@ export async function updateNotificationPreferences(input: {
   remindDueSoon: boolean;
   remindOverdue: boolean;
   remindFollowUp: boolean;
+  /** Left out when the column does not exist yet (before migration 37). */
+  morningSummary?: boolean;
   dueSoonLeadHours: number;
 }): Promise<ActionResult<void>> {
   const supabase = await createClient();
@@ -189,6 +191,7 @@ export async function updateNotificationPreferences(input: {
       remind_due_soon: input.remindDueSoon,
       remind_overdue: input.remindOverdue,
       remind_follow_up: input.remindFollowUp,
+      ...(input.morningSummary === undefined ? {} : { morning_summary: input.morningSummary }),
       due_soon_lead_hours: lead,
     })
     .eq("user_id", user.id);

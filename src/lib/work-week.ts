@@ -83,3 +83,64 @@ export function startOfNextWeek(from: Date, holidays: HolidaySet = NO_HOLIDAYS):
   const daysUntil = (FIRST_DAY_OF_WEEK - from.getDay() + 7) % 7 || 7;
   return onOrAfterWorkingDay(plusDays(from, daysUntil), holidays);
 }
+
+// ---------------------------------------------------------------------------
+// The office's clock, for things that happen on their own: reminders and the
+// morning summary are sent by a server whose clock is UTC, to people whose
+// day is Kuwait's.
+// ---------------------------------------------------------------------------
+
+/**
+ * Kuwait keeps no summer time, so this is UTC+3 all year. Named rather than
+ * written as an offset so the arithmetic is the platform's. The database
+ * has the same, as public.company_time_zone().
+ */
+export const COMPANY_TIME_ZONE = "Asia/Kuwait";
+
+/** Reminders go out from 07:00 until 19:00, office time, on working days. */
+export const OFFICE_HOURS = { from: 7, until: 19 } as const;
+
+/**
+ * The summary goes out with the first run of a working morning, and not
+ * after noon: one that turns up mid-afternoon, because the first run that
+ * day was late, is a list of things already being done.
+ */
+export const SUMMARY_UNTIL_HOUR = 12;
+
+/** Which day and hour it is in the office. `weekday` is `Date.getDay()` numbering. */
+export type OfficeClock = { day: string; weekday: number; hour: number };
+
+export function officeClock(at: Date, timeZone: string = COMPANY_TIME_ZONE): OfficeClock {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(at);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  const day = `${part("year")}-${part("month")}-${part("day")}`;
+  return {
+    day,
+    weekday: new Date(`${day}T12:00:00Z`).getUTCDay(),
+    hour: Number(part("hour")),
+  };
+}
+
+export type QuietReason = "weekend" | "holiday" | "after_hours";
+
+/**
+ * Why nothing should be sent now, or null when it is office time on a
+ * working day.
+ */
+export function quietReason(
+  clock: OfficeClock,
+  holidays: HolidaySet = NO_HOLIDAYS,
+): QuietReason | null {
+  if (WEEKEND_DAYS.includes(clock.weekday)) return "weekend";
+  if (holidays.has(clock.day)) return "holiday";
+  if (clock.hour < OFFICE_HOURS.from || clock.hour >= OFFICE_HOURS.until) return "after_hours";
+  return null;
+}

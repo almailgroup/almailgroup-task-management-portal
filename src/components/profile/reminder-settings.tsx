@@ -66,6 +66,9 @@ export function ReminderSettings({
     remindDueSoon: preferences.remind_due_soon,
     remindOverdue: preferences.remind_overdue,
     remindFollowUp: preferences.remind_follow_up,
+    // Undefined until migration 37 has been run, and then left out of the
+    // save rather than written to a column that is not there.
+    morningSummary: preferences.morning_summary,
     dueSoonLeadHours: preferences.due_soon_lead_hours,
   });
 
@@ -275,6 +278,14 @@ export function ReminderSettings({
           checked={form.remindFollowUp}
           onChange={(v) => set("remindFollowUp", v)}
         />
+        {form.morningSummary !== undefined && (
+          <Toggle
+            id="morningSummary"
+            label={t("remind.summary")}
+            checked={form.morningSummary}
+            onChange={(v) => set("morningSummary", v)}
+          />
+        )}
 
         {form.remindDueSoon && (
           <div className="flex flex-col gap-1.5">
@@ -292,6 +303,7 @@ export function ReminderSettings({
             />
           </div>
         )}
+        <p className="text-xs leading-relaxed text-muted-foreground">{t("remind.officeHours")}</p>
       </fieldset>
 
       <div>

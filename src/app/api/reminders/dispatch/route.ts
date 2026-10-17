@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendClaimed } from "@/lib/reminders/dispatch";
-import type { QueuedReminder } from "@/lib/reminders/types";
+import { sweep } from "@/lib/reminders/sweep";
 
 /**
  * Drains the reminder queue.
@@ -11,10 +10,9 @@ import type { QueuedReminder } from "@/lib/reminders/types";
  * a shared secret, because it runs with the service-role key and must not be
  * reachable by anyone else. Vercel Cron sends the secret as a Bearer token;
  * anything else can pass the same value as x-cron-secret.
+ *
+ * What a run does, and on which days it stays quiet, is lib/reminders/sweep.
  */
-
-/** How many to attempt per run, so one invocation cannot run past its timeout. */
-const BATCH_SIZE = 40;
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -61,44 +59,13 @@ async function run(request: NextRequest) {
     );
   }
 
-  // Refresh the queue from the current state of the tasks table first, so a
-  // single scheduled run both finds new work and sends it.
-  // Housekeeping on the same daily run: tasks that have sat in the bin for
-  // thirty days are gone for good. Failure here is logged, not fatal — the
-  // reminders still go out.
-  const { error: purgeError } = await supabase.rpc("purge_trashed_tasks");
-  if (purgeError) console.error(`[reminders] purge_trashed_tasks: ${purgeError.message}`);
-
-  // And the error log, which is kept for two weeks. On the same run so
-  // there is nothing new to schedule and nothing to remember.
-  const { error: errorPurge } = await supabase.rpc("purge_old_errors");
-  if (errorPurge) console.error(`[reminders] purge_old_errors: ${errorPurge.message}`);
-
-  const { error: enqueueError } = await supabase.rpc("enqueue_task_reminders");
-
-  // Claim the batch before touching a provider. Reading pending rows and
-  // marking them sent afterwards meant a run killed by the function timeout
-  // left rows pending that had already gone out, and the next run sent them
-  // a second time. claim_reminders moves them to 'sending' in one statement.
-  const { data, error } = await supabase.rpc("claim_reminders", {
-    batch_size: BATCH_SIZE,
-  });
-
-  if (error) {
+  try {
+    return NextResponse.json(await sweep(supabase));
+  } catch (error) {
+    console.error("[reminders]", error);
     return NextResponse.json(
       { error: "Could not read the reminder queue." },
       { status: 500 },
     );
   }
-
-  const queued = (data ?? []) as QueuedReminder[];
-
-  // The sending is shared with the assignment path, which claims one task's
-  // rows rather than a batch of everybody's. Only the claiming differs.
-  const tally = await sendClaimed(supabase, queued);
-
-  return NextResponse.json({
-    ...tally,
-    enqueueError: enqueueError ? enqueueError.message : null,
-  });
 }

@@ -713,6 +713,8 @@ export const en = {
   "remind.dueSoon": "A task of mine is due soon",
   "remind.overdue": "A task of mine is overdue",
   "remind.followUp": "A follow-up comes due",
+  "remind.summary": "A summary of my day, each working morning",
+  "remind.officeHours": "Reminders go out on working days between 07:00 and 19:00 Kuwait time, never on a Friday, Saturday or company holiday. Being assigned something arrives straight away.",
   "remind.leadHours": "Warn me this many hours ahead",
   "remind.save": "Save reminder settings",
   "remind.on": "On",

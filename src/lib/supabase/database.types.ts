@@ -25,7 +25,7 @@ export type RepeatUnit = "day" | "week" | "month" | "year";
 export type AttachmentKind = "file" | "link";
 
 export type ReminderChannel = "email" | "telegram" | "whatsapp" | "push";
-export type ReminderKind = "assigned" | "due_soon" | "overdue" | "follow_up";
+export type ReminderKind = "assigned" | "due_soon" | "overdue" | "follow_up" | "summary";
 export type ReminderStatus =
   | "pending"
   /** Claimed by a dispatcher run and being delivered right now. */
@@ -460,6 +460,8 @@ export type Database = {
           remind_due_soon: boolean;
           remind_overdue: boolean;
           remind_follow_up: boolean;
+          /** Absent until migration 37 has been run. */
+          morning_summary?: boolean;
           due_soon_lead_hours: number;
           created_at: string;
           updated_at: string;
@@ -477,6 +479,7 @@ export type Database = {
           remind_due_soon?: boolean;
           remind_overdue?: boolean;
           remind_follow_up?: boolean;
+          morning_summary?: boolean;
           due_soon_lead_hours?: number;
         };
         Relationships: [
@@ -983,6 +986,8 @@ export type Database = {
       };
       unread_direct_count: { Args: Record<never, never>; Returns: number };
       enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
+      /** One summary per person and channel for this office morning. */
+      enqueue_morning_summaries: { Args: { as_of?: string }; Returns: number };
       /** Moves a batch of due reminders to 'sending' and returns them. */
       claim_reminders: {
         Args: { batch_size?: number };
