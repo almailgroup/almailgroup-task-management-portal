@@ -888,6 +888,15 @@ Each user then opens Profile → Task reminders → Connect Telegram, and sends 
 one-time code to the bot. The bot replies to confirm. The chat id can only come
 from Telegram itself, which is why this handshake exists.
 
+Once linked, the bot also takes work. Anything sent to it that is not a
+command is added as the sender's: a general task assigned to themselves for an
+admin or manager, an item on a "Telegram" list in My List for a member — the
+same rules as the app (`add_from_chat`, migration 42). The first line is the
+title and the rest the detail; `!` in front makes it high priority; ending the
+first line with *today* or *tomorrow* (or اليوم / باچر) sets it due at 17:00
+Kuwait time, tomorrow meaning the next working day. `/help` in the chat says
+the same.
+
 The database holds that line rather than trusting the app to: a trigger pins
 `telegram_chat_id` so only the webhook — which reaches Postgres with the
 service role, carrying no user identity — may name a chat. Clearing it is

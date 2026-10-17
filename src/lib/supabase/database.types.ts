@@ -1120,6 +1120,17 @@ export type Database = {
       enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
       /** One summary per person and channel for this office morning. */
       enqueue_morning_summaries: { Args: { as_of?: string }; Returns: number };
+      /** Work sent to the bot by a linked chat, added as that person's. */
+      add_from_chat: {
+        Args: {
+          chat: string;
+          item_title: string;
+          item_detail?: string | null;
+          item_priority?: TaskPriority;
+          due?: string | null;
+        };
+        Returns: { kind: "task" | "note"; id: string } | null;
+      };
       /** Moves a batch of due reminders to 'sending' and returns them. */
       claim_reminders: {
         Args: { batch_size?: number };
