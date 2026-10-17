@@ -21,6 +21,8 @@ vi.mock("@/lib/reminders/dispatch", () => ({
   sendClaimed: (db: unknown, claimed: QueuedReminder[]) => sendClaimed(db, claimed),
 }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({}) }));
+const alertAdmins = vi.fn(async () => 1);
+vi.mock("@/lib/reminders/admin-alerts", () => ({ alertAdmins: () => alertAdmins() }));
 
 const { sweep } = await import("@/lib/reminders/sweep");
 
@@ -62,6 +64,7 @@ beforeEach(() => {
   holidayError = null;
   summaryError = null;
   sendClaimed.mockClear();
+  alertAdmins.mockClear();
 });
 
 describe("a working morning", () => {
@@ -122,5 +125,27 @@ describe("a day off", () => {
 
     expect(result.quiet).toBeNull();
     expect(called).toContain("claim_reminders");
+  });
+});
+
+describe("telling the admins about faults", () => {
+  test("happens on a working morning, after the reminders", async () => {
+    const result = await sweep(fakeAdmin(), SUNDAY_8AM);
+    expect(alertAdmins).toHaveBeenCalledTimes(1);
+    expect(result.alerted).toBe(1);
+  });
+
+  test("waits for the office to open, like everything else that reaches a person", async () => {
+    await sweep(fakeAdmin(), FRIDAY_8AM);
+    await sweep(fakeAdmin(), SUNDAY_3AM);
+    expect(alertAdmins).not.toHaveBeenCalled();
+  });
+
+  test("is never the reason a run fails", async () => {
+    alertAdmins.mockRejectedValueOnce(new Error("telegram down"));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const result = await sweep(fakeAdmin(), SUNDAY_8AM);
+    expect(result).toMatchObject({ sent: 1, alerted: 0 });
+    errors.mockRestore();
   });
 });

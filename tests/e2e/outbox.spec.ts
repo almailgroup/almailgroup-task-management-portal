@@ -101,3 +101,23 @@ test("a comment written with no signal waits in the thread, then posts", async (
   const again = await openDialog(page);
   await expect(again.getByText(words)).toBeVisible({ timeout: 15_000 });
 });
+
+test("the task form says it needs a connection, and keeps what was typed", async ({ page, context }) => {
+  const title = unique("Typed in the lift");
+
+  await signIn(page, PEOPLE.manager);
+  await page.goto("/general?new=1");
+  const dialog = await openDialog(page);
+  await dialog.locator("#title").fill(title);
+
+  await context.setOffline(true);
+  await dialog.getByRole("button", { name: "Create task" }).click();
+  await expect(dialog.getByRole("alert").filter({ hasText: "This needs a connection." })).toBeVisible();
+  await expect(dialog.locator("#title")).toHaveValue(title);
+  await expect(dialog.getByRole("button", { name: "Create task" })).toBeEnabled();
+
+  // Back online, the same press saves it.
+  await context.setOffline(false);
+  await dialog.getByRole("button", { name: "Create task" }).click();
+  await expect(dialog).toBeHidden({ timeout: 15_000 });
+});

@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isMissingFunction, isMissingTable } from "@/lib/supabase/missing";
 import { sendClaimed, type DispatchTally } from "@/lib/reminders/dispatch";
+import { alertAdmins } from "@/lib/reminders/admin-alerts";
 import type { QueuedReminder } from "@/lib/reminders/types";
 import {
   officeClock,
@@ -37,6 +38,8 @@ export type SweepResult = DispatchTally & {
   quiet: QuietReason | null;
   /** How many morning summaries were queued this run. */
   summaries: number;
+  /** How many admins were told about faults and failed reminders. */
+  alerted: number;
   enqueueError: string | null;
 };
 
@@ -52,7 +55,7 @@ export async function sweep(supabase: Admin, now: Date = new Date()): Promise<Sw
 
   const clock = officeClock(now);
   const quiet = quietReason(clock, await holidaysOn(supabase, clock.day));
-  if (quiet) return { ...NOTHING, quiet, summaries: 0, enqueueError: null };
+  if (quiet) return { ...NOTHING, quiet, summaries: 0, alerted: 0, enqueueError: null };
 
   // Refresh the queue from the current state of the board, so one run both
   // finds new work and sends it.
@@ -76,10 +79,19 @@ export async function sweep(supabase: Admin, now: Date = new Date()): Promise<Sw
   if (error) throw new Error(`Could not read the reminder queue: ${error.message}`);
 
   const tally = await sendClaimed(supabase, (data ?? []) as QueuedReminder[]);
+
+  // Last, so this run's own failures are in the note. Never the reason a
+  // run fails: the reminders have gone either way.
+  const alerted = await alertAdmins(supabase, now).catch((error: unknown) => {
+    console.error("[alerts]", error);
+    return 0;
+  });
+
   return {
     ...tally,
     quiet: null,
     summaries,
+    alerted,
     enqueueError: enqueueError ? enqueueError.message : null,
   };
 }

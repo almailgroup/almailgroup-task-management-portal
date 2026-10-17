@@ -1471,6 +1471,27 @@ somebody else, the table cannot be read with a session at all, a member is
 refused the log outright, an admin gets it grouped with a count, and an old
 row is swept while a recent one is not.
 
+### Told on Telegram
+
+Admins who have linked Telegram are also sent a short note when there is
+something new — how many faults, on which pages, and how many reminders could
+not be delivered, since the last note — with a link to the details on their
+profile (migration 45, `src/lib/reminders/admin-alerts.ts`). It is sent by the
+scheduled reminder run, with the service key it already holds, so it keeps
+the same office hours as everything else that reaches a person: a fault at
+midnight is in the first note of the working morning.
+
+The note carries **counts and page paths, never a fault's own text**, which
+stays in the portal for the same reason the table has no select policy.
+Nothing new, no note; a note that reached nobody is not recorded, so the next
+run tries again. `supabase/tests/admin-alerts.sql` checks the digest and that
+nobody signed in — admins included — can read the log, write to it or ask
+for the digest.
+
+How soon a note arrives is how often the run is called: once a day on
+Vercel's Hobby plan, every fifteen minutes with the `pg_cron` schedule under
+[Scheduling](#scheduling).
+
 ## When a reminder cannot be delivered
 
 A reminder gets four attempts. After that it was marked `failed` in a table
@@ -1566,6 +1587,25 @@ The second half is a line across the top of the app whenever the browser says
 it is offline, because an interface that looks fine and silently stops saving
 is worse than one that says so. It is monochrome: amber in this app means
 late work, not "something is wrong".
+
+### Work done with no signal is kept
+
+Moving a task along (a swipe, the board, a member's status), putting it off
+to the next working day, ticking a step and commenting are kept on the phone
+when there is no connection, rather than failing (`src/lib/outbox.ts`,
+`src/components/offline/outbox-provider.tsx`). They show as done at once — a
+card says "Waiting to send", a comment sits in its thread marked the same —
+and the offline bar counts them. They are sent in the order they were made
+when the connection comes back, when the app returns to the front, or when it
+is next opened; one the server refuses is reported by name, with the reason.
+
+Each kept change records who made it, and is only ever sent for that person:
+a phone handed to somebody else does not send one person's change as
+another's. Several moves of the same task go as one, where it ended up. Other
+edits — the task form, new tasks — still need the connection, and say so.
+
+A request that fails for want of a connection is trusted over
+`navigator.onLine`, which can say "online" when it is not.
 
 Two rules in the routing exist only for this. `/offline` is public —
 otherwise the one page meant to work without the network would need the

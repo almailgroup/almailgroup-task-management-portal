@@ -211,9 +211,18 @@ export function TaskDialog({
     // server would read it as its own, which is UTC.
     const localDue = String(formData.get("dueAt") ?? "");
     formData.set("dueAt", localDue ? (isoFromLocalInput(localDue) ?? "") : "");
-    const outcome = task
-      ? await updateTask(task.id, projectId, null, formData)
-      : await createTask(projectId, null, formData);
+    let outcome: ActionResult<{ id: string }>;
+    try {
+      outcome = task
+        ? await updateTask(task.id, projectId, null, formData)
+        : await createTask(projectId, null, formData);
+    } catch {
+      // No connection: the form is not kept for later (see lib/outbox), so
+      // say so, and leave everything typed where it is.
+      outcome = { ok: false, error: "offline.needsConnection" };
+      // The form's own message is at its top, far above a phone's Save.
+      toast.error(t("offline.needsConnection"));
+    }
 
     setPending(false);
 

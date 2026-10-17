@@ -713,6 +713,24 @@ export type Database = {
           },
         ];
       };
+      admin_alerts: {
+        Row: {
+          id: string;
+          sent_at: string;
+          faults: number;
+          failures: number;
+          reached: number;
+        };
+        Insert: {
+          id?: string;
+          sent_at?: string;
+          faults?: number;
+          failures?: number;
+          reached?: number;
+        };
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       project_milestones: {
         Row: {
           id: string;
@@ -1175,6 +1193,17 @@ export type Database = {
       /** One summary per person and channel for this office morning. */
       enqueue_morning_summaries: { Args: { as_of?: string }; Returns: number };
       /** The Reports page's numbers, over what the caller can see. */
+      /** Service key only (migration 45). */
+      admin_alert_digest: {
+        Args: { as_of?: string };
+        Returns: {
+          since: string;
+          faults: number;
+          pages: { source: "browser" | "server"; page: string; count: number }[];
+          failedReminders: number;
+          recipients: string[];
+        };
+      };
       work_report: {
         Args: { first_day: string; last_day: string; grain?: string };
         Returns: unknown;

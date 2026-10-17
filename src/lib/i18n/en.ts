@@ -1348,4 +1348,5 @@ export const en = {
   "guide.search.body": "Tasks, comments, files and messages, all from one box. Press ⌘K on a computer, or tap Search at the top.",
   "guide.search.action": "Try it",
   "palette.guide": "Getting started guide",
+  "offline.needsConnection": "This needs a connection. What you typed is still here; save again when you are back online.",
 } as const;
