@@ -6,6 +6,7 @@ import { CalendarClock, Check, Eye, Play } from "lucide-react";
 import { toast } from "sonner";
 
 import { useHolidaySet } from "@/components/work-calendar/holidays-provider";
+import { useOutbox } from "@/components/offline/outbox-provider";
 import { moveTask, rescheduleTask } from "@/lib/data/task-actions";
 import { formatDateTime, quickDateOptions } from "@/lib/dates";
 import { statusMeta } from "@/lib/constants";
@@ -62,6 +63,7 @@ export function SwipeCard({
   const i18n = useI18n();
   const { t, tm, tag, timeZone } = i18n;
   const holidays = useHolidaySet();
+  const { send } = useOutbox();
 
   const actions = swipeActionsFor(task, { canComplete, canReschedule });
   const swipeable = actions.forward !== null || actions.back !== null;
@@ -146,7 +148,19 @@ export function SwipeCard({
     if (action.kind === "status") {
       const from = task.status;
       const position = task.position;
-      const outcome = await moveTask(task.id, task.project_id ?? projectId, action.to, Date.now());
+      const outcome = await send({
+        kind: "move",
+        taskId: task.id,
+        projectId: task.project_id ?? projectId,
+        status: action.to,
+        position: Date.now(),
+        title: task.title,
+      });
+      // No signal: kept, and shown moved until it is sent.
+      if (outcome === "kept") {
+        toast(t("outbox.kept"));
+        return;
+      }
       if (!outcome.ok) {
         toast.error(tm(outcome.error));
         return;
@@ -175,7 +189,17 @@ export function SwipeCard({
       .find((option) => option.key === "nextWorkingDay")
       ?.value();
     if (!next) return;
-    const outcome = await rescheduleTask(task.id, task.project_id ?? projectId, next);
+    const outcome = await send({
+      kind: "reschedule",
+      taskId: task.id,
+      projectId: task.project_id ?? projectId,
+      dueAt: next,
+      title: task.title,
+    });
+    if (outcome === "kept") {
+      toast(t("outbox.kept"));
+      return;
+    }
     if (!outcome.ok) {
       toast.error(tm(outcome.error));
       return;

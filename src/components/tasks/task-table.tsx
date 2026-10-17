@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CloudUpload, ListFilter } from "lucide-react";
 import { toast } from "sonner";
 
 import { BulkActionBar } from "@/components/tasks/bulk-action-bar";
 import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
 import { SwipeCard } from "@/components/tasks/swipe-card";
+import { useOutbox } from "@/components/offline/outbox-provider";
+import { withPending } from "@/lib/outbox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteTask, moveTask, restoreTask } from "@/lib/data/task-actions";
@@ -80,10 +82,16 @@ export function TaskTable({
   const router = useRouter();
   const { t, tn } = useI18n();
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const { pending } = useOutbox();
 
+  // Changes made with no signal show as made, not as they were.
   const rows = React.useMemo(
-    () => sortTasks(tasks, sort, projectName),
-    [tasks, sort, projectName],
+    () => sortTasks(withPending(tasks, pending), sort, projectName),
+    [tasks, pending, sort, projectName],
+  );
+  const unsent = React.useMemo(
+    () => new Set(withPending(tasks, pending).filter((task) => task.unsent).map((task) => task.id)),
+    [tasks, pending],
   );
 
   /** Click a column: sort by it, click again to flip, a third time to clear. */
@@ -376,6 +384,15 @@ export function TaskTable({
                   <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                   <ChecklistProgressBadge progress={task.checklist} />
                   <WaitingBadge count={task.waitingOn} status={task.status} />
+                  {unsent.has(task.id) && (
+                    <span
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                      title={t("outbox.waiting")}
+                    >
+                      <CloudUpload className="size-3.5" aria-hidden />
+                      {t("outbox.waiting")}
+                    </span>
+                  )}
                 </div>
               </div>
             </SwipeCard>

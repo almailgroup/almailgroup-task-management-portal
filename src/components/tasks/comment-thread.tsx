@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Send, Trash2 } from "lucide-react";
+import { CloudUpload, Loader2, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MentionTextarea } from "@/components/tasks/mention-textarea";
 import { ReactionChips, ReactionPicker } from "@/components/tasks/comment-reactions";
-import { deleteComment, postComment } from "@/lib/data/comment-actions";
+import { deleteComment } from "@/lib/data/comment-actions";
+import { useOutbox } from "@/components/offline/outbox-provider";
+import type { OutboxItem } from "@/lib/outbox";
 import { MentionText } from "@/lib/mentions";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/client";
@@ -43,6 +45,12 @@ export function CommentThread({
 }) {
   const supabase = React.useMemo(() => createClient(), []);
   const { t, tm, tag } = useI18n();
+  const { send: sendChange, pending } = useOutbox();
+  // Written with no signal, and on their way once there is one.
+  const unsent = pending.filter(
+    (item): item is Extract<OutboxItem, { kind: "comment" }> =>
+      item.kind === "comment" && item.taskId === taskId,
+  );
 
   // Comments are append-only for members: deleting one — their own included —
   // is a manager action, so the control is not offered.
@@ -186,11 +194,14 @@ export function CommentThread({
     if (!content || sending) return;
 
     setSending(true);
-    const formData = new FormData();
-    formData.set("content", content);
-    const outcome = await postComment(taskId, null, formData);
+    const outcome = await sendChange({ kind: "comment", taskId, content });
     setSending(false);
 
+    if (outcome === "kept") {
+      setDraft("");
+      toast(t("outbox.kept"));
+      return;
+    }
     if (!outcome.ok) {
       toast.error(tm(outcome.error));
       return;
@@ -223,7 +234,7 @@ export function CommentThread({
           <p className="text-sm text-muted-foreground">
             {t("comment.loadFailed")}
           </p>
-        ) : comments.length === 0 ? (
+        ) : comments.length === 0 && unsent.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {t("comment.empty")}
           </p>
@@ -286,6 +297,29 @@ export function CommentThread({
             );
           })
         )}
+        {unsent.map((item) => (
+          <div key={item.id} className="flex items-start gap-2 opacity-75">
+            <Avatar className="mt-0.5 size-6">
+              <AvatarFallback className="text-[9px]">
+                {initialsFrom(currentProfile.full_name, currentProfile.email)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {currentProfile.full_name ?? currentProfile.email}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <CloudUpload className="size-3" aria-hidden />
+                  {t("outbox.waiting")}
+                </span>
+              </p>
+              <div className="mt-0.5 text-sm leading-relaxed">
+                <MentionText content={item.content} team={team} />
+              </div>
+            </div>
+          </div>
+        ))}
         <div ref={endRef} />
       </div>
 

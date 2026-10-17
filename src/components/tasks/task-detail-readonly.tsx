@@ -23,7 +23,7 @@ import { DueDate, PriorityIndicator,
 } from "@/components/tasks/task-meta";
 import { ChecklistPanel } from "@/components/tasks/checklist-panel";
 import { initialsFrom } from "@/lib/initials";
-import { changeTaskStatus } from "@/lib/data/task-actions";
+import { useOutbox } from "@/components/offline/outbox-provider";
 import { TASK_STATUSES } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/client";
 import type {
@@ -52,6 +52,7 @@ export function TaskDetailReadonly({
 }) {
   const router = useRouter();
   const { t, tm } = useI18n();
+  const { send } = useOutbox();
   const [status, setStatus] = React.useState<TaskStatus>(task.status);
   const [saving, setSaving] = React.useState(false);
 
@@ -62,8 +63,20 @@ export function TaskDetailReadonly({
     setStatus(next as TaskStatus);
     setSaving(true);
 
-    const outcome = await changeTaskStatus(task.id, projectId, next);
+    const outcome = await send({
+      kind: "status",
+      taskId: task.id,
+      projectId,
+      status: next as TaskStatus,
+      title: task.title,
+    });
     setSaving(false);
+
+    if (outcome === "kept") {
+      toast(t("outbox.kept"));
+      onSaved?.();
+      return;
+    }
 
     if (!outcome.ok) {
       setStatus(previous); // Fall back to the server's truth.

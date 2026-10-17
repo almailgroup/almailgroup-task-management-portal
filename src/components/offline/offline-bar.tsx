@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CloudOff } from "lucide-react";
 
+import { useStoredOutbox } from "@/components/offline/use-stored-outbox";
 import { useI18n } from "@/lib/i18n/client";
 
 /**
@@ -15,9 +16,14 @@ import { useI18n } from "@/lib/i18n/client";
  *
  * `navigator.onLine` is only ever trustworthy when it says false, which is
  * exactly the direction this needs.
+ *
+ * Moving work along, ticking steps and commenting are kept on the phone and
+ * sent when the connection is back (see the outbox), so the bar says that,
+ * and how many are waiting.
  */
 export function OfflineBar() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
+  const waiting = useStoredOutbox().length;
   const [offline, setOffline] = React.useState(false);
 
   React.useEffect(() => {
@@ -41,7 +47,7 @@ export function OfflineBar() {
       style={{ paddingTop: "calc(0.375rem + var(--safe-top, 0px))" }}
     >
       <CloudOff className="size-3.5" />
-      {t("offline.bar")}
+      {waiting > 0 ? tn("offline.barWaiting", waiting) : t("offline.bar")}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { TimeZoneCookie } from "@/components/layout/timezone-cookie";
 import { HolidaysProvider } from "@/components/work-calendar/holidays-provider";
 import { LabelsProvider } from "@/components/labels/labels-provider";
+import { OutboxProvider } from "@/components/offline/outbox-provider";
 import {
   SIDEBAR_DEFAULT,
   SIDEBAR_MAX,
@@ -74,18 +75,20 @@ export default async function AppLayout({
       <TimeZoneCookie />
 
       {/* Holidays reach every date shortcut and the calendar from here, and
-          labels every task. */}
+          labels every task. The outbox holds what is done with no signal. */}
       <HolidaysProvider holidays={holidays}>
         <LabelsProvider labels={labels}>
-          <AppShell
-            profile={profile}
-            projects={projects}
-            notifications={notifications}
-            unreadCount={unreadCount}
-            unreadMessages={unreadMessages}
-          >
-            {children}
-          </AppShell>
+          <OutboxProvider me={profile.id}>
+            <AppShell
+              profile={profile}
+              projects={projects}
+              notifications={notifications}
+              unreadCount={unreadCount}
+              unreadMessages={unreadMessages}
+            >
+              {children}
+            </AppShell>
+          </OutboxProvider>
         </LabelsProvider>
       </HolidaysProvider>
     </>

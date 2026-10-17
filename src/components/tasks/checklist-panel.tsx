@@ -12,8 +12,8 @@ import {
   addChecklistItem,
   listChecklistItems,
   removeChecklistItem,
-  setChecklistItemDone,
 } from "@/lib/data/checklist-actions";
+import { useOutbox } from "@/components/offline/outbox-provider";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import type { ChecklistItem } from "@/lib/supabase/database.types";
@@ -40,6 +40,7 @@ export function ChecklistPanel({
 }) {
   const router = useRouter();
   const { t, tm } = useI18n();
+  const { send } = useOutbox();
   const [items, setItems] = React.useState<ChecklistItem[]>([]);
   const [adding, setAdding] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -72,7 +73,9 @@ export function ChecklistPanel({
       current.map((one) => (one.id === item.id ? { ...one, done: next } : one)),
     );
 
-    const outcome = await setChecklistItemDone(item.id, next);
+    const outcome = await send({ kind: "checklist", taskId, itemId: item.id, done: next });
+    // Kept for later: the tick stays.
+    if (outcome === "kept") return;
     if (!outcome.ok) {
       setItems((current) =>
         current.map((one) => (one.id === item.id ? { ...one, done: item.done } : one)),

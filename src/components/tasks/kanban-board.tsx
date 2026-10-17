@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { DragInstructions, TaskCard } from "@/components/tasks/task-card";
 import { QuickAddTask } from "@/components/tasks/quick-add-task";
 import { StatusMoveMenu } from "@/components/tasks/status-move-menu";
-import { moveTask } from "@/lib/data/task-actions";
+import { useOutbox } from "@/components/offline/outbox-provider";
 import { TASK_STATUSES } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
@@ -69,6 +69,11 @@ export function KanbanBoard({
 }) {
   const router = useRouter();
   const { t, tm } = useI18n();
+  const { send } = useOutbox();
+
+  /** Persist a move, or keep it on the phone with no signal. */
+  const persistMove = (task: TaskWithAssignees, status: TaskStatus, position: number) =>
+    send({ kind: "move", taskId: task.id, projectId, status, position, title: task.title });
   const [items, setItems] = React.useState(tasks);
   const [activeId, setActiveId] = React.useState<string | null>(null);
 
@@ -133,7 +138,12 @@ export function KanbanBoard({
       ),
     );
 
-    const outcome = await moveTask(task.id, projectId, targetStatus, position);
+    const outcome = await persistMove(task, targetStatus, position);
+    // Kept for later: the card stays where it was put.
+    if (outcome === "kept") {
+      toast(t("outbox.kept"));
+      return;
+    }
     if (!outcome.ok) {
       setItems(previous);
       toast.error(tm(outcome.error));
@@ -204,7 +214,11 @@ export function KanbanBoard({
       ),
     );
 
-    const outcome = await moveTask(taskId, projectId, targetStatus, position);
+    const outcome = await persistMove(task, targetStatus, position);
+    if (outcome === "kept") {
+      toast(t("outbox.kept"));
+      return;
+    }
 
     if (!outcome.ok) {
       setItems(previous);
