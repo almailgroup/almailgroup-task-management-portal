@@ -58,6 +58,17 @@ function labelsFromForm(formData: FormData): string[] | null {
 }
 
 /**
+ * The milestone the form asked for: an id, null for none, or undefined when
+ * the form did not carry the field — before migration 44, or outside a
+ * project — and the column must be left out of the write altogether.
+ */
+function milestoneFromForm(formData: FormData): string | null | undefined {
+  if (!formData.has("milestoneField")) return undefined;
+  const chosen = String(formData.get("milestoneId") ?? "");
+  return z.string().uuid().safeParse(chosen).success ? chosen : null;
+}
+
+/**
  * Revalidate every view a task shows up in.
  *
  * It lives on its project page (or /general when it has no project), but it is
@@ -110,6 +121,7 @@ export async function createTask(
   if (!user) return fail("action.sessionExpired");
 
   const position = await nextPosition(supabase, projectId, parsed.data.status);
+  const milestoneId = milestoneFromForm(formData);
 
   const { data, error } = await supabase
     .from("tasks")
@@ -124,6 +136,7 @@ export async function createTask(
       repeat_interval: parsed.data.repeatInterval,
       position,
       created_by: user.id,
+      ...(milestoneId ? { milestone_id: milestoneId } : {}),
     })
     .select("id")
     .single();
@@ -198,6 +211,7 @@ export async function updateTask(
   }
 
   const supabase = await createClient();
+  const milestoneId = milestoneFromForm(formData);
 
   const { data, error } = await supabase
     .from("tasks")
@@ -209,6 +223,7 @@ export async function updateTask(
       due_at: parsed.data.dueAt || null,
       repeat_every: parsed.data.repeatEvery || null,
       repeat_interval: parsed.data.repeatInterval,
+      ...(milestoneId !== undefined ? { milestone_id: milestoneId } : {}),
     })
     .eq("id", taskId)
     .select("id")

@@ -108,6 +108,7 @@ export function seed() {
       deleted_at: null,
       repeat_every: repeat ?? null,
       repeat_interval: 1,
+      milestone_id: null,
       created_at: "2026-09-01T00:00:00Z",
       updated_at: "2026-09-01T00:00:00Z",
     });
@@ -118,6 +119,23 @@ export function seed() {
       created_at: "2026-09-01T00:00:00Z",
     });
   });
+
+  // The warehouse move's next promise, with two of its tasks under it.
+  const project_milestones = [
+    {
+      id: "88888888-8888-4888-8888-000000000001",
+      project_id: projects[1].id,
+      title: "Sulaibiya keys handed over",
+      due_on: day(12).slice(0, 10),
+      done_at: null,
+      created_by: IDS.admin,
+      created_at: "2026-09-01T00:00:00Z",
+      updated_at: "2026-09-01T00:00:00Z",
+    },
+  ];
+  for (const title of ["Camera installation", "Staff parking list"]) {
+    tasks.find((task) => task.title === title).milestone_id = project_milestones[0].id;
+  }
 
   const team_messages = [
     { id: "44444444-4444-4444-8444-000000000001", author_id: IDS.sara, body: "Morning all — the Kuwait bank meeting moved to 3pm.", created_at: "2026-09-20T06:10:00Z", edited_at: null },
@@ -252,6 +270,7 @@ export function seed() {
       { id: "99999999-9999-4999-8999-000000000002", name: "Ministry", colour: "green", created_by: IDS.admin, created_at: "2026-09-01T00:00:00Z" },
     ],
     task_dependencies: [],
+    project_milestones,
     task_templates: [
       {
         id: "44444444-4444-4444-8444-0000000000a1",

@@ -38,6 +38,7 @@ import type {
   DirectMessageWithAuthor,
   ProjectHealthRow,
   ProjectStatusUpdateWithAuthor,
+  ProjectMilestone,
   PushDevice,
   ReminderFailure,
   TeamReminderFailure,
@@ -1001,6 +1002,30 @@ export const getProjectStatusUpdates = cache(
       return null;
     }
     return (data ?? []) as unknown as ProjectStatusUpdateWithAuthor[];
+  },
+);
+
+/**
+ * A project's milestones, in the order they fall due.
+ *
+ * Null until migration 44 has been run, so the timeline can say it is on
+ * its way rather than show a project with no dates as if it had none.
+ */
+export const getProjectMilestones = cache(
+  async (projectId: string): Promise<ProjectMilestone[] | null> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("project_milestones")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("due_on", { ascending: true })
+      .order("title", { ascending: true });
+
+    if (error) {
+      if (!isMissingTable(error)) reportQueryError("getProjectMilestones", error);
+      return null;
+    }
+    return data ?? [];
   },
 );
 

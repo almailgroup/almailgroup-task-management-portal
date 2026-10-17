@@ -41,6 +41,8 @@ const RAISED_BY_SQL: Record<string, string> = {
   "Only an admin can change a job position": "db.positionAdminOnly",
   "Only a manager or admin can change task details. You can update the status and add comments or files.":
     "db.detailsManagerOnly",
+  "That milestone belongs to another project.": "milestone.otherProject",
+  "A milestone stays in its project.": "milestone.staysInProject",
 };
 
 /**

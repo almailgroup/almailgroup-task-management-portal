@@ -5,6 +5,7 @@ import { ProjectWorkspace } from "@/components/projects/project-workspace";
 import {
   getProject,
   getProjectMembers,
+  getProjectMilestones,
   getProjectStatusUpdates,
   getProjectTasks,
   getTeam,
@@ -33,11 +34,12 @@ export default async function ProjectPage({ params }: PageProps) {
   // so a 404 does not confirm the existence of something you cannot see.
   if (!project) notFound();
 
-  const [tasks, team, members, statusUpdates] = await Promise.all([
+  const [tasks, team, members, statusUpdates, milestones] = await Promise.all([
     getProjectTasks(projectId),
     getTeam(),
     getProjectMembers(projectId),
     getProjectStatusUpdates(projectId),
+    getProjectMilestones(projectId),
   ]);
 
   return (
@@ -47,6 +49,7 @@ export default async function ProjectPage({ params }: PageProps) {
       team={team}
       members={members}
       statusUpdates={statusUpdates}
+      milestones={milestones}
       profile={profile}
     />
   );

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  ChartNoAxesGantt,
   Columns3,
   Hash,
   List,
@@ -28,6 +29,7 @@ import { ProjectDialog } from "@/components/projects/project-dialog";
 import { ProjectMembers } from "@/components/projects/project-members";
 import { ProjectPulse } from "@/components/projects/project-pulse";
 import { ProjectStatus } from "@/components/projects/project-status";
+import { ProjectTimeline } from "@/components/projects/project-timeline";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { TaskDialog } from "@/components/tasks/task-dialog";
@@ -45,12 +47,13 @@ import { Emphasised, MARK, useI18n } from "@/lib/i18n/client";
 import type {
   Profile,
   Project,
+  ProjectMilestone,
   TaskStatus,
   TaskWithAssignees,
   ProjectStatusUpdateWithAuthor,
 } from "@/lib/supabase/database.types";
 
-type View = "board" | "list";
+type View = "board" | "list" | "timeline";
 
 /**
  * Project workspace: view switcher, filters, and the Kanban/list views.
@@ -65,6 +68,7 @@ export function ProjectWorkspace({
   team,
   members,
   statusUpdates,
+  milestones,
   profile,
 }: {
   project: Project;
@@ -73,6 +77,8 @@ export function ProjectWorkspace({
   members: Profile[];
   /** Null when they could not be read; [] when nobody has posted one. */
   statusUpdates: ProjectStatusUpdateWithAuthor[] | null;
+  /** Null until milestones exist in the database (migration 44). */
+  milestones: ProjectMilestone[] | null;
   profile: Profile;
 }) {
   const router = useRouter();
@@ -92,6 +98,7 @@ export function ProjectWorkspace({
     null,
   );
   const [newTaskStatus, setNewTaskStatus] = React.useState<TaskStatus>("todo");
+  const [newTaskMilestone, setNewTaskMilestone] = React.useState<string | null>(null);
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
@@ -113,9 +120,10 @@ export function ProjectWorkspace({
     setTaskDialogOpen(true);
   }
 
-  function createTask(columnStatus: TaskStatus) {
+  function createTask(columnStatus: TaskStatus, milestoneId: string | null = null) {
     setActiveTask(null);
     setNewTaskStatus(columnStatus);
+    setNewTaskMilestone(milestoneId);
     setTaskDialogOpen(true);
   }
 
@@ -256,11 +264,25 @@ export function ProjectWorkspace({
               <List />
               {t("view.list")}
             </TabsTrigger>
+            <TabsTrigger value="timeline">
+              <ChartNoAxesGantt />
+              {t("view.timeline")}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </TaskFilterBar>
 
-      {view === "board" ? (
+      {view === "timeline" ? (
+        <ProjectTimeline
+          projectId={project.id}
+          milestones={milestones}
+          tasks={filtered}
+          allTasks={liveTasks}
+          canPlan={canComplete && !project.archived_at}
+          onOpenTask={openTask}
+          onCreateTask={(milestoneId) => createTask("todo", milestoneId)}
+        />
+      ) : view === "board" ? (
         <KanbanBoard
           tasks={filtered}
           projectId={project.id}
@@ -293,6 +315,7 @@ export function ProjectWorkspace({
         team={team}
         currentProfile={profile}
         defaultStatus={newTaskStatus}
+        defaultMilestoneId={newTaskMilestone}
       />
 
       <ProjectDialog

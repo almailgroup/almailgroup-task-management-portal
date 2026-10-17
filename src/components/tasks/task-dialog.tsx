@@ -30,6 +30,7 @@ import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { LabelPicker } from "@/components/labels/label-picker";
 import { WaitingPanel } from "@/components/tasks/waiting-panel";
 import { listTemplates, saveTaskAsTemplate } from "@/lib/data/template-actions";
+import { listMilestones } from "@/lib/data/milestone-actions";
 import { addWorkingDays, onOrAfterWorkingDay } from "@/lib/work-week";
 import { LabelPills } from "@/components/labels/label-pills";
 import { TaskProvenance } from "@/components/tasks/task-meta";
@@ -53,6 +54,7 @@ import type { ActionResult } from "@/lib/action-result";
 import type { TranslationKey } from "@/lib/i18n";
 import type {
   Profile,
+  ProjectMilestone,
   RepeatUnit,
   TaskStatus,
   TaskTemplate,
@@ -76,6 +78,7 @@ export function TaskDialog({
   team,
   currentProfile,
   defaultStatus = "todo",
+  defaultMilestoneId = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -84,6 +87,8 @@ export function TaskDialog({
   team: Profile[];
   currentProfile: Profile;
   defaultStatus?: TaskStatus;
+  /** A new task started from a milestone on the timeline goes under it. */
+  defaultMilestoneId?: string | null;
 }) {
   const router = useRouter();
   const i18n = useI18n();
@@ -113,6 +118,9 @@ export function TaskDialog({
   const [templates, setTemplates] = React.useState<TaskTemplate[]>([]);
   const [template, setTemplate] = React.useState<TaskTemplate | null>(null);
   const [savingTemplate, setSavingTemplate] = React.useState(false);
+  // The project's milestones, for a planner to put the task under one.
+  const [milestones, setMilestones] = React.useState<ProjectMilestone[]>([]);
+  const [milestoneId, setMilestoneId] = React.useState("none");
 
   // The date field is uncontrolled — its own picker manages it — so a preset
   // writes straight into it, in the viewer's own wall-clock time.
@@ -129,7 +137,28 @@ export function TaskDialog({
     setLabelIds(task?.labelIds ?? []);
     setTemplate(null);
     setRepeatEvery(task?.repeat_every ?? "none");
-  }, [open, task]);
+    setMilestoneId(task?.milestone_id ?? defaultMilestoneId ?? "none");
+  }, [open, task, defaultMilestoneId]);
+
+  // Only a planner sets it, and only a project has any.
+  React.useEffect(() => {
+    if (!open || !canEditDetails || !projectId) {
+      setMilestones([]);
+      return;
+    }
+    let current = true;
+    listMilestones(projectId)
+      .then((found) => current && setMilestones(found.milestones))
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [open, canEditDetails, projectId]);
+
+  // Reached milestones are history: not offered, unless it is this task's.
+  const offeredMilestones = milestones.filter(
+    (milestone) => !milestone.done_at || milestone.id === milestoneId,
+  );
 
   // Asked for when a new task is started, not carried on every page.
   React.useEffect(() => {
@@ -507,6 +536,33 @@ export function TaskDialog({
               <div className="flex flex-col gap-1.5">
                 <Label className="ps-4">{t("label.title")}</Label>
                 <LabelPicker value={labelIds} onChange={setLabelIds} />
+              </div>
+            )}
+
+            {canEditDetails && offeredMilestones.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="milestoneId">{t("milestone.field")}</Label>
+                <input type="hidden" name="milestoneField" value="1" />
+                <Select name="milestoneId" value={milestoneId} onValueChange={setMilestoneId}>
+                  <SelectTrigger id="milestoneId">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("milestone.none")}</SelectItem>
+                    {offeredMilestones.map((milestone) => (
+                      <SelectItem key={milestone.id} value={milestone.id}>
+                        {t("milestone.option", {
+                          title: milestone.title,
+                          date: new Date(`${milestone.due_on}T12:00:00Z`).toLocaleDateString(i18n.tag, {
+                            timeZone: "UTC",
+                            day: "numeric",
+                            month: "short",
+                          }),
+                        })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 

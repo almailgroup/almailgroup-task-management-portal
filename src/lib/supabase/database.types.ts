@@ -153,6 +153,11 @@ export type Database = {
           repeat_every: RepeatUnit | null;
           /** How many of those units apart. 2 + "week" is fortnightly. */
           repeat_interval: number;
+          /**
+           * The milestone of its own project it counts towards. Optional
+           * because it is absent until migration 44 has been run.
+           */
+          milestone_id?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -170,6 +175,7 @@ export type Database = {
           created_by: string;
           repeat_every?: RepeatUnit | null;
           repeat_interval?: number;
+          milestone_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -184,6 +190,7 @@ export type Database = {
           position?: number;
           repeat_every?: RepeatUnit | null;
           repeat_interval?: number;
+          milestone_id?: string | null;
         };
         Relationships: [
           {
@@ -196,6 +203,12 @@ export type Database = {
             foreignKeyName: "tasks_created_by_fkey";
             columns: ["created_by"];
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey";
+            columns: ["milestone_id"];
+            referencedRelation: "project_milestones";
             referencedColumns: ["id"];
           },
         ];
@@ -694,6 +707,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "task_templates_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      project_milestones: {
+        Row: {
+          id: string;
+          project_id: string;
+          title: string;
+          /** A calendar day, "2026-11-05": a date promised, not an instant. */
+          due_on: string;
+          /** When somebody marked it reached, or null. */
+          done_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          title: string;
+          due_on: string;
+          done_at?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          title?: string;
+          due_on?: string;
+          done_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_project_id_fkey";
+            columns: ["project_id"];
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_milestones_created_by_fkey";
             columns: ["created_by"];
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -1254,6 +1308,7 @@ export type CompanyHoliday = Database["public"]["Tables"]["company_holidays"]["R
 export type LabelColour = "slate" | "blue" | "green" | "violet" | "pink" | "teal";
 export type Label = Database["public"]["Tables"]["labels"]["Row"];
 export type TaskTemplate = Database["public"]["Tables"]["task_templates"]["Row"];
+export type ProjectMilestone = Database["public"]["Tables"]["project_milestones"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 export type TaskAssignment =
   Database["public"]["Tables"]["task_assignments"]["Row"];

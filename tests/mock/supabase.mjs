@@ -52,7 +52,7 @@ let db = seed();
  * table -> column -> the table it points at.
  */
 const FK = {
-  tasks: { project_id: "projects", created_by: "profiles" },
+  tasks: { project_id: "projects", created_by: "profiles", milestone_id: "project_milestones" },
   task_assignments: { task_id: "tasks", user_id: "profiles" },
   // `user_id`, as in the schema. This said `author_id` — a column comments
   // have never had — so every comment in the mock came back authorless.
@@ -78,6 +78,7 @@ const FK = {
   task_labels: { task_id: "tasks", label_id: "labels" },
   task_dependencies: { task_id: "tasks", blocked_by: "tasks", created_by: "profiles" },
   task_templates: { created_by: "profiles" },
+  project_milestones: { project_id: "projects", created_by: "profiles" },
 };
 
 /**
@@ -698,7 +699,8 @@ const defaults = (table, row) => ({
   id: randomUUID(),
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-  ...(table === "tasks" ? { status: "todo", priority: "medium", deleted_at: null, position: 0, due_at: null, follow_up_at: null, description: null } : {}),
+  ...(table === "tasks" ? { status: "todo", priority: "medium", deleted_at: null, position: 0, due_at: null, follow_up_at: null, description: null, milestone_id: null } : {}),
+  ...(table === "project_milestones" ? { done_at: null, created_by: null } : {}),
   ...row,
 });
 
