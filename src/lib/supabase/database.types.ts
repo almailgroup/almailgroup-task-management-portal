@@ -657,6 +657,49 @@ export type Database = {
           },
         ];
       };
+      task_templates: {
+        Row: {
+          id: string;
+          name: string;
+          title: string;
+          description: string | null;
+          priority: TaskPriority;
+          steps: string[];
+          label_ids: string[];
+          due_in_working_days: number | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          title: string;
+          description?: string | null;
+          priority?: TaskPriority;
+          steps?: string[];
+          label_ids?: string[];
+          due_in_working_days?: number | null;
+          created_by?: string | null;
+        };
+        Update: {
+          name?: string;
+          title?: string;
+          description?: string | null;
+          priority?: TaskPriority;
+          steps?: string[];
+          label_ids?: string[];
+          due_in_working_days?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_templates_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       task_dependencies: {
         Row: {
           task_id: string;
@@ -1194,6 +1237,7 @@ export type CompanyHoliday = Database["public"]["Tables"]["company_holidays"]["R
 /** The dot beside a label's name. No amber: that means late, and only that. */
 export type LabelColour = "slate" | "blue" | "green" | "violet" | "pink" | "teal";
 export type Label = Database["public"]["Tables"]["labels"]["Row"];
+export type TaskTemplate = Database["public"]["Tables"]["task_templates"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 export type TaskAssignment =
   Database["public"]["Tables"]["task_assignments"]["Row"];

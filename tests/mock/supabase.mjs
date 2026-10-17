@@ -77,6 +77,7 @@ const FK = {
   labels: { created_by: "profiles" },
   task_labels: { task_id: "tasks", label_id: "labels" },
   task_dependencies: { task_id: "tasks", blocked_by: "tasks", created_by: "profiles" },
+  task_templates: { created_by: "profiles" },
 };
 
 /**

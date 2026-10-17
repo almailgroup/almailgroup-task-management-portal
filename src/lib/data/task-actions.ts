@@ -161,6 +161,27 @@ export async function createTask(
     }
   }
 
+  // Steps a template brought with it, written as the task's checklist.
+  const steps = formData
+    .getAll("steps")
+    .map((step) => String(step).trim())
+    .filter((step) => step.length > 0 && step.length <= 500)
+    .slice(0, 50);
+  if (steps.length > 0) {
+    const { error: stepsError } = await supabase.from("task_checklist_items").insert(
+      steps.map((content, index) => ({
+        task_id: data.id,
+        content,
+        position: (index + 1) * POSITION_STEP,
+        created_by: user.id,
+      })),
+    );
+    if (stepsError) {
+      revalidateTaskViews(projectId);
+      return fail("template.stepsNotSaved");
+    }
+  }
+
   revalidateTaskViews(projectId);
   return ok({ id: data.id });
 }

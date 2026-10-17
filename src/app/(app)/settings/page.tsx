@@ -5,6 +5,8 @@ import { Settings } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { HolidaySettings } from "@/components/settings/holiday-settings";
 import { LabelSettings } from "@/components/settings/label-settings";
+import { TemplateSettings } from "@/components/settings/template-settings";
+import { listTemplates } from "@/lib/data/template-actions";
 import { getHolidays, getLabels, requireProfile } from "@/lib/data/queries";
 import { getI18n } from "@/lib/i18n/server";
 
@@ -21,10 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function SettingsPage() {
   const { t } = await getI18n();
-  const [profile, holidays, labels] = await Promise.all([
+  const [profile, holidays, labels, templates] = await Promise.all([
     requireProfile(),
     getHolidays(),
     getLabels(),
+    listTemplates(),
   ]);
   if (profile.role === "member") redirect("/dashboard");
 
@@ -38,6 +41,7 @@ export default async function SettingsPage() {
       <div className="stagger flex flex-col gap-4">
         <HolidaySettings holidays={holidays} canEdit={profile.role === "admin"} />
         <LabelSettings labels={labels} />
+        <TemplateSettings templates={templates} />
       </div>
     </PageShell>
   );

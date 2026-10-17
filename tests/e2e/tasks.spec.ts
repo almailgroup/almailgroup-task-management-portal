@@ -36,7 +36,7 @@ test.describe("the work itself", () => {
     const detail = await openDialog(page);
     await detail.locator("#status").click();
     await page.getByRole("option", { name: "Done" }).click();
-    await detail.getByRole("button", { name: "Save" }).click();
+    await detail.getByRole("button", { name: "Save changes" }).click();
     await expect(detail).toBeHidden({ timeout: 15_000 });
 
     await page.goto("/tasks?filter=all");

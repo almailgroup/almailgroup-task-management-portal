@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2 } from "lucide-react";
+import { BookmarkPlus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { LabelPicker } from "@/components/labels/label-picker";
 import { WaitingPanel } from "@/components/tasks/waiting-panel";
+import { listTemplates, saveTaskAsTemplate } from "@/lib/data/template-actions";
+import { addWorkingDays, onOrAfterWorkingDay } from "@/lib/work-week";
 import { LabelPills } from "@/components/labels/label-pills";
 import { TaskProvenance } from "@/components/tasks/task-meta";
 import { isoFromLocalInput, quickDateOptions, toLocalInput } from "@/lib/dates";
@@ -53,6 +55,7 @@ import type {
   Profile,
   RepeatUnit,
   TaskStatus,
+  TaskTemplate,
   TaskWithAssignees,
 } from "@/lib/supabase/database.types";
 
@@ -85,7 +88,7 @@ export function TaskDialog({
   const router = useRouter();
   const i18n = useI18n();
   const holidays = useHolidaySet();
-  const { t, tm } = i18n;
+  const { t, tn, tm } = i18n;
   const editing = Boolean(task);
   const canComplete =
     currentProfile.role === "admin" || currentProfile.role === "manager";
@@ -106,6 +109,10 @@ export function TaskDialog({
   }> | null>(null);
   const [assigneeIds, setAssigneeIds] = React.useState<string[]>([]);
   const [labelIds, setLabelIds] = React.useState<string[]>([]);
+  // Starting a new task from a template: the list, and the one chosen.
+  const [templates, setTemplates] = React.useState<TaskTemplate[]>([]);
+  const [template, setTemplate] = React.useState<TaskTemplate | null>(null);
+  const [savingTemplate, setSavingTemplate] = React.useState(false);
 
   // The date field is uncontrolled — its own picker manages it — so a preset
   // writes straight into it, in the viewer's own wall-clock time.
@@ -120,8 +127,48 @@ export function TaskDialog({
     setResult(null);
     setAssigneeIds(task?.assignees.map((person) => person.id) ?? []);
     setLabelIds(task?.labelIds ?? []);
+    setTemplate(null);
     setRepeatEvery(task?.repeat_every ?? "none");
   }, [open, task]);
+
+  // Asked for when a new task is started, not carried on every page.
+  React.useEffect(() => {
+    if (!open || task) return;
+    let current = true;
+    listTemplates()
+      .then((found) => current && setTemplates(found))
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [open, task]);
+
+  /** A template's usual due date: so many working days from today, at five. */
+  const templateDue = (days: number | null) => {
+    if (days === null) return null;
+    const today = new Date();
+    const day = days === 0 ? onOrAfterWorkingDay(today, holidays) : addWorkingDays(today, days, holidays);
+    day.setHours(17, 0, 0, 0);
+    return day.toISOString();
+  };
+
+  function chooseTemplate(id: string) {
+    const chosen = templates.find((one) => one.id === id) ?? null;
+    setTemplate(chosen);
+    if (chosen) setLabelIds(chosen.label_ids);
+  }
+
+  async function saveAsTemplate() {
+    if (!task) return;
+    setSavingTemplate(true);
+    const outcome = await saveTaskAsTemplate(task.id);
+    setSavingTemplate(false);
+    if (!outcome.ok) {
+      toast.error(tm(outcome.error));
+      return;
+    }
+    toast.success(t("template.saved", { name: outcome.data.name }));
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -229,15 +276,49 @@ export function TaskDialog({
         )}
 
         {canEditDetails || !task ? (
-          <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+          <form
+            // A template fills the fields, and they are uncontrolled: a fresh
+            // form is the simple way to give them their new starting values.
+            key={template?.id ?? "blank"}
+            onSubmit={onSubmit}
+            className="flex flex-col gap-4"
+            noValidate
+          >
             <FormError message={result?.ok === false ? result.error : null} />
+
+            {!task && templates.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="template">{t("template.startFrom")}</Label>
+                <Select value={template?.id ?? "none"} onValueChange={chooseTemplate}>
+                  <SelectTrigger id="template">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("template.blank")}</SelectItem>
+                    {templates.map((one) => (
+                      <SelectItem key={one.id} value={one.id}>
+                        {one.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {template && template.steps.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {tn("template.bringsSteps", template.steps.length)}
+                  </p>
+                )}
+                {template?.steps.map((step, index) => (
+                  <input key={index} type="hidden" name="steps" value={step} />
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="title">{t("task.fieldTitle")}</Label>
               <Input
                 id="title"
                 name="title"
-                defaultValue={task?.title ?? ""}
+                defaultValue={task?.title ?? template?.title ?? ""}
                 placeholder={t("task.titlePlaceholder")}
                 maxLength={200}
                 required
@@ -252,7 +333,7 @@ export function TaskDialog({
               <Textarea
                 id="description"
                 name="description"
-                defaultValue={task?.description ?? ""}
+                defaultValue={task?.description ?? template?.description ?? ""}
                 placeholder={t("task.descriptionPlaceholder")}
                 rows={3}
                 maxLength={20000}
@@ -298,7 +379,7 @@ export function TaskDialog({
 
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label htmlFor="priority">{t("sort.priority")}</Label>
-                <Select name="priority" defaultValue={task?.priority ?? "medium"}>
+                <Select name="priority" defaultValue={task?.priority ?? template?.priority ?? "medium"}>
                   <SelectTrigger id="priority">
                     <SelectValue />
                   </SelectTrigger>
@@ -321,7 +402,9 @@ export function TaskDialog({
                   type="datetime-local"
                   // Shown in the viewer timezone; the action converts it back
                   // to an absolute instant on save.
-                  defaultValue={toLocalInput(task?.due_at ?? null)}
+                  defaultValue={toLocalInput(
+                    task ? task.due_at : templateDue(template?.due_in_working_days ?? null),
+                  )}
                   aria-invalid={Boolean(errors?.dueAt)}
                 />
                 {/* The dates people actually pick, one tap each. The native
@@ -480,6 +563,22 @@ export function TaskDialog({
             {/* The steps inside the task, above the follow-up: one is what
                 the work is made of, the other is when to chase it. */}
             <ChecklistPanel taskId={task.id} canEdit={canEditDetails} />
+
+            {canEditDetails && (
+              <div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={saveAsTemplate}
+                  disabled={savingTemplate}
+                  className="text-muted-foreground"
+                >
+                  {savingTemplate ? <Loader2 className="animate-spin" /> : <BookmarkPlus />}
+                  {t("template.saveAs")}
+                </Button>
+              </div>
+            )}
 
             <WaitingPanel
               taskId={task.id}

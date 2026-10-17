@@ -252,6 +252,21 @@ export function seed() {
       { id: "99999999-9999-4999-8999-000000000002", name: "Ministry", colour: "green", created_by: IDS.admin, created_at: "2026-09-01T00:00:00Z" },
     ],
     task_dependencies: [],
+    task_templates: [
+      {
+        id: "44444444-4444-4444-8444-0000000000a1",
+        name: "Month-end payroll",
+        title: "Run payroll",
+        description: "Salaries for the month, through the bank portal.",
+        priority: "high",
+        steps: ["Collect timesheets", "Check overtime", "Send to the bank"],
+        label_ids: ["99999999-9999-4999-8999-000000000001"],
+        due_in_working_days: 3,
+        created_by: IDS.admin,
+        created_at: "2026-09-01T00:00:00Z",
+        updated_at: "2026-09-01T00:00:00Z",
+      },
+    ],
     task_labels: [
       {
         task_id: tasks.find((task) => task.title === "Meet with Kuwait banks").id,
