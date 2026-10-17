@@ -5,7 +5,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { isMissingTable } from "@/lib/supabase/missing";
+import { isMissingRelationship, isMissingTable } from "@/lib/supabase/missing";
 import {
   VERIFIED_MUST_CHANGE_PASSWORD,
   VERIFIED_USER,
@@ -20,6 +20,7 @@ import type {
   CommentWithAuthor,
   NoteWithItems,
   NotificationWithActor,
+  Label,
   Profile,
   Project,
   Task,
@@ -220,6 +221,17 @@ export const getHolidays = cache(async (): Promise<Holiday[]> => {
   return orNothing(result, "holidays") ?? [];
 });
 
+/**
+ * The company's labels, by name. Read once for the signed-in shell, like the
+ * holidays, so a task anywhere can show its labels without asking again.
+ * Empty, quietly, until migration 39 has been run.
+ */
+export const getLabels = cache(async (): Promise<Label[]> => {
+  const supabase = await createClient();
+  const result = await supabase.from("labels").select("*").order("name");
+  return orNothing(result, "labels") ?? [];
+});
+
 /** Live and archived together, newest first, for managing them. */
 export const getAllProjects = cache(async (): Promise<Project[]> => {
   const supabase = await createClient();
@@ -263,12 +275,36 @@ type AssignmentEmbed = { user: Profile | null }[] | null;
  * in the same round trip. Written out seven times, it was seven chances for a
  * list to quietly come back without its avatars.
  */
+const LABELS_EMBED = ", labels:task_labels(label_id)";
+
 const TASK_WITH_ASSIGNEES =
-  "*, assignments:task_assignments(user:profiles(*)), checklist:task_checklist_items(done)";
+  "*, assignments:task_assignments(user:profiles(*)), checklist:task_checklist_items(done)" +
+  LABELS_EMBED;
 
 /** The same, but `!inner` drops tasks nobody is assigned to. */
 const TASK_ASSIGNED_TO_SOMEONE =
-  "*, assignments:task_assignments!inner(user:profiles(*)), checklist:task_checklist_items(done)";
+  "*, assignments:task_assignments!inner(user:profiles(*)), checklist:task_checklist_items(done)" +
+  LABELS_EMBED;
+
+/**
+ * Run a task query with its labels — and once more without them when the
+ * database is a migration behind the code.
+ *
+ * PostgREST refuses the whole query if it is asked to embed a table it has
+ * never heard of, so between this deploying and migration 39 being run every
+ * board would have failed to load. The retry costs a round trip only in that
+ * window; once the table exists the first answer is the answer.
+ */
+async function withLabels<R extends { error: { code?: string; message: string } | null }>(
+  run: (select: string) => PromiseLike<R>,
+  select: string = TASK_WITH_ASSIGNEES,
+): Promise<R> {
+  const result = await run(select);
+  if (result.error && isMissingRelationship(result.error)) {
+    return run(select.replace(LABELS_EMBED, ""));
+  }
+  return result;
+}
 
 /** Rows straight from a `TASK_WITH_ASSIGNEES` select, flattened. */
 function toTasks(data: unknown): TaskWithAssignees[] {
@@ -278,12 +314,17 @@ function toTasks(data: unknown): TaskWithAssignees[] {
 }
 
 function withAssignees<
-  T extends Task & { assignments: AssignmentEmbed; checklist?: { done: boolean }[] },
+  T extends Task & {
+    assignments: AssignmentEmbed;
+    checklist?: { done: boolean }[];
+    labels?: { label_id: string }[] | null;
+  },
 >(row: T): TaskWithAssignees {
-  const { assignments, checklist, ...task } = row;
+  const { assignments, checklist, labels, ...task } = row;
   const steps = checklist ?? [];
   return {
     ...task,
+    labelIds: (labels ?? []).map((label) => label.label_id),
     assignees: (assignments ?? [])
       .map((a) => a.user)
       .filter((p): p is Profile => p !== null),
@@ -303,12 +344,14 @@ function withAssignees<
 export const getProjectTasks = cache(
   async (projectId: string): Promise<TaskWithAssignees[]> => {
     const supabase = await createClient();
-    const result = await supabase
-      .from("tasks")
-      .select(TASK_WITH_ASSIGNEES)
-      .eq("project_id", projectId)
-      .order("position", { ascending: true })
-      .order("created_at", { ascending: false });
+    const result = await withLabels((select) =>
+      supabase
+        .from("tasks")
+        .select(select)
+        .eq("project_id", projectId)
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: false }),
+    );
 
     return toTasks(orFail(result, "this project's tasks"));
   },
@@ -317,11 +360,9 @@ export const getProjectTasks = cache(
 export const getTask = cache(
   async (taskId: string): Promise<TaskWithAssignees | null> => {
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("tasks")
-      .select(TASK_WITH_ASSIGNEES)
-      .eq("id", taskId)
-      .maybeSingle();
+    const { data } = await withLabels((select) =>
+      supabase.from("tasks").select(select).eq("id", taskId).maybeSingle(),
+    );
 
     if (!data) return null;
     return withAssignees(
@@ -397,11 +438,13 @@ export type TaskPage = {
  */
 export const getAllTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   const supabase = await createClient();
-  const result = await supabase
-    .from("tasks")
-    .select(TASK_WITH_ASSIGNEES)
-    .order("created_at", { ascending: false })
-    .limit(TASK_PAGE_SIZE);
+  const result = await withLabels((select) =>
+    supabase
+      .from("tasks")
+      .select(select)
+      .order("created_at", { ascending: false })
+      .limit(TASK_PAGE_SIZE),
+  );
 
   return toTasks(orFail(result, "tasks"));
 });
@@ -420,13 +463,15 @@ export const getAllTasks = cache(async (): Promise<TaskWithAssignees[]> => {
 export const getTasksDueBetween = cache(
   async (from: string, to: string): Promise<TaskPage> => {
     const supabase = await createClient();
-    const { data, count, error } = await supabase
-      .from("tasks")
-      .select(TASK_WITH_ASSIGNEES, { count: "exact" })
-      .gte("due_at", from)
-      .lt("due_at", to)
-      .order("due_at", { ascending: true })
-      .limit(TASK_PAGE_SIZE);
+    const { data, count, error } = await withLabels((select) =>
+      supabase
+        .from("tasks")
+        .select(select, { count: "exact" })
+        .gte("due_at", from)
+        .lt("due_at", to)
+        .order("due_at", { ascending: true })
+        .limit(TASK_PAGE_SIZE),
+    );
 
     if (error) orFail({ data, error }, "tasks");
 
@@ -463,12 +508,14 @@ export const countUndatedTasks = cache(async (): Promise<number> => {
  */
 export const getOpenTasks = cache(async (): Promise<TaskPage> => {
   const supabase = await createClient();
-  const { data, count, error } = await supabase
-    .from("tasks")
-    .select(TASK_WITH_ASSIGNEES, { count: "exact" })
-    .neq("status", "done")
-    .order("due_at", { ascending: true, nullsFirst: false })
-    .limit(TASK_PAGE_SIZE);
+  const { data, count, error } = await withLabels((select) =>
+    supabase
+      .from("tasks")
+      .select(select, { count: "exact" })
+      .neq("status", "done")
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(TASK_PAGE_SIZE),
+  );
 
   if (error) orFail({ data, error }, "tasks");
 
@@ -496,39 +543,39 @@ export const getOpenTasks = cache(async (): Promise<TaskPage> => {
 export const getTasksForFilter = cache(
   async (filter: TaskFilter, timeZone: string): Promise<TaskPage> => {
     const supabase = await createClient();
-    let query = supabase
-      .from("tasks")
-      .select(TASK_WITH_ASSIGNEES, { count: "exact" });
-
     const now = new Date().toISOString();
 
-    switch (filter) {
-      case "todo":
-      case "in_progress":
-      case "in_review":
-      case "done":
-        query = query.eq("status", filter);
-        break;
-      case "pending":
-        query = query.neq("status", "done");
-        break;
-      case "due_today": {
-        const { start, end } = dayBoundsIn(new Date(), timeZone);
-        query = query.neq("status", "done").gte("due_at", start).lt("due_at", end);
-        break;
-      }
-      case "overdue":
-        query = query.neq("status", "done").lt("due_at", now);
-        break;
-      case "all":
-      default:
-        break;
-    }
+    const { data, count, error } = await withLabels((select) => {
+      let query = supabase.from("tasks").select(select, { count: "exact" });
 
-    // Soonest first, undated last: the same order the list has always shown.
-    const { data, count, error } = await query
-      .order("due_at", { ascending: true, nullsFirst: false })
-      .limit(TASK_PAGE_SIZE);
+      switch (filter) {
+        case "todo":
+        case "in_progress":
+        case "in_review":
+        case "done":
+          query = query.eq("status", filter);
+          break;
+        case "pending":
+          query = query.neq("status", "done");
+          break;
+        case "due_today": {
+          const { start, end } = dayBoundsIn(new Date(), timeZone);
+          query = query.neq("status", "done").gte("due_at", start).lt("due_at", end);
+          break;
+        }
+        case "overdue":
+          query = query.neq("status", "done").lt("due_at", now);
+          break;
+        case "all":
+        default:
+          break;
+      }
+
+      // Soonest first, undated last: the same order the list has always shown.
+      return query
+        .order("due_at", { ascending: true, nullsFirst: false })
+        .limit(TASK_PAGE_SIZE);
+    });
 
     if (error) orFail({ data, error }, "tasks");
 
@@ -544,12 +591,14 @@ export const getTasksForFilter = cache(
 /** Tasks belonging to no project — the General Tasks list. */
 export const getGeneralTasks = cache(async (): Promise<TaskWithAssignees[]> => {
   const supabase = await createClient();
-  const result = await supabase
-    .from("tasks")
-    .select(TASK_WITH_ASSIGNEES)
-    .is("project_id", null)
-    .order("position", { ascending: true })
-    .order("created_at", { ascending: false });
+  const result = await withLabels((select) =>
+    supabase
+      .from("tasks")
+      .select(select)
+      .is("project_id", null)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: false }),
+  );
 
   return toTasks(orFail(result, "general tasks"));
 });
@@ -686,16 +735,17 @@ export const getFollowUps = cache(
     opts: { generalOnly?: boolean } = {},
   ): Promise<TaskWithAssignees[]> => {
     const supabase = await createClient();
-    let query = supabase
-      .from("tasks")
-      .select(TASK_WITH_ASSIGNEES)
-      .not("follow_up_at", "is", null)
-      .neq("status", "done")
-      .order("follow_up_at", { ascending: true });
+    const result = await withLabels((select) => {
+      const query = supabase
+        .from("tasks")
+        .select(select)
+        .not("follow_up_at", "is", null)
+        .neq("status", "done")
+        .order("follow_up_at", { ascending: true });
+      return opts.generalOnly ? query.is("project_id", null) : query;
+    });
 
-    if (opts.generalOnly) query = query.is("project_id", null);
-
-    return toTasks(orFail(await query, "follow-ups"));
+    return toTasks(orFail(result, "follow-ups"));
   },
 );
 
@@ -1107,13 +1157,17 @@ export const getMyOpenTasks = cache(
     const [supabase, userId] = await Promise.all([createClient(), getUserId()]);
     if (!userId) return [];
 
-    const result = await supabase
-      .from("tasks")
-      .select(TASK_ASSIGNED_TO_SOMEONE)
-      .eq("assignments.user_id", userId)
-      .neq("status", "done")
-      .order("due_at", { ascending: true, nullsFirst: false })
-      .limit(limit);
+    const result = await withLabels(
+      (select) =>
+        supabase
+          .from("tasks")
+          .select(select)
+          .eq("assignments.user_id", userId)
+          .neq("status", "done")
+          .order("due_at", { ascending: true, nullsFirst: false })
+          .limit(limit),
+      TASK_ASSIGNED_TO_SOMEONE,
+    );
 
     return toTasks(orFail(result, "your tasks"));
   },
@@ -1137,16 +1191,18 @@ export const getDoneToday = cache(
     const supabase = await createClient();
     const { start, end } = dayBoundsIn(new Date(), timeZone);
 
-    const result = await supabase
-      .from("tasks")
-      .select(TASK_WITH_ASSIGNEES)
-      .eq("status", "done")
-      // When it was last touched is the closest thing to when it was closed;
-      // the status change is the touch.
-      .gte("updated_at", start)
-      .lt("updated_at", end)
-      .order("updated_at", { ascending: false })
-      .limit(TASK_PAGE_SIZE);
+    const result = await withLabels((select) =>
+      supabase
+        .from("tasks")
+        .select(select)
+        .eq("status", "done")
+        // When it was last touched is the closest thing to when it was
+        // closed; the status change is the touch.
+        .gte("updated_at", start)
+        .lt("updated_at", end)
+        .order("updated_at", { ascending: false })
+        .limit(TASK_PAGE_SIZE),
+    );
 
     return toTasks(orFail(result, "today's finished work"));
   },
@@ -1156,13 +1212,15 @@ export const getDoneToday = cache(
 export const getOverdueTasks = cache(
   async (limit = 6): Promise<TaskWithAssignees[]> => {
     const supabase = await createClient();
-    const result = await supabase
-      .from("tasks")
-      .select(TASK_WITH_ASSIGNEES)
-      .neq("status", "done")
-      .lt("due_at", new Date().toISOString())
-      .order("due_at", { ascending: true })
-      .limit(limit);
+    const result = await withLabels((select) =>
+      supabase
+        .from("tasks")
+        .select(select)
+        .neq("status", "done")
+        .lt("due_at", new Date().toISOString())
+        .order("due_at", { ascending: true })
+        .limit(limit),
+    );
 
     return toTasks(orFail(result, "overdue tasks"));
   },

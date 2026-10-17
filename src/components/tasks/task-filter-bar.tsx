@@ -15,6 +15,7 @@ import {
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/client";
 import { filtersActive, type TaskListFilters } from "@/lib/task-filters";
+import { LabelFilter } from "@/components/labels/label-filter";
 import type {
   Profile,
   TaskPriority,
@@ -22,7 +23,8 @@ import type {
 } from "@/lib/supabase/database.types";
 
 /**
- * The row of controls above a task list: search, status, priority, assignee.
+ * The row of controls above a task list: search, status, priority, assignee,
+ * and — once there are any — label.
  *
  * One component for every list. The project board and the general list each
  * had their own copy, which is how one of them ended up with a Clear button
@@ -139,6 +141,8 @@ export function TaskFilterBar({
             ))}
           </SelectContent>
         </Select>
+
+        <LabelFilter value={filters.label} onChange={(label) => onChange({ label })} />
 
         {active && (
           <Button variant="ghost" size="sm" onClick={onClear}>

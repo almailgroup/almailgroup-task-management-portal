@@ -7,6 +7,7 @@ import { Download, FolderOpen, ListFilter, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LabelFilter } from "@/components/labels/label-filter";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TaskSortMenu } from "@/components/tasks/task-sort-menu";
@@ -78,6 +79,15 @@ export function TaskBrowser({
   // Keeps the box in step when a search arrives from the palette while this
   // page is already open — the component is reused, not remounted.
   const urlQuery = params.get("q") ?? "";
+  // In the address, so a narrowed list can be sent to somebody; carried
+  // across the filter chips, which are links.
+  const label = params.get("label") ?? "all";
+  const setLabel = (next: string) => {
+    const nextParams = new URLSearchParams(params.toString());
+    if (next === "all") nextParams.delete("label");
+    else nextParams.set("label", next);
+    router.replace(`/tasks?${nextParams.toString()}`, { scroll: false });
+  };
   React.useEffect(() => {
     if (urlQuery) setQuery(urlQuery);
   }, [urlQuery]);
@@ -106,11 +116,12 @@ export function TaskBrowser({
 
   const visible = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return tasks;
-    return tasks.filter((task) =>
-      `${task.title} ${task.description ?? ""}`.toLowerCase().includes(needle),
+    return tasks.filter(
+      (task) =>
+        (label === "all" || task.labelIds.includes(label)) &&
+        (!needle || `${task.title} ${task.description ?? ""}`.toLowerCase().includes(needle)),
     );
-  }, [tasks, query]);
+  }, [tasks, query, label]);
 
   return (
     <PageShell>
@@ -127,7 +138,7 @@ export function TaskBrowser({
           return (
             <Link
               key={entry.value}
-              href={`/tasks?filter=${entry.value}`}
+              href={`/tasks?filter=${entry.value}${label === "all" ? "" : `&label=${label}`}`}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all duration-150",
@@ -162,6 +173,13 @@ export function TaskBrowser({
             aria-label={t("browser.searchTasks")}
           />
         </div>
+        {/* A line of its own on a phone, after the count and Sort, which
+            share the search box's row there; beside the search on wider screens. */}
+        <LabelFilter
+          value={label}
+          onChange={setLabel}
+          className="order-last w-full sm:order-none sm:w-[9rem]"
+        />
         <span className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
           {/* The total is the database's, not this page's. A list that
               carries 500 of 900 should say 900 — the old line said 500,

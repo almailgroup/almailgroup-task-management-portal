@@ -13,6 +13,7 @@ import {
 import { compactAge, formatElapsed } from "@/lib/dates";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
+import { LabelPills } from "@/components/labels/label-pills";
 import { useI18n } from "@/lib/i18n/client";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
@@ -116,6 +117,8 @@ export const TaskCard = React.forwardRef<
       >
         <p className="text-[0.9375rem] font-medium leading-snug">{task.title}</p>
       </button>
+      {/* Outside the button, so its name stays the task's title. */}
+      <LabelPills ids={task.labelIds} className="mt-1.5" />
 
       {/* One row, wrapping only when it has to. The status control used to be
           given a line of its own below this one — forty-odd pixels a card, on

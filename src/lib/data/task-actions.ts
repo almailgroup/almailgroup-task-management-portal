@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
+import { isMissingTable } from "@/lib/supabase/missing";
 import { dispatchForTask } from "@/lib/reminders/dispatch";
 import {
   describeDatabaseError,
@@ -39,6 +41,20 @@ function parseTaskForm(formData: FormData) {
       formData.get("repeatEvery") === "none" ? "" : (formData.get("repeatEvery") ?? undefined),
     repeatInterval: formData.get("repeatInterval") ?? 1,
   });
+}
+
+/**
+ * The labels the form asked for, or null when it did not carry the field.
+ *
+ * Null is not "none": a form without the field — a member's, which has no
+ * label picker — must leave the task's labels alone rather than clear them.
+ */
+function labelsFromForm(formData: FormData): string[] | null {
+  if (!formData.has("labelsField")) return null;
+  return formData
+    .getAll("labelIds")
+    .map(String)
+    .filter((id) => z.string().uuid().safeParse(id).success);
 }
 
 /**
@@ -136,6 +152,15 @@ export async function createTask(
     notifyAssignees(data.id);
   }
 
+  const labelIds = labelsFromForm(formData);
+  if (labelIds && labelIds.length > 0) {
+    const labelError = await syncLabels(supabase, data.id, labelIds);
+    if (labelError) {
+      revalidateTaskViews(projectId);
+      return fail(labelError);
+    }
+  }
+
   revalidateTaskViews(projectId);
   return ok({ id: data.id });
 }
@@ -174,8 +199,54 @@ export async function updateTask(
   const syncError = await syncAssignees(supabase, taskId, parsed.data.assigneeIds);
   if (syncError) return fail(syncError);
 
+  const labelIds = labelsFromForm(formData);
+  if (labelIds) {
+    const labelError = await syncLabels(supabase, taskId, labelIds);
+    if (labelError) return fail(labelError);
+  }
+
   revalidateTaskViews(projectId);
   return ok({ id: taskId });
+}
+
+/**
+ * Reconcile a task's labels against the desired set, writing only the
+ * difference. Before migration 39 there is no table, and nothing to do.
+ */
+async function syncLabels(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  taskId: string,
+  desired: string[],
+): Promise<string | null> {
+  const { data: existingRows, error: readError } = await supabase
+    .from("task_labels")
+    .select("label_id")
+    .eq("task_id", taskId);
+
+  if (readError) return isMissingTable(readError) ? null : describeDatabaseError(readError);
+
+  const existing = new Set((existingRows ?? []).map((row) => row.label_id));
+  const wanted = new Set(desired);
+  const toAdd = [...wanted].filter((id) => !existing.has(id));
+  const toRemove = [...existing].filter((id) => !wanted.has(id));
+
+  if (toAdd.length > 0) {
+    const { error } = await supabase
+      .from("task_labels")
+      .insert(toAdd.map((labelId) => ({ task_id: taskId, label_id: labelId })));
+    if (error) return describeDatabaseError(error);
+  }
+
+  if (toRemove.length > 0) {
+    const { error } = await supabase
+      .from("task_labels")
+      .delete()
+      .eq("task_id", taskId)
+      .in("label_id", toRemove);
+    if (error) return describeDatabaseError(error);
+  }
+
+  return null;
 }
 
 /**

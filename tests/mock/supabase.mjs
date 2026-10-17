@@ -74,6 +74,8 @@ const FK = {
   push_subscriptions: { user_id: "profiles" },
   notification_preferences: { user_id: "profiles" },
   project_status_updates: { project_id: "projects", author_id: "profiles" },
+  labels: { created_by: "profiles" },
+  task_labels: { task_id: "tasks", label_id: "labels" },
 };
 
 // ---------------------------------------------------------------------------

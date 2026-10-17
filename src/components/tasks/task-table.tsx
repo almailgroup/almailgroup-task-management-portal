@@ -28,6 +28,7 @@ import {
   type TaskSortKey,
 } from "@/lib/task-filters";
 import { cn } from "@/lib/utils";
+import { LabelPills } from "@/components/labels/label-pills";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
 /**
@@ -254,6 +255,7 @@ export function TaskTable({
                   >
                     {task.title}
                   </button>
+                  <LabelPills ids={task.labelIds} className="mt-1" />
                 </td>
                 {projectName && (
                   <td className="px-4 py-3.5 text-muted-foreground">
@@ -335,6 +337,7 @@ export function TaskTable({
                         {projectName(task.project_id)}
                       </p>
                     )}
+                    <LabelPills ids={task.labelIds} className="mt-1.5" />
                   </div>
                   {task.assignees.length > 0 && (
                     <span className="shrink-0 pt-0.5">

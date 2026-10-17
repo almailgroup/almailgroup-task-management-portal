@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { TimeZoneCookie } from "@/components/layout/timezone-cookie";
 import { HolidaysProvider } from "@/components/work-calendar/holidays-provider";
+import { LabelsProvider } from "@/components/labels/labels-provider";
 import {
   SIDEBAR_DEFAULT,
   SIDEBAR_MAX,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/sidebar";
 import {
   getHolidays,
+  getLabels,
   getNotifications,
   getProjects,
   getUnreadDirectCount,
@@ -41,6 +43,7 @@ export default async function AppLayout({
     unreadCount,
     unreadMessages,
     holidays,
+    labels,
   ] = await Promise.all([
     needsOwnPassword(),
     requireProfile(),
@@ -49,6 +52,7 @@ export default async function AppLayout({
     getUnreadNotificationCount(),
     getUnreadDirectCount(),
     getHolidays(),
+    getLabels(),
   ]);
 
   // Nobody works out of an account whose password was handed to them. The
@@ -69,17 +73,20 @@ export default async function AppLayout({
       />
       <TimeZoneCookie />
 
-      {/* Holidays reach every date shortcut and the calendar from here. */}
+      {/* Holidays reach every date shortcut and the calendar from here, and
+          labels every task. */}
       <HolidaysProvider holidays={holidays}>
-        <AppShell
-          profile={profile}
-          projects={projects}
-          notifications={notifications}
-          unreadCount={unreadCount}
-          unreadMessages={unreadMessages}
-        >
-          {children}
-        </AppShell>
+        <LabelsProvider labels={labels}>
+          <AppShell
+            profile={profile}
+            projects={projects}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            unreadMessages={unreadMessages}
+          >
+            {children}
+          </AppShell>
+        </LabelsProvider>
       </HolidaysProvider>
     </>
   );

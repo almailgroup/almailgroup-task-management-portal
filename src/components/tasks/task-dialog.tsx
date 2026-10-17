@@ -27,6 +27,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
+import { LabelPicker } from "@/components/labels/label-picker";
+import { LabelPills } from "@/components/labels/label-pills";
 import { TaskProvenance } from "@/components/tasks/task-meta";
 import { isoFromLocalInput, quickDateOptions, toLocalInput } from "@/lib/dates";
 import { AttachmentPanel } from "@/components/tasks/attachment-panel";
@@ -102,6 +104,7 @@ export function TaskDialog({
     id: string;
   }> | null>(null);
   const [assigneeIds, setAssigneeIds] = React.useState<string[]>([]);
+  const [labelIds, setLabelIds] = React.useState<string[]>([]);
 
   // The date field is uncontrolled — its own picker manages it — so a preset
   // writes straight into it, in the viewer's own wall-clock time.
@@ -115,6 +118,7 @@ export function TaskDialog({
     if (!open) return;
     setResult(null);
     setAssigneeIds(task?.assignees.map((person) => person.id) ?? []);
+    setLabelIds(task?.labelIds ?? []);
     setRepeatEvery(task?.repeat_every ?? "none");
   }, [open, task]);
 
@@ -413,6 +417,15 @@ export function TaskDialog({
               />
             </div>
 
+            {/* Planning, like the assignees: a member creating a task does
+                not label it, and the database would refuse if they tried. */}
+            {canEditDetails && (
+              <div className="flex flex-col gap-1.5">
+                <Label className="ps-4">{t("label.title")}</Label>
+                <LabelPicker value={labelIds} onChange={setLabelIds} />
+              </div>
+            )}
+
             {/* Pinned to the foot of the dialog while the fields are on
                 screen. The form is tall enough on a phone that Save sat some
                 seven hundred pixels down, and the way you found it was to
@@ -450,12 +463,15 @@ export function TaskDialog({
             </div>
           </form>
         ) : (
-          <TaskDetailReadonly
-            task={task}
-            projectId={projectId}
-            canComplete={canComplete}
-            onSaved={() => onOpenChange(false)}
-          />
+          <>
+            <LabelPills ids={task.labelIds} max={8} />
+            <TaskDetailReadonly
+              task={task}
+              projectId={projectId}
+              canComplete={canComplete}
+              onSaved={() => onOpenChange(false)}
+            />
+          </>
         )}
 
         {task && (

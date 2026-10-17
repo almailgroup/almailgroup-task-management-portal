@@ -26,13 +26,14 @@ const task = (over: Partial<TaskWithAssignees>): TaskWithAssignees =>
     project_id: null,
     due_at: null,
     assignees: [],
+    labelIds: [],
     ...over,
   }) as TaskWithAssignees;
 
 describe("matchesFilters", () => {
   const sara = person("sara");
   const rows = [
-    task({ title: "Book the van", status: "todo", priority: "high", assignees: [sara] }),
+    task({ title: "Book the van", status: "todo", priority: "high", assignees: [sara], labelIds: ["bank"] }),
     task({ title: "Print manifest", status: "done", priority: "low", description: "for customs" }),
   ];
 
@@ -52,6 +53,12 @@ describe("matchesFilters", () => {
     expect(hers.map((t) => t.title)).toEqual(["Book the van"]);
   });
 
+  it("narrows to a label", () => {
+    const hits = rows.filter((t) => matchesFilters(t, { ...EMPTY_FILTERS, label: "bank" }));
+    expect(hits.map((t) => t.title)).toEqual(["Book the van"]);
+    expect(filtersActive({ ...EMPTY_FILTERS, label: "bank" })).toBe(true);
+  });
+
   it("knows when nothing is applied", () => {
     expect(filtersActive(EMPTY_FILTERS)).toBe(false);
     expect(filtersActive({ ...EMPTY_FILTERS, query: "  " })).toBe(false);
@@ -61,9 +68,15 @@ describe("matchesFilters", () => {
 
 describe("filters in the URL", () => {
   it("round-trips, and leaves defaults out of the address", () => {
-    const filters = { query: "van", status: "todo" as const, priority: "all" as const, assignee: "sara" };
+    const filters = {
+      query: "van",
+      status: "todo" as const,
+      priority: "all" as const,
+      assignee: "sara",
+      label: "bank",
+    };
     const params = writeFiltersToParams(filters, new URLSearchParams("new=1"));
-    expect(params.toString()).toBe("new=1&q=van&status=todo&assignee=sara");
+    expect(params.toString()).toBe("new=1&q=van&status=todo&assignee=sara&label=bank");
     expect(readFiltersFromParams(params)).toEqual(filters);
   });
 

@@ -9,8 +9,8 @@ import type { Task, TaskWithAssignees } from "@/lib/supabase/database.types";
 /**
  * A task row from Postgres, folded onto the one already on screen.
  *
- * Realtime sends the table's own columns and nothing else: no assignees, and
- * — since checklists arrived — no step count either. Both are joined in by
+ * Realtime sends the table's own columns and nothing else: no assignees,
+ * and — since checklists and labels arrived — no step count or labels either. Both are joined in by
  * the server query, so a merge that takes the row wholesale drops them. The
  * assignees were carried across from the first day; the checklist was not,
  * and `undefined` reaching ChecklistProgressBadge is a thrown TypeError and
@@ -26,6 +26,7 @@ export function mergeTaskUpdate(
     ...row,
     assignees: previous.assignees,
     checklist: previous.checklist,
+    labelIds: previous.labelIds,
   };
 }
 

@@ -83,6 +83,8 @@ export type TaskListFilters = {
   priority: TaskPriority | "all";
   /** `all`, `unassigned`, or a profile id. */
   assignee: string;
+  /** `all`, or a label id. */
+  label: string;
 };
 
 export const EMPTY_FILTERS: TaskListFilters = {
@@ -90,6 +92,7 @@ export const EMPTY_FILTERS: TaskListFilters = {
   status: "all",
   priority: "all",
   assignee: "all",
+  label: "all",
 };
 
 export function filtersActive(filters: TaskListFilters): boolean {
@@ -97,7 +100,8 @@ export function filtersActive(filters: TaskListFilters): boolean {
     filters.query.trim() !== "" ||
     filters.status !== "all" ||
     filters.priority !== "all" ||
-    filters.assignee !== "all"
+    filters.assignee !== "all" ||
+    filters.label !== "all"
   );
 }
 
@@ -117,6 +121,8 @@ export function matchesFilters(
       return false;
     }
   }
+
+  if (filters.label !== "all" && !task.labelIds.includes(filters.label)) return false;
 
   const needle = filters.query.trim().toLowerCase();
   if (needle) {
@@ -144,6 +150,7 @@ export function writeFiltersToParams(
   set("status", filters.status, "all");
   set("priority", filters.priority, "all");
   set("assignee", filters.assignee, "all");
+  set("label", filters.label, "all");
   return next;
 }
 
@@ -152,6 +159,7 @@ export function readFiltersFromParams(params: URLSearchParams): TaskListFilters 
   const status = params.get("status");
   const priority = params.get("priority");
   const assignee = params.get("assignee");
+  const label = params.get("label");
 
   return {
     query: params.get("q") ?? "",
@@ -160,6 +168,8 @@ export function readFiltersFromParams(params: URLSearchParams): TaskListFilters 
     // A profile id is any non-empty value; an id that no longer matches
     // anyone simply matches no tasks, which the bar shows as such.
     assignee: assignee && assignee.trim() ? assignee : "all",
+    // Likewise a label that has since been removed matches nothing.
+    label: label && label.trim() ? label : "all",
   };
 }
 

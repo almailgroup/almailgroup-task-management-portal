@@ -26,3 +26,12 @@ export function isMissingFunction(error: { code?: string; message?: string } | n
     /could not find the function|function .* does not exist/i.test(error.message ?? "")
   );
 }
+
+/**
+ * True when a query embedded a table PostgREST does not know is related —
+ * which, for a table a migration adds, means the migration has not been run.
+ */
+export function isMissingRelationship(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "PGRST200" || /could not find a relationship/i.test(error.message ?? "");
+}

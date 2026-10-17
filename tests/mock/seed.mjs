@@ -246,6 +246,18 @@ export function seed() {
     push_subscriptions: [],
     web_push_keys: [],
     company_holidays: [],
+    // Two labels, one of them on the bank meeting.
+    labels: [
+      { id: "99999999-9999-4999-8999-000000000001", name: "Bank", colour: "blue", created_by: IDS.admin, created_at: "2026-09-01T00:00:00Z" },
+      { id: "99999999-9999-4999-8999-000000000002", name: "Ministry", colour: "green", created_by: IDS.admin, created_at: "2026-09-01T00:00:00Z" },
+    ],
+    task_labels: [
+      {
+        task_id: tasks.find((task) => task.title === "Meet with Kuwait banks").id,
+        label_id: "99999999-9999-4999-8999-000000000001",
+        created_at: "2026-09-01T00:00:00Z",
+      },
+    ],
     // Huda signs in with an authenticator app; nobody else has one yet.
     mfa_factors: [
       {

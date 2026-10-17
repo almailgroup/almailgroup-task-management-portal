@@ -655,6 +655,59 @@ export type Database = {
           },
         ];
       };
+      labels: {
+        Row: {
+          id: string;
+          name: string;
+          colour: LabelColour;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          colour?: LabelColour;
+          created_by?: string | null;
+        };
+        Update: {
+          name?: string;
+          colour?: LabelColour;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "labels_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_labels: {
+        Row: {
+          task_id: string;
+          label_id: string;
+          created_at: string;
+        };
+        Insert: {
+          task_id: string;
+          label_id: string;
+        };
+        Update: Record<never, never>;
+        Relationships: [
+          {
+            foreignKeyName: "task_labels_task_id_fkey";
+            columns: ["task_id"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_labels_label_id_fkey";
+            columns: ["label_id"];
+            referencedRelation: "labels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       push_subscriptions: {
         Row: {
           id: string;
@@ -1102,6 +1155,9 @@ export type Database = {
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type CompanyHoliday = Database["public"]["Tables"]["company_holidays"]["Row"];
+/** The dot beside a label's name. No amber: that means late, and only that. */
+export type LabelColour = "slate" | "blue" | "green" | "violet" | "pink" | "teal";
+export type Label = Database["public"]["Tables"]["labels"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 export type TaskAssignment =
   Database["public"]["Tables"]["task_assignments"]["Row"];
@@ -1222,6 +1278,8 @@ export type NotificationWithActor = Notification & { actor: Profile | null };
 /** A task joined with the profiles assigned to it. */
 export type TaskWithAssignees = Task & {
   assignees: Profile[];
+  /** The labels on it, by id; names and colours come from LabelsProvider. */
+  labelIds: string[];
   /**
    * How far along its steps are.
    *
