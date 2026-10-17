@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Arabic } from "next/font/google";
+import localFont from "next/font/local";
 
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeColorSync } from "@/components/theme/theme-color-sync";
@@ -12,25 +12,44 @@ import { OfflineBar } from "@/components/offline/offline-bar";
 import { ServiceWorkerRegistrar } from "@/components/offline/service-worker";
 import "./globals.css";
 
-const geistSans = Geist({
+/*
+ * The fonts are files in this repository (./fonts, with their licence)
+ * rather than fetched from Google Fonts at build time. Fetching them made
+ * every build — CI's and Vercel's — depend on Google answering in the shape
+ * Next expects; when it did not, the build failed with "An error occurred in
+ * next/font" and nothing to do but wait. They were self-hosted at run time
+ * either way, so visitors see no difference.
+ */
+const geistSans = localFont({
+  src: "./fonts/geist-latin.woff2",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: "100 900",
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/geist-mono-latin.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
   display: "swap",
 });
 
 // Geist has no Arabic glyphs. Loaded for every page so switching language
-// never waits on a font, and only used when the document is Arabic.
-const notoArabic = Noto_Sans_Arabic({
+// never waits on a font, and only used when the document is Arabic. Limited
+// to Arabic characters, as Google's own stylesheet does, so digits and Latin
+// text inside Arabic still come from Geist.
+const notoArabic = localFont({
+  src: "./fonts/noto-sans-arabic.woff2",
   variable: "--font-arabic",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
   display: "swap",
+  declarations: [
+    {
+      prop: "unicode-range",
+      value:
+        "U+0600-06FF, U+0750-077F, U+0870-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC7, U+10EC9-10EEE, U+10EF0-10EFF, U+1EE00-1EEFF",
+    },
+  ],
 });
 
 export const metadata: Metadata = {
