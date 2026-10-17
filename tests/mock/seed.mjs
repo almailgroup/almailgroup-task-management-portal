@@ -241,6 +241,7 @@ export function seed() {
     ],
     push_subscriptions: [],
     web_push_keys: [],
+    company_holidays: [],
     // One undeliverable reminder, to somebody who is not the admin: enough
     // for a spec to check that an admin sees the team's and a member sees
     // neither theirs nor anybody else's.

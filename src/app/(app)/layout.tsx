@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { TimeZoneCookie } from "@/components/layout/timezone-cookie";
+import { HolidaysProvider } from "@/components/work-calendar/holidays-provider";
 import {
   SIDEBAR_DEFAULT,
   SIDEBAR_MAX,
@@ -9,6 +10,7 @@ import {
   SIDEBAR_STORAGE_KEY,
 } from "@/lib/sidebar";
 import {
+  getHolidays,
   getNotifications,
   getProjects,
   getUnreadDirectCount,
@@ -26,7 +28,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // All five together, not the password check and then the rest. Only the
+  // All of these together, not the password check and then the rest. Only the
   // profile actually depends on knowing who is asking; the other three are
   // scoped by row-level security and could always have been on their way
   // while the question was being answered. Awaiting the check on its own put
@@ -38,6 +40,7 @@ export default async function AppLayout({
     notifications,
     unreadCount,
     unreadMessages,
+    holidays,
   ] = await Promise.all([
     needsOwnPassword(),
     requireProfile(),
@@ -45,6 +48,7 @@ export default async function AppLayout({
     getNotifications(),
     getUnreadNotificationCount(),
     getUnreadDirectCount(),
+    getHolidays(),
   ]);
 
   // Nobody works out of an account whose password was handed to them. The
@@ -65,15 +69,18 @@ export default async function AppLayout({
       />
       <TimeZoneCookie />
 
-      <AppShell
-        profile={profile}
-        projects={projects}
-        notifications={notifications}
-        unreadCount={unreadCount}
-        unreadMessages={unreadMessages}
-      >
-        {children}
-      </AppShell>
+      {/* Holidays reach every date shortcut and the calendar from here. */}
+      <HolidaysProvider holidays={holidays}>
+        <AppShell
+          profile={profile}
+          projects={projects}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          unreadMessages={unreadMessages}
+        >
+          {children}
+        </AppShell>
+      </HolidaysProvider>
     </>
   );
 }

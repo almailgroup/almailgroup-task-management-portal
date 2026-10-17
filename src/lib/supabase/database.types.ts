@@ -628,6 +628,30 @@ export type Database = {
         ];
       };
       /** One row per device that has agreed to notifications. */
+      company_holidays: {
+        Row: {
+          day: string;
+          name: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          day: string;
+          name: string;
+          created_by?: string | null;
+        };
+        Update: {
+          name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "company_holidays_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       push_subscriptions: {
         Row: {
           id: string;
@@ -1072,6 +1096,7 @@ export type Database = {
 /** Convenience row aliases used throughout the app. */
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
+export type CompanyHoliday = Database["public"]["Tables"]["company_holidays"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 export type TaskAssignment =
   Database["public"]["Tables"]["task_assignments"]["Row"];

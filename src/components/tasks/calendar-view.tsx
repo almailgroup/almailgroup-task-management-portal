@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageShell } from "@/components/layout/page-shell";
 import { TaskDialog } from "@/components/tasks/task-dialog";
+import { useHolidayNames } from "@/components/work-calendar/holidays-provider";
 import { tasksForMonth } from "@/lib/data/calendar-actions";
 import {
   AssigneeStack,
@@ -37,7 +38,7 @@ import {
   todayIn,
   weekdayLabels,
 } from "@/lib/calendar";
-import { isWeekend } from "@/lib/work-week";
+import { isoDay, isWeekend } from "@/lib/work-week";
 import { useI18n } from "@/lib/i18n/client";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,7 @@ export function CalendarView({
   const nowMs = useNow();
   const { t, tn, tag, timeZone } = useI18n();
   const weekdays = React.useMemo(() => weekdayLabels(tag, "short"), [tag]);
+  const holidays = useHolidayNames();
 
   const [month, setMonth] = React.useState<Date>(
     () => parseMonthParam(initialMonth) ?? startOfMonth(todayIn(timeZone)),
@@ -219,6 +221,7 @@ export function CalendarView({
   );
 
   const selectedTasks = selectedDay ? (byDay.get(dayKey(selectedDay)) ?? []) : [];
+  const selectedHoliday = selectedDay ? holidays.get(isoDay(selectedDay)) : undefined;
 
   function openTask(task: TaskWithAssignees) {
     setDayOpen(false);
@@ -313,8 +316,10 @@ export function CalendarView({
             const list = byDay.get(key) ?? [];
             const isToday = today !== null && isSameDay(day, today);
             const selected = dayOpen && selectedDay !== null && isSameDay(day, selectedDay);
-            // Friday and Saturday, the company's weekend (lib/work-week).
-            const weekend = isWeekend(day);
+            // Friday and Saturday, the company's weekend (lib/work-week), and
+            // the holidays an admin keeps in Settings: both are days off.
+            const holiday = holidays.get(isoDay(day));
+            const dayOff = isWeekend(day) || holiday !== undefined;
             const late = list.filter((task) => isOverdue(task.due_at, task.status)).length;
 
             return (
@@ -326,7 +331,7 @@ export function CalendarView({
                   "relative flex min-h-[4.25rem] flex-col rounded-[1rem] bg-foreground/[0.035] p-1 transition-colors sm:min-h-[6.5rem] sm:rounded-[1.25rem] sm:p-2",
                   "hover:bg-foreground/[0.06]",
                   !inMonth(day) && "bg-transparent text-muted-foreground",
-                  weekend && inMonth(day) && "bg-foreground/[0.055]",
+                  dayOff && inMonth(day) && "bg-foreground/[0.055]",
                   isToday && "bg-primary/[0.07]",
                   selected && "bg-primary/[0.12] shadow-[var(--shadow-xs)]",
                 )}
@@ -337,10 +342,15 @@ export function CalendarView({
                 <button
                   type="button"
                   onClick={() => openDay(day)}
-                  aria-label={t("cal.dayLabel", {
-                    date: day.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long" }),
-                    n: list.length,
-                  })}
+                  aria-label={[
+                    t("cal.dayLabel", {
+                      date: day.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long" }),
+                      n: list.length,
+                    }),
+                    holiday && t("cal.holiday", { name: holiday }),
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
                   className="absolute inset-0 rounded-[inherit] transition-colors hover:bg-accent/60"
                 />
 
@@ -354,6 +364,23 @@ export function CalendarView({
                 >
                   {day.getDate()}
                 </span>
+
+                {/* A phone's square has no room for the name: a dot says "not
+                    just a weekend", and tapping the day names it. */}
+                {holiday && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none relative mx-auto size-1.5 rounded-full bg-muted-foreground/60 sm:hidden"
+                  />
+                )}
+                {holiday && (
+                  <span
+                    title={holiday}
+                    className="pointer-events-none relative mb-0.5 hidden truncate px-1 text-center text-[0.6875rem] font-medium text-muted-foreground sm:block"
+                  >
+                    {holiday}
+                  </span>
+                )}
 
                 {list.length > 0 && (
                   <span
@@ -418,6 +445,7 @@ export function CalendarView({
               })}
             </DialogTitle>
             <DialogDescription>
+              {selectedHoliday && <>{t("cal.holiday", { name: selectedHoliday })} · </>}
               {selectedTasks.length === 0
                 ? t("cal.nothingThatDay")
                 : tn("count.tasks", selectedTasks.length)}

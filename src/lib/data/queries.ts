@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/middleware";
 import { dayBoundsIn } from "@/lib/dates";
 import type { TaskFilter } from "@/lib/task-filters";
+import type { Holiday } from "@/components/work-calendar/holidays-provider";
 import type { Metrics, Workload } from "@/lib/metrics";
 import type {
   AppError,
@@ -53,6 +54,40 @@ import type {
  */
 function reportQueryError(where: string, error: { message: string; code?: string }) {
   console.error(`[query:${where}] ${error.code ?? "error"}: ${error.message}`);
+}
+
+/**
+ * True when a read failed because its table is not there yet.
+ *
+ * A change that adds a table reaches Vercel minutes after it is pushed; the
+ * table exists only once its migration has been run in Supabase. In between,
+ * every read of it fails — Postgres says 42P01, PostgREST PGRST205 — and a
+ * peripheral read that failed loudly would put the same line in the log on
+ * every page view, or take the page down, for something that is simply not
+ * switched on yet.
+ */
+export function isMissingTable(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    /does not exist|could not find the table/i.test(error.message ?? "")
+  );
+}
+
+/**
+ * A peripheral read: what it found, or nothing — quietly when the table is
+ * not there yet, reported when anything else went wrong. Never throws.
+ */
+function orNothing<T>(
+  result: { data: T | null; error: { message: string; code?: string } | null },
+  where: string,
+): T | null {
+  if (result.error) {
+    if (!isMissingTable(result.error)) reportQueryError(where, result.error);
+    return null;
+  }
+  return result.data;
 }
 
 /**
@@ -183,6 +218,24 @@ export const getProjects = cache(async (): Promise<Project[]> => {
     .order("created_at", { ascending: false });
 
   return orFail(result, "projects") ?? [];
+});
+
+/**
+ * Company holidays from a month back to a year and a bit ahead — enough for
+ * the date shortcuts and every calendar page anybody is likely to open — for
+ * the signed-in shell to hand to the browser.
+ */
+export const getHolidays = cache(async (): Promise<Holiday[]> => {
+  const supabase = await createClient();
+  const from = new Date(Date.now() - 31 * 86_400_000).toISOString().slice(0, 10);
+  const to = new Date(Date.now() + 400 * 86_400_000).toISOString().slice(0, 10);
+  const result = await supabase
+    .from("company_holidays")
+    .select("day, name")
+    .gte("day", from)
+    .lte("day", to)
+    .order("day");
+  return orNothing(result, "holidays") ?? [];
 });
 
 /** Live and archived together, newest first, for managing them. */

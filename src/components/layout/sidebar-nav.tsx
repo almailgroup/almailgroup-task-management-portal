@@ -12,6 +12,7 @@ import {
   Plus,
   MessagesSquare,
   Send,
+  Settings,
   Sparkles,
   Sunrise,
   Users,
@@ -50,7 +51,8 @@ export function SidebarNav({
   const { t } = useI18n();
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
-  const canCreateProject = profile.role === "admin" || profile.role === "manager";
+  // Admins and managers: they create projects and keep the workspace settings.
+  const canManage = profile.role === "admin" || profile.role === "manager";
 
   // Derived from the route so the layout does not have to thread it down.
   const currentProjectId =
@@ -64,7 +66,7 @@ export function SidebarNav({
         <ProjectSwitcher
           projects={projects}
           activeProject={activeProject}
-          canCreate={canCreateProject}
+          canCreate={canManage}
           onCreate={() => setDialogOpen(true)}
         />
 
@@ -126,6 +128,15 @@ export function SidebarNav({
             badge={unreadMessages}
             onNavigate={onNavigate}
           />
+          {canManage && (
+            <NavLink
+              href="/settings"
+              icon={<Settings />}
+              label={t("nav.settings")}
+              active={pathname === "/settings"}
+              onNavigate={onNavigate}
+            />
+          )}
         </nav>
 
         <div className="flex min-h-0 flex-1 flex-col gap-1">
@@ -133,7 +144,7 @@ export function SidebarNav({
             <span className="text-xs font-medium text-muted-foreground">
               {t("nav.projects")}
             </span>
-            {canCreateProject && (
+            {canManage && (
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -148,7 +159,7 @@ export function SidebarNav({
           <div className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
             {projects.length === 0 ? (
               <p className="px-2 py-1.5 text-sm leading-relaxed text-muted-foreground">
-                {canCreateProject ? t("nav.createFirstProject") : t("nav.noProjects")}
+                {canManage ? t("nav.createFirstProject") : t("nav.noProjects")}
               </p>
             ) : (
               projects.map((project) => (

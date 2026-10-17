@@ -607,6 +607,13 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST") {
       const payload = await readBody(request);
       const incoming = (Array.isArray(payload) ? payload : [payload]).map((row) => defaults(table, row));
+      // An upsert names the columns that decide "the same row"; that row is
+      // replaced, as merge-duplicates would, instead of pushed a second time.
+      const conflict = params.get("on_conflict")?.split(",");
+      if (conflict) {
+        const same = (a, b) => conflict.every((column) => a[column] === b[column]);
+        db[table] = db[table].filter((row) => !incoming.some((next) => same(row, next)));
+      }
       db[table].push(...incoming);
       const shaped = incoming.map((row) => shape(table, row, select));
       return send(wantsOne ? shaped[0] : shaped, 201);
