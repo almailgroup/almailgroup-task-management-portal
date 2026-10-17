@@ -307,6 +307,11 @@ const sameDay = (iso) =>
   iso !== null && iso.slice(0, 10) === NOW.slice(0, 10);
 
 const RPC = {
+  /** public.portal_health: a database with every migration run. */
+  portal_health() {
+    return { database: "ok", time: new Date().toISOString(), schema: 46, missing: [] };
+  },
+
   /**
    * public.work_report, roughly: finishing time is updated_at (the mock keeps
    * no activity log), days are UTC, and "overdue" is against the seeded NOW.

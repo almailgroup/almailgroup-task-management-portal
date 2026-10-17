@@ -114,7 +114,11 @@ export function SwipeCard({
     if (current.sideways === null) {
       if (isSideways(dx, dy)) {
         current.sideways = true;
-        event.currentTarget.setPointerCapture?.(event.pointerId);
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch {
+          // A pointer the browser no longer tracks: follow it without capture.
+        }
         setDir(current.dir);
         setWidth(current.width);
         setDragging(true);

@@ -1803,6 +1803,88 @@ Both are worth one deliberate manual pass after deploying: attach a real file
 to a task and download it again, set a profile picture, and set a due date a
 few minutes out with each reminder channel switched on.
 
+## Keeping it running
+
+### Is it up?
+
+`/api/health` answers without signing in, for an uptime monitor:
+
+```json
+{ "status": "ok", "database": "ok", "schema": 46, "expected": 46, "missing": [], "latencyMs": 38, "commit": "7676a87" }
+```
+
+- **ok** — the database answers and every migration this code needs has been
+  run.
+- **degraded** (still HTTP 200) — the database answers but is behind the code:
+  `schema` is the newest migration run, `expected` what this code wants, and
+  `missing` any older one that was skipped. Vercel deploys the moment a commit
+  lands and the migrations are run by hand afterwards, so this is the commonest
+  way for the portal to be half working. After running migrations, open
+  `/api/health` and check it says `ok`.
+- **down** (HTTP 503) — the database cannot be reached.
+
+It is asked with the public key alone and says nothing about anybody: table
+and function names, a time, the deployed commit (`portal_health()`, migration
+46, checked by `supabase/tests/portal-health.sql`).
+
+Point a free uptime monitor at it — UptimeRobot, Better Stack and the like all
+have a free tier — every five minutes, with a **keyword** check for
+`"status":"ok"` rather than a plain status check, so a database left behind
+the code alerts too. Have it alert by email, or by Telegram where the monitor
+offers it.
+
+Faults inside the app are reported separately, to the admins on Telegram (see
+[Told on Telegram](#told-on-telegram)).
+
+### Backups
+
+**On Supabase's Pro plan** backups are automatic: daily, kept seven days,
+under Database → Backups (point-in-time recovery is an add-on). That is the
+simplest answer, and it covers files too.
+
+**On the free plan there are no backups you can download**, so the repository
+has a weekly one: `.github/workflows/backup.yml`, Sunday 04:30 Kuwait time. It
+dumps the roles, schema and data with Supabase's own CLI, encrypts them with
+a passphrase only you hold, and keeps the result as a workflow artifact for 30
+days. It does nothing until it is set up:
+
+1. In Supabase, open **Connect** and copy the **Session pooler** connection
+   string (GitHub's runners need the pooler; the direct address is IPv6 only).
+   Put your database password into it.
+2. In GitHub, **Settings → Secrets and variables → Actions → New repository
+   secret**: `SUPABASE_DB_URL`, that string.
+3. Make up a long passphrase, save it in your password manager, and add it as
+   a second secret, `BACKUP_PASSPHRASE`. Without it a backup cannot be opened
+   — by anyone, including you — so keep it somewhere that is not this
+   repository, a chat or an email.
+4. **Actions → Weekly backup → Run workflow**, and check it finishes green with
+   an artifact attached.
+
+To open one, download the artifact, then:
+
+```bash
+gpg --decrypt almail-2026-10-18.tar.gz.gpg | tar -xzf -
+# backup/roles.sql, backup/schema.sql, backup/data.sql
+```
+
+**Try a restore once a quarter** — a backup nobody has restored is a hope.
+Create a scratch Supabase project, and with its Session pooler string:
+
+```bash
+psql "$SCRATCH_DB_URL" \
+  --single-transaction --variable ON_ERROR_STOP=1 \
+  --file backup/roles.sql --file backup/schema.sql \
+  --command 'SET session_replication_role = replica' \
+  --file backup/data.sql
+```
+
+Then point a local copy of the app at the scratch project and sign in. Delete
+the scratch project when done.
+
+**Files attached to tasks are not in the database**, so not in these backups;
+they live in Supabase Storage. Download the `task-attachments` and `avatars`
+buckets from the dashboard now and then, or move to Pro.
+
 ## Deploying to Vercel
 
 1. **Apply the migrations** to your Supabase project (see above) — do this

@@ -33,31 +33,38 @@ test("a task moved with no signal is kept, then sent when it returns", async ({ 
   const card = page.locator("[data-swipe-card]").filter({ hasText: title, visible: true }).first();
   await expect(card).toContainText("To Do");
 
-  // The touch channel is opened first: opening one resets the browser's
-  // network emulation, which would quietly put the page back online.
-  const cdp = await context.newCDPSession(page);
   await context.setOffline(true);
   await expect(page.getByText("Offline — moves, ticks and comments are kept")).toBeVisible();
 
-  await card.evaluate((element) => element.scrollIntoView({ block: "center" }));
-  const box = await card.boundingBox();
-  if (!box) throw new Error("no card");
-  const y = box.y + box.height / 2;
-  const x = box.x + box.width / 2;
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-  for (let step = 1; step <= 10; step++) {
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + step * 20, y }] });
-  }
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await cdp.detach();
+  // Pointer events from inside the page, not touches through a DevTools
+  // session: in the headless browser CI uses, opening one quietly undoes
+  // the offline switch, and the move went out before it could be kept.
+  // The real-touch swipe itself is covered in swipe.spec.ts.
+  await card.evaluate((element) => {
+    element.scrollIntoView({ block: "center" });
+    const box = element.getBoundingClientRect();
+    const y = box.top + box.height / 2;
+    const x = box.left + box.width / 2;
+    const fire = (type: string, dx: number) =>
+      element.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: 41,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX: x + dx,
+          clientY: y,
+          bubbles: true,
+        }),
+      );
+    fire("pointerdown", 0);
+    for (let step = 1; step <= 10; step++) fire("pointermove", step * 20);
+    fire("pointerup", 200);
+  });
 
   await expect(page.getByText("Kept on this phone. It will be sent when you are back online.")).toBeVisible();
   await expect(card).toContainText("Done");
   await expect(card).toContainText("Waiting to send");
-  // The bar's count is checked in the comment test below: in the headless
-  // browser CI uses, synthetic touches set navigator.onLine back to true
-  // while the network stays cut. The change stays kept all the same, which
-  // is the point — the app trusts a failed request over that flag.
+  await expect(page.getByText("Offline — 1 change waiting to send")).toBeVisible();
 
   await context.setOffline(false);
   await expect(page.getByText("Sent 1 change made offline")).toBeVisible({ timeout: 15_000 });

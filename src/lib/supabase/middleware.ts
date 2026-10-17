@@ -22,6 +22,9 @@ const PUBLIC_PREFIXES = [
   // secrets — so redirecting them to /login would silently stop reminders.
   "/api/reminders",
   "/api/telegram",
+  // For an uptime monitor, which has no account. It says whether the
+  // database answers and how far the migrations have run, nothing more.
+  "/api/health",
   // The page the service worker shows when there is no connection. It holds
   // nothing private, and gating it would mean the one page meant to work
   // without the network needs the network to check a session.
