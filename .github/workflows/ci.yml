@@ -120,17 +120,12 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build
-        run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-
+      # No Supabase variables here. playwright.config.ts builds the app itself
+      # and points it at tests/mock/supabase.mjs when they are unset; setting
+      # them to a placeholder project sent every signed-in spec there instead,
+      # where each waited out its timeout and failed.
       - name: Playwright
         run: npm run test:e2e
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
 
       - uses: actions/upload-artifact@v4
         if: failure()
