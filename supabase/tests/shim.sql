@@ -3,9 +3,9 @@
 -- migrations — and the policy tests beside this file — can be applied to a
 -- plain PostgreSQL instance in CI.
 --
--- It provides only what the schema references: the auth schema and its users
--- table, auth.uid() (which here reads a setting the tests set to say who they
--- are), the three Supabase roles, the realtime publication, and the two
+-- It provides only what the schema references: the auth schema, its users and
+-- mfa_factors tables, auth.uid() and auth.jwt() (which here read settings the
+-- tests set to say who they are and how they signed in), the Supabase roles, the realtime publication, and the two
 -- storage tables. It is not a Supabase emulator and is not used anywhere but
 -- in tests.
 -- ---------------------------------------------------------------------------
@@ -87,6 +87,25 @@ $$;
 
 create or replace function auth.role() returns text
 language sql stable as $$ select 'authenticated'::text $$;
+
+-- The token's claims, as Supabase exposes them. Tests set request.jwt.claims
+-- to say how the caller signed in: {"aal": "aal2"} after a second step.
+create or replace function auth.jwt() returns jsonb
+language sql stable as $$
+  select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
+$$;
+
+-- Second sign-in steps (authenticator apps). Supabase's status is an enum;
+-- text compares the same way.
+create table if not exists auth.mfa_factors (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users (id) on delete cascade,
+  friendly_name text,
+  factor_type   text not null default 'totp',
+  status        text not null default 'unverified',
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
 
 -- Realtime publication the migrations add tables to.
 do $$ begin

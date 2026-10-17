@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { signedInWithSecondStep } from "@/lib/auth/second-step";
 import { describeAuthError } from "@/lib/auth/errors";
 import {
   describeDatabaseError,
@@ -87,6 +88,12 @@ async function requireAdmin(): Promise<
 
   if (caller?.role !== "admin") {
     return { error: "action.adminOnly" };
+  }
+
+  // The service key can do anything to any account, so whoever is asking it
+  // to must have proved who they are twice over.
+  if (!(await signedInWithSecondStep(supabase))) {
+    return { error: "action.needsTwoStep" };
   }
 
   try {
@@ -219,4 +226,39 @@ export async function resetMemberPassword(
 
   revalidatePath("/team");
   return ok({ email: target.user.email, password });
+}
+/**
+ * Remove a teammate's authenticator app, for somebody who has lost their
+ * phone.
+ *
+ * Without this the only way back in was the Supabase dashboard. Afterwards
+ * their password alone signs them in, until they set up a new app from their
+ * profile. Their own app is turned off from Profile, where it asks for a code.
+ */
+export async function removeMemberTwoStep(
+  userId: string,
+): Promise<ActionResult<{ removed: number }>> {
+  if (!z.string().uuid().safeParse(userId).success) {
+    return fail("action.unknownMember");
+  }
+
+  const permitted = await requireAdmin();
+  if ("error" in permitted) return fail(permitted.error);
+  const { admin, userId: callerId } = permitted;
+
+  if (userId === callerId) return fail("action.ownTwoStepFromProfile");
+
+  const { data, error } = await admin.auth.admin.mfa.listFactors({ userId });
+  if (error || !data) return fail(error ? describeAuthError(error) : "action.accountNotFound");
+
+  for (const factor of data.factors) {
+    const { error: deleteError } = await admin.auth.admin.mfa.deleteFactor({
+      id: factor.id,
+      userId,
+    });
+    if (deleteError) return fail(describeAuthError(deleteError));
+  }
+
+  revalidatePath("/team");
+  return ok({ removed: data.factors.length });
 }

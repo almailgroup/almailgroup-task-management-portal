@@ -11,6 +11,7 @@ import { DeliveryFailures } from "@/components/profile/delivery-failures";
 import { ErrorLog } from "@/components/profile/error-log";
 import { PushDevices } from "@/components/profile/push-devices";
 import { ReminderSettings } from "@/components/profile/reminder-settings";
+import { TwoStepSettings } from "@/components/profile/two-step-settings";
 import { roleMeta } from "@/lib/constants";
 import { getI18n } from "@/lib/i18n/server";
 import {
@@ -76,6 +77,15 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent>
           <ChangePassword />
+        </CardContent>
+      </Card>
+
+      <Card id="two-step" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle role="heading" aria-level={2}>{t("twoStep.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TwoStepSettings isAdmin={profile.role === "admin"} />
         </CardContent>
       </Card>
 

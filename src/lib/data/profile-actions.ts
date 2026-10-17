@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
+import { signedInWithSecondStep } from "@/lib/auth/second-step";
 import {
   describeDatabaseError,
   fail,
@@ -69,6 +70,10 @@ export async function updateMemberRole(
   }
 
   const supabase = await createClient();
+
+  // Making somebody an admin hands them everything; the admin doing it must
+  // have signed in with their authenticator app as well as the password.
+  if (!(await signedInWithSecondStep(supabase))) return fail("action.needsTwoStep");
 
   const { data, error } = await supabase
     .from("profiles")

@@ -190,6 +190,25 @@ Adding a user from the Supabase dashboard is refused once the first admin
 exists, because the dashboard cannot set `app_metadata` on creation. Add people
 from the Team page.
 
+**Two-step sign-in.** Anybody can add an authenticator app — the iPhone's
+Passwords app, Google or Microsoft Authenticator — from Profile → Two-step
+sign-in. After that, signing in asks for the six-digit code as well as the
+password, on every device.
+
+Admins need it before they can add people, reset passwords or change roles;
+the Team page says so until it is on. It cannot lock anybody out by being
+switched on in the database: people who have not set it up are unaffected.
+
+A password on its own is worth little once someone has an app. The app sends
+such a session to the code page, and the database treats it as a member's
+whatever the role (`…0038_two_step_sign_in.sql`), so a stolen admin password
+used straight against Supabase gets a member's access and no more.
+
+*Lost phone?* In Supabase → Authentication → Users, open the person, and
+delete their factor under **Multi-Factor Authentication**; they can sign in
+with the password again and set up a new app. TOTP is on by default in every
+Supabase project (Authentication → Multi-Factor).
+
 #### "email rate limit exceeded"
 
 A Supabase project starts with a **shared, development-only mail service that

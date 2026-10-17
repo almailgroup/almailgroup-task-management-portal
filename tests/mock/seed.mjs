@@ -15,6 +15,8 @@ export const IDS = {
   priya: "00000000-0000-4000-8000-000000000004",
   yusuf: "00000000-0000-4000-8000-000000000005",
   lina: "00000000-0000-4000-8000-000000000006",
+  /** Signs in with an authenticator app; only the two-step spec uses her. */
+  huda: "00000000-0000-4000-8000-000000000007",
 };
 
 /** The instant the seeded board is built around. */
@@ -48,6 +50,7 @@ export function seed() {
     person(IDS.priya, "Priya Nair", "priya@almailgroup.com", "member", "Designer"),
     person(IDS.yusuf, "Yusuf Rahman", "yusuf@almailgroup.com", "member", "Logistics"),
     person(IDS.lina, "Lina Aboud", "lina@almailgroup.com", "member", "Marketing"),
+    person(IDS.huda, "Huda Saleh", "huda@almailgroup.com", "member", "Reception"),
   ];
 
   const projects = [
@@ -243,6 +246,18 @@ export function seed() {
     push_subscriptions: [],
     web_push_keys: [],
     company_holidays: [],
+    // Huda signs in with an authenticator app; nobody else has one yet.
+    mfa_factors: [
+      {
+        id: "88888888-8888-4888-8888-000000000001",
+        user_id: IDS.huda,
+        friendly_name: "Authenticator app",
+        factor_type: "totp",
+        status: "verified",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ],
     // One undeliverable reminder, to somebody who is not the admin: enough
     // for a spec to check that an admin sees the team's and a member sees
     // neither theirs nor anybody else's.

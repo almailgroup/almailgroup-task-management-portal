@@ -20,6 +20,9 @@ import { roleMeta } from "@/lib/constants";
 import { getI18n } from "@/lib/i18n/server";
 import { getTeam, requireProfile } from "@/lib/data/queries";
 import { hasServiceRole } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { signedInWithSecondStep } from "@/lib/auth/second-step";
+import { TwoStepNeeded } from "@/components/team/two-step-needed";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -33,6 +36,8 @@ export default async function TeamPage() {
   // Both admin actions here need the service-role key; say so rather than
   // letting them fail on use.
   const serviceRole = hasServiceRole();
+  // Adding people and changing roles wait for two-step sign-in.
+  const twoStep = isAdmin ? await signedInWithSecondStep(await createClient()) : true;
 
   return (
     <PageShell width="wide">
@@ -47,6 +52,8 @@ export default async function TeamPage() {
         }
         actions={isAdmin ? <AddMemberDialog configured={serviceRole} /> : undefined}
       />
+
+      {!twoStep && <TwoStepNeeded />}
 
       <Card className="stagger flex flex-col gap-1 p-1 sm:p-1.5">
         {team.map((member) => (

@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 import type { Database } from "./database.types";
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./env";
+import { hasAuthenticator, secondStepPending } from "./second-step";
 
 /**
  * Routes reachable without a session. Everything else requires sign-in.
@@ -115,6 +116,26 @@ export async function updateSession(request: NextRequest) {
     // Preserve the destination so sign-in can return the user to it.
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // Two-step sign-in: a session with the password but not yet the code goes
+  // to the code page, wherever it was headed. The database treats such a
+  // session as a member's whatever this does (second_step_pending); this is
+  // what makes the app say so instead of quietly showing less. Only people
+  // with an app are looked at twice; for everybody else this costs nothing.
+  if (user && hasAuthenticator(user) && !isPublicRoute(pathname)) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (secondStepPending(user, session?.access_token)) {
+      const verifyUrl = request.nextUrl.clone();
+      verifyUrl.pathname = "/login/verify";
+      verifyUrl.search = "";
+      verifyUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      const redirect = NextResponse.redirect(verifyUrl);
+      supabaseResponse.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+      return redirect;
+    }
   }
 
   if (user && (pathname === "/login" || pathname === "/register")) {

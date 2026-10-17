@@ -469,8 +469,13 @@ const RPC = {
 export const log = [];
 
 const b64 = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
-const jwt = (who) =>
+/**
+ * `aal` is how the session was earned: aal1 with a password, aal2 once the
+ * code from an authenticator app has been entered too.
+ */
+const jwt = (who, aal = "aal1") =>
   `${b64({ alg: "HS256", typ: "JWT" })}.${b64({
+    aal,
     sub: who,
     aud: "authenticated",
     role: "authenticated",
@@ -481,6 +486,29 @@ const jwt = (who) =>
     user_metadata: {},
     app_metadata: {},
   })}.unsigned`;
+
+/** Who each refresh token was issued to, and at which level. */
+const refreshTokens = new Map();
+
+/** The user as GoTrue describes them, factors included. */
+const authUser = (id) => {
+  const me = db.profiles.find((row) => row.id === id);
+  return {
+    id, aud: "authenticated", role: "authenticated", email: me?.email,
+    user_metadata: {}, app_metadata: {}, created_at: "2026-01-01T00:00:00Z",
+    factors: db.mfa_factors.filter((row) => row.user_id === id),
+  };
+};
+
+const session = (id, aal) => {
+  const refresh = randomUUID();
+  refreshTokens.set(refresh, { id, aal });
+  return {
+    access_token: jwt(id, aal), token_type: "bearer", expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: refresh,
+    user: authUser(id),
+  };
+};
 
 const readBody = (request) =>
   new Promise((resolve) => {
@@ -560,23 +588,66 @@ const server = createServer(async (request, response) => {
 
   // --- GoTrue ------------------------------------------------------------
   if (url.pathname.startsWith("/auth/v1/user")) {
-    const id = actor(request);
-    const me = db.profiles.find((row) => row.id === id);
-    return send({
-      id, aud: "authenticated", role: "authenticated", email: me?.email,
-      user_metadata: {}, app_metadata: {}, created_at: "2026-01-01T00:00:00Z",
-    });
+    return send(authUser(actor(request)));
   }
   if (url.pathname.startsWith("/auth/v1/token")) {
     const credentials = (await readBody(request)) ?? {};
+    // A refresh keeps who it was and how they signed in; anything else is
+    // a password, which is aal1 whoever it is.
+    const kept = credentials.refresh_token && refreshTokens.get(credentials.refresh_token);
     const me =
+      (kept && db.profiles.find((row) => row.id === kept.id)) ??
       db.profiles.find((row) => row.email === credentials.email) ??
       db.profiles.find((row) => row.id === DEFAULT_USER);
-    return send({
-      access_token: jwt(me.id), token_type: "bearer", expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: randomUUID(),
-      user: { id: me.id, email: me.email, user_metadata: {}, app_metadata: {} },
-    });
+    return send(session(me.id, kept?.aal ?? "aal1"));
+  }
+
+  // Authenticator apps. Any code is "123456": the specs are about what the
+  // app does with a right and a wrong one, not about TOTP.
+  const factorPath = url.pathname.match(/^\/auth\/v1\/factors(?:\/([^/]+))?(?:\/(challenge|verify))?$/);
+  if (factorPath) {
+    const [, factorId, step] = factorPath;
+    const id = actor(request);
+    const factor = factorId && db.mfa_factors.find((row) => row.id === factorId && row.user_id === id);
+
+    if (!factorId && request.method === "POST") {
+      const body = (await readBody(request)) ?? {};
+      if (db.mfa_factors.some((row) => row.user_id === id && row.friendly_name === body.friendly_name)) {
+        return send({ code: "mfa_factor_name_conflict", msg: "A factor with that name already exists." }, 422);
+      }
+      const created = {
+        id: randomUUID(), user_id: id, friendly_name: body.friendly_name ?? null,
+        factor_type: "totp", status: "unverified",
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      };
+      db.mfa_factors.push(created);
+      return send({
+        id: created.id, type: "totp", friendly_name: created.friendly_name,
+        totp: {
+          // Raw SVG, as GoTrue sends it — the client adds the data: prefix
+          // itself, unencoded — with the "#" colours a real one has.
+          qr_code: '<?xml version="1.0" encoding="UTF-8"?>\n<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="200" height="200" style="fill:#ffffff" /><rect x="20" y="20" width="60" height="60" style="fill:#000000" /><rect x="120" y="120" width="60" height="60" style="fill:#000000" /></svg>',
+          secret: "JBSWY3DPEHPK3PXP",
+          uri: "otpauth://totp/Almailgroup:test?secret=JBSWY3DPEHPK3PXP&issuer=Almailgroup",
+        },
+      });
+    }
+    if (!factor) return send({ code: "mfa_factor_not_found", msg: "Factor not found" }, 404);
+    if (request.method === "DELETE") {
+      db.mfa_factors = db.mfa_factors.filter((row) => row !== factor);
+      return send({ id: factor.id });
+    }
+    if (step === "challenge") {
+      return send({ id: randomUUID(), type: "totp", expires_at: Math.floor(Date.now() / 1000) + 300 });
+    }
+    if (step === "verify") {
+      const body = (await readBody(request)) ?? {};
+      if (body.code !== "123456") {
+        return send({ code: "mfa_verification_failed", msg: "Invalid TOTP code entered" }, 422);
+      }
+      factor.status = "verified";
+      return send(session(id, "aal2"));
+    }
   }
   if (url.pathname.startsWith("/auth/v1/")) return send({});
 
