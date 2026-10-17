@@ -1310,4 +1310,11 @@ export const ar: Dictionary = {
   "palette.group.chat": "دردشة الفريق",
   "palette.group.messages": "الرسائل الخاصة",
   "palette.group.notes": "قائمتي",
+  // ---- attachments: camera, drop, paste, previews ------------------------------------------
+  "attach.takePhoto": "التقاط صورة",
+  "attach.dropHere": "أفلت الملفات هنا، أو انقر والصق لقطة شاشة",
+  "attach.dropNow": "أفلت للإرفاق",
+  "attach.screenshot": "لقطة شاشة",
+  "attach.preview": "صورة: {name}",
+  "attach.openOriginal": "فتح الأصل",
 };

@@ -1198,4 +1198,11 @@ export const en = {
   "palette.group.chat": "Team chat",
   "palette.group.messages": "Private messages",
   "palette.group.notes": "My List",
+  // ---- attachments: camera, drop, paste, previews ------------------------------------------
+  "attach.takePhoto": "Take photo",
+  "attach.dropHere": "Drop files here, or click and paste a screenshot",
+  "attach.dropNow": "Drop to attach",
+  "attach.screenshot": "Screenshot",
+  "attach.preview": "Picture: {name}",
+  "attach.openOriginal": "Open the original",
 } as const;

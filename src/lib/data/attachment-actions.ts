@@ -166,3 +166,45 @@ export async function getAttachmentUrl(
 
   return ok({ url: data.signedUrl });
 }
+
+/**
+ * Short-lived addresses for a task's pictures, by attachment id, so the list
+ * can show them rather than a file icon and a name like IMG_4127.JPG.
+ *
+ * One signing request for all of them, not one per picture. The bucket is
+ * private and storage checks the task, exactly as for a download; a picture
+ * this person may not read simply gets no address.
+ */
+export async function getAttachmentPreviews(taskId: string): Promise<Record<string, string>> {
+  const supabase = await createClient();
+  const { data: rows } = await supabase
+    .from("task_attachments")
+    .select("id, storage_path, mime_type")
+    .eq("task_id", taskId)
+    .eq("kind", "file")
+    .like("mime_type", "image/%");
+
+  const pictures = (rows ?? []).filter(
+    (row): row is { id: string; storage_path: string; mime_type: string } =>
+      Boolean(row.storage_path),
+  );
+  if (pictures.length === 0) return {};
+
+  const { data, error } = await supabase.storage
+    .from(ATTACHMENT_BUCKET)
+    .createSignedUrls(
+      pictures.map((row) => row.storage_path),
+      SIGNED_URL_TTL,
+    );
+  if (error || !data) return {};
+
+  const byPath = new Map(
+    data.filter((one) => one.signedUrl).map((one) => [one.path, one.signedUrl]),
+  );
+  return Object.fromEntries(
+    pictures.flatMap((row) => {
+      const url = byPath.get(row.storage_path);
+      return url ? [[row.id, url]] : [];
+    }),
+  );
+}

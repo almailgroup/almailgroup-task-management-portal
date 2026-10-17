@@ -566,6 +566,39 @@ const session = (id, aal) => {
   };
 };
 
+/** Uploaded files, by "bucket/path". Gone when the mock restarts. */
+const objects = new Map();
+
+const readRaw = (request) =>
+  new Promise((resolve) => {
+    const chunks = [];
+    request.on("data", (chunk) => chunks.push(chunk));
+    request.on("end", () => resolve(Buffer.concat(chunks)));
+  });
+
+/** The file part of a multipart upload, as storage-js sends it from a browser. */
+function filePart(body, contentType) {
+  const boundary = /boundary=([^;]+)/.exec(contentType ?? "")?.[1];
+  if (!boundary) return { bytes: body, type: contentType || "application/octet-stream" };
+  const marker = Buffer.from(`--${boundary}`);
+  let start = body.indexOf(marker);
+  while (start !== -1) {
+    const next = body.indexOf(marker, start + marker.length);
+    if (next === -1) break;
+    const part = body.subarray(start + marker.length + 2, next - 2);
+    const split = part.indexOf("\r\n\r\n");
+    const headers = part.subarray(0, split).toString();
+    if (/filename=/i.test(headers)) {
+      return {
+        bytes: part.subarray(split + 4),
+        type: /content-type:\s*([^\r\n]+)/i.exec(headers)?.[1] ?? "application/octet-stream",
+      };
+    }
+    start = next;
+  }
+  return { bytes: Buffer.alloc(0), type: "application/octet-stream" };
+}
+
 const readBody = (request) =>
   new Promise((resolve) => {
     let text = "";
@@ -640,6 +673,48 @@ const server = createServer(async (request, response) => {
   // How many round trips a page cost, for measuring navigation.
   if (url.pathname === "/__log") {
     return send({ calls: log.length, last: log.slice(-40) });
+  }
+
+  // --- Storage -----------------------------------------------------------
+  // Enough of it for attachments: upload, sign one or many, fetch, remove.
+  // It checks nothing — who may read a file is the database's question, and
+  // is tested against the real one in supabase/tests/attachment-files.sql.
+  if (url.pathname.startsWith("/storage/v1/object/")) {
+    const rest = decodeURIComponent(url.pathname.slice("/storage/v1/object/".length));
+
+    if (rest.startsWith("sign/")) {
+      const target = rest.slice("sign/".length);
+      if (request.method === "GET") {
+        const stored = objects.get(target);
+        if (!stored) return send({ message: "Object not found" }, 404);
+        response.writeHead(200, { "content-type": stored.type, ...CORS });
+        return response.end(stored.bytes);
+      }
+      const body = (await readBody(request)) ?? {};
+      const signed = (path) => `/object/sign/${path}?token=mock`;
+      // Many at once: POST /object/sign/<bucket> with { paths }.
+      if (Array.isArray(body.paths)) {
+        return send(
+          body.paths.map((path) => ({
+            path,
+            signedURL: objects.has(`${target}/${path}`) ? signed(`${target}/${path}`) : null,
+            error: objects.has(`${target}/${path}`) ? null : "Object not found",
+          })),
+        );
+      }
+      return send({ signedURL: signed(target) });
+    }
+
+    if (request.method === "POST" || request.method === "PUT") {
+      const { bytes, type } = filePart(await readRaw(request), request.headers["content-type"]);
+      objects.set(rest, { bytes, type });
+      return send({ Key: rest, Id: randomUUID() });
+    }
+    if (request.method === "DELETE") {
+      const body = (await readBody(request)) ?? {};
+      for (const prefix of body.prefixes ?? []) objects.delete(`${rest}/${prefix}`);
+      return send([]);
+    }
   }
 
   // --- GoTrue ------------------------------------------------------------

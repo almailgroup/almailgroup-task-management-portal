@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import {
+  Camera,
   ExternalLink,
   File as FileIcon,
+  ImagePlus,
   Link2,
   Loader2,
   Paperclip,
@@ -13,12 +15,20 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   addLinkAttachment,
   deleteAttachment,
+  getAttachmentPreviews,
   getAttachmentUrl,
   recordFileAttachment,
 } from "@/lib/data/attachment-actions";
@@ -30,8 +40,20 @@ import {
   linkHost,
 } from "@/lib/attachments";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
 import type { Profile, TaskAttachment } from "@/lib/supabase/database.types";
+
+/**
+ * A pasted screenshot arrives as "image.png", every time; give it a name a
+ * list of them can be told apart by.
+ */
+function named(file: File, screenshot: string): File {
+  if (file.name && file.name !== "image.png") return file;
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", " ").replace(":", ".");
+  const extension = file.type.split("/")[1] ?? "png";
+  return new File([file], `${screenshot} ${stamp}.${extension}`, { type: file.type });
+}
 
 /**
  * Files and links attached to a task.
@@ -39,6 +61,11 @@ import type { Profile, TaskAttachment } from "@/lib/supabase/database.types";
  * File bytes go straight from the browser to Supabase Storage — a Server
  * Action body is far too small for real attachments — and only the resulting
  * metadata is recorded through an action.
+ *
+ * Files arrive four ways: picked, photographed with the phone's camera,
+ * dropped onto the panel, or pasted — a screenshot straight from the
+ * clipboard. Pictures show as pictures, and open full size here rather than
+ * in a new tab.
  */
 export function AttachmentPanel({
   taskId,
@@ -50,6 +77,11 @@ export function AttachmentPanel({
   const supabase = React.useMemo(() => createClient(), []);
   const { t, tm } = useI18n();
   const fileInput = React.useRef<HTMLInputElement>(null);
+  const cameraInput = React.useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = React.useState(false);
+  /** Short-lived addresses for the pictures, by attachment id. */
+  const [previews, setPreviews] = React.useState<Record<string, string>>({});
+  const [viewing, setViewing] = React.useState<TaskAttachment | null>(null);
 
   const [items, setItems] = React.useState<TaskAttachment[] | null>(null);
   const [uploading, setUploading] = React.useState(false);
@@ -70,6 +102,9 @@ export function AttachmentPanel({
       return;
     }
     setItems(data ?? []);
+    if ((data ?? []).some((item) => item.mime_type?.startsWith("image/"))) {
+      setPreviews(await getAttachmentPreviews(taskId).catch(() => ({})));
+    }
   }, [supabase, taskId, t]);
 
   React.useEffect(() => {
@@ -80,7 +115,24 @@ export function AttachmentPanel({
     const files = Array.from(event.target.files ?? []);
     // Let the same file be picked again after a failure.
     event.target.value = "";
+    await upload(files);
+  }
+
+  function onDrop(event: React.DragEvent) {
+    event.preventDefault();
+    setDragging(false);
+    void upload(Array.from(event.dataTransfer.files));
+  }
+
+  function onPaste(event: React.ClipboardEvent) {
+    const files = Array.from(event.clipboardData.files);
     if (files.length === 0) return;
+    event.preventDefault();
+    void upload(files.map((file) => named(file, t("attach.screenshot"))));
+  }
+
+  async function upload(files: File[]) {
+    if (files.length === 0 || uploading) return;
 
     setUploading(true);
 
@@ -148,6 +200,12 @@ export function AttachmentPanel({
       return;
     }
 
+    // A picture opens here, full size, rather than in a new tab.
+    if (previews[attachment.id]) {
+      setViewing(attachment);
+      return;
+    }
+
     // The bucket is private, so mint a short-lived signed URL on demand.
     setOpening(attachment.id);
     const outcome = await getAttachmentUrl(attachment.id);
@@ -185,6 +243,16 @@ export function AttachmentPanel({
           multiple
           hidden
           onChange={onFilesPicked}
+          data-testid="attach-files"
+        />
+        {/* The phone's camera, straight to a photo: a receipt, a signed page. */}
+        <input
+          ref={cameraInput}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={onFilesPicked}
         />
         <Button
           type="button"
@@ -195,6 +263,18 @@ export function AttachmentPanel({
         >
           {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
           {uploading ? t("attach.uploading") : t("attach.upload")}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => cameraInput.current?.click()}
+          disabled={uploading}
+          // Where there is a camera to hand: a phone, a tablet.
+          className="hidden max-sm:inline-flex pointer-coarse:inline-flex"
+        >
+          <Camera />
+          {t("attach.takePhoto")}
         </Button>
         <Button
           type="button"
@@ -252,6 +332,31 @@ export function AttachmentPanel({
         </form>
       )}
 
+      {/* Drop files here, or click it and paste. A screenshot is the commonest
+          attachment there is, and saving one to a file first only to pick
+          it again was three steps too many. */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={t("attach.dropHere")}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onPaste={onPaste}
+        onClick={(event) => event.currentTarget.focus()}
+        className={cn(
+          "flex items-center justify-center gap-2 rounded-[1.25rem] px-4 py-3.5 text-center text-xs text-muted-foreground transition-colors max-sm:hidden",
+          "bg-foreground/[0.035] focus-visible:bg-primary/[0.07] focus-visible:text-foreground focus-visible:outline-none",
+          dragging && "bg-primary/[0.1] text-foreground",
+        )}
+      >
+        <ImagePlus className="size-4 shrink-0" aria-hidden />
+        {dragging ? t("attach.dropNow") : t("attach.dropHere")}
+      </div>
+
       {items === null ? (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-9 w-full" />
@@ -269,7 +374,15 @@ export function AttachmentPanel({
               key={attachment.id}
               className="flex items-center gap-2 rounded-xl bg-foreground/[0.05] px-2.5 py-2"
             >
-              {attachment.kind === "link" ? (
+              {previews[attachment.id] ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a signed, short-lived storage address
+                <img
+                  src={previews[attachment.id]}
+                  alt=""
+                  className="size-10 shrink-0 rounded-xl bg-muted object-cover"
+                  loading="lazy"
+                />
+              ) : attachment.kind === "link" ? (
                 <Link2 className="size-4 shrink-0 text-muted-foreground" />
               ) : (
                 <FileIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -310,6 +423,33 @@ export function AttachmentPanel({
           ))}
         </ul>
       )}
+
+      <Dialog open={viewing !== null} onOpenChange={(open) => !open && setViewing(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="truncate pe-8">{viewing?.name}</DialogTitle>
+            <DialogDescription>{formatBytes(viewing?.size_bytes ?? null)}</DialogDescription>
+          </DialogHeader>
+          {viewing && previews[viewing.id] && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- a signed, short-lived storage address */}
+              <img
+                src={previews[viewing.id]}
+                alt={t("attach.preview", { name: viewing.name })}
+                className="max-h-[70svh] w-full rounded-2xl bg-muted object-contain"
+              />
+              <div className="flex justify-end">
+                <Button asChild variant="outline" size="sm">
+                  <a href={previews[viewing.id]} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink />
+                    {t("attach.openOriginal")}
+                  </a>
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
