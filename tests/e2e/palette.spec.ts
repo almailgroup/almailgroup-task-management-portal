@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { openDialog, PEOPLE, signIn } from "./helpers";
+import { openDialog, PEOPLE, signIn, taskNamed, unique } from "./helpers";
 
 /**
  * The palette is the fastest way through the portal, so it has to know about
@@ -21,6 +21,7 @@ test.describe("the command palette", () => {
       "Team",
       "Team chat",
       "Messages",
+      "Settings",
     ]) {
       await palette.getByRole("textbox").fill(destination);
       await expect(
@@ -57,5 +58,51 @@ test.describe("the command palette", () => {
     await expect(
       palette.getByRole("listitem").filter({ hasText: "Sara Khan" }),
     ).toHaveCount(0);
+  });
+
+  test("finds what was said in the team room, and goes there", async ({ page }) => {
+    await signIn(page);
+    await page.keyboard.press("ControlOrMeta+k");
+    const palette = await openDialog(page);
+
+    await palette.getByRole("textbox").fill("moved to 3pm");
+    const said = palette.getByRole("listitem").filter({ hasText: "moved to 3pm" }).first();
+    await expect(said).toBeVisible({ timeout: 10_000 });
+    await expect(palette).toContainText("Team chat");
+    await said.click();
+    await page.waitForURL(/\/chat$/);
+  });
+
+  test("finds a comment, and opens the task it is on", async ({ page }) => {
+    const remark = unique("Bring the stamped letter");
+    // A task of its own: a comment on a shared one would show up in every
+    // other spec that opens it.
+    const title = unique("Visit the ministry");
+
+    await signIn(page);
+    await page.goto("/general?new=1");
+    const created = await openDialog(page);
+    await created.locator("#title").fill(title);
+    await created.getByRole("button", { name: "Create task" }).click();
+    await expect(created).toBeHidden({ timeout: 15_000 });
+
+    await page.goto("/tasks?filter=all");
+    await taskNamed(page, title).click();
+    const task = await openDialog(page);
+    await task.getByLabel("New comment").fill(remark);
+    await task.getByRole("button", { name: "Comment", exact: true }).click();
+    await expect(task.getByText(remark)).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await page.keyboard.press("ControlOrMeta+k");
+    const palette = await openDialog(page);
+    await palette.getByRole("textbox").fill(remark);
+    const found = palette.getByRole("listitem").filter({ hasText: remark }).first();
+    await expect(found).toBeVisible({ timeout: 10_000 });
+    await expect(found).toContainText(title);
+    await expect(palette).toContainText("Comments");
+    await found.click();
+    await page.waitForURL(/task=/);
+    await expect(page.getByRole("dialog").locator("#title")).toHaveValue(title);
   });
 });

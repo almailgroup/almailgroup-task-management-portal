@@ -15,10 +15,12 @@ import {
   MessageSquare,
   MessagesSquare,
   Moon,
+  Paperclip,
   Plus,
   Search,
-  StickyNote,
   Send,
+  Settings,
+  StickyNote,
   Sunrise,
   User,
   Users,
@@ -29,7 +31,7 @@ import { toast } from "sonner";
 
 import { createNote } from "@/lib/data/note-actions";
 import { listPeople, startConversation, type PersonHit } from "@/lib/data/dm-actions";
-import { searchTasks, type TaskSearchHit } from "@/lib/data/task-actions";
+import { searchEverything, type SearchKind, type SearchResults } from "@/lib/data/search-actions";
 import { statusMeta } from "@/lib/constants";
 import { isSearchable } from "@/lib/search";
 
@@ -43,6 +45,16 @@ import { ShortcutsDialog } from "@/components/layout/shortcuts-dialog";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/supabase/database.types";
 import { useI18n } from "@/lib/i18n/client";
+import type { TranslationKey } from "@/lib/i18n";
+
+/** How each kind of thing found in the workspace is shown. */
+const FOUND: Record<SearchKind, { icon: Entry["icon"]; group: TranslationKey }> = {
+  comment: { icon: MessageSquare, group: "palette.group.comments" },
+  file: { icon: Paperclip, group: "palette.group.files" },
+  chat: { icon: MessagesSquare, group: "palette.group.chat" },
+  message: { icon: Send, group: "palette.group.messages" },
+  note: { icon: StickyNote, group: "palette.group.notes" },
+};
 
 type Entry = {
   id: string;
@@ -53,6 +65,8 @@ type Entry = {
   run?: () => void | Promise<void>;
   icon: React.ComponentType<{ className?: string }>;
   group: string;
+  /** Show the hint as a second line: where a found thing is, who said it. */
+  detail?: boolean;
 };
 
 /**
@@ -62,7 +76,14 @@ type Entry = {
  * tool and becomes a list to scan. This makes every destination one search
  * away without taking hands off the keyboard.
  */
-export function CommandPalette({ projects }: { projects: Project[] }) {
+export function CommandPalette({
+  projects,
+  canManage = false,
+}: {
+  projects: Project[];
+  /** Admins and managers: offered the pages only they have, like Settings. */
+  canManage?: boolean;
+}) {
   const router = useRouter();
   const { t, tm } = useI18n();
   const [open, setOpen] = React.useState(false);
@@ -75,20 +96,22 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
   const { resolvedTheme, setTheme } = useTheme();
 
   /**
-   * Tasks matching what has been typed.
+   * Everything matching what has been typed: tasks first, then comments,
+   * files, the team room, private messages and notes.
    *
    * The palette knew every page in the app and none of its contents, so
-   * finding a task meant remembering which project it was in. Results come
-   * from the server because no one page holds every task, and they are
-   * debounced so a fast typist sends one query rather than eight.
+   * finding a task meant remembering which project it was in, and finding
+   * what was said about it meant remembering where it was said. Results come
+   * from the server because no one page holds them, and they are debounced
+   * so a fast typist sends one query rather than eight.
    */
-  const [hits, setHits] = React.useState<TaskSearchHit[]>([]);
+  const [hits, setHits] = React.useState<SearchResults>({ tasks: [], more: [] });
   const [searching, setSearching] = React.useState(false);
 
   React.useEffect(() => {
     const needle = query.trim();
     if (!isSearchable(needle)) {
-      setHits([]);
+      setHits({ tasks: [], more: [] });
       setSearching(false);
       return;
     }
@@ -96,7 +119,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
     setSearching(true);
     let current = true;
     const timer = setTimeout(async () => {
-      const found = await searchTasks(needle);
+      const found = await searchEverything(needle).catch(() => ({ tasks: [], more: [] }));
       // The answer to an older keystroke must never overwrite a newer one.
       if (!current) return;
       setHits(found);
@@ -185,6 +208,9 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       { id: "chat", label: t("nav.chat"), href: "/chat", icon: MessagesSquare, group: t("palette.group.goTo") },
       { id: "messages", label: t("nav.messages"), href: "/messages", icon: Send, group: t("palette.group.goTo") },
       { id: "profile", label: t("shell.profile"), href: "/profile", icon: User, group: t("palette.group.goTo") },
+      ...(canManage
+        ? [{ id: "settings", label: t("nav.settings"), href: "/settings", icon: Settings, group: t("palette.group.goTo") }]
+        : []),
       { id: "overdue", label: t("palette.overdue"), href: "/tasks?filter=overdue", icon: Search, group: t("palette.group.filters") },
       { id: "due-today", label: t("palette.dueToday"), href: "/tasks?filter=due_today", icon: Search, group: t("palette.group.filters") },
       { id: "in-review", label: t("palette.inReview"), href: "/tasks?filter=in_review", icon: Search, group: t("palette.group.filters") },
@@ -205,7 +231,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
         group: t("palette.group.projects"),
       })),
     ],
-    [projects, people, messagePerson, resolvedTheme, setTheme, newNote, t],
+    [projects, people, messagePerson, resolvedTheme, setTheme, newNote, t, canManage],
   );
 
   const results = React.useMemo(() => {
@@ -218,18 +244,19 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
 
     // Tasks lead: typing words rather than a page name means looking for
     // something in the workspace, not for a link to it.
-    const taskEntries: Entry[] = hits.map((hit) => ({
+    const taskEntries: Entry[] = hits.tasks.map((hit) => ({
       id: `task-${hit.id}`,
       label: hit.title,
       hint: [hit.projectName ?? t("palette.general"), t(statusMeta(hit.status).label)].join(" · "),
       href: `/tasks?filter=all&task=${hit.id}`,
       icon: CheckSquare,
       group: t("palette.group.tasks"),
+      detail: true,
     }));
 
     // Eight is a list; more than that is a search, and the browser page can
     // show every match with the filters beside it.
-    if (hits.length >= 8) {
+    if (hits.tasks.length >= 8) {
       taskEntries.push({
         id: "search-all",
         label: t("palette.allMatching", { query: query.trim() }),
@@ -239,7 +266,18 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
       });
     }
 
-    return [...taskEntries, ...matches];
+    // Then what was said and attached, each kind under its own heading.
+    const found: Entry[] = hits.more.map((hit) => ({
+      id: `${hit.kind}-${hit.id}`,
+      label: hit.label,
+      hint: hit.hint,
+      href: hit.href,
+      icon: FOUND[hit.kind].icon,
+      group: t(FOUND[hit.kind].group),
+      detail: true,
+    }));
+
+    return [...taskEntries, ...found, ...matches];
   }, [entries, hits, query, t]);
 
   // Cmd/Ctrl+K toggles from anywhere, except while typing somewhere else.
@@ -393,7 +431,7 @@ export function CommandPalette({ projects }: { projects: Project[] }) {
                       <Icon className="size-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{entry.label}</span>
-                        {entry.group === t("palette.group.tasks") && entry.hint && (
+                        {entry.detail && entry.hint && (
                           <span className="block truncate text-xs text-muted-foreground">
                             {entry.hint}
                           </span>

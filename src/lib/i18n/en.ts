@@ -62,7 +62,7 @@ export const en = {
   // ---- command palette --------------------------------------------------------
   "palette.title": "Search and navigate",
   "palette.description": "Type to filter actions, pages and projects. Arrow keys to move, Enter to run.",
-  "palette.placeholder": "Search tasks, pages and commands...",
+  "palette.placeholder": "Search tasks, comments, files, messages, pages…",
   "palette.searching": "Searching…",
   "palette.noMatch": "Nothing matches “{query}”.",
   "palette.move": "to move",
@@ -1192,4 +1192,10 @@ export const en = {
   "template.notAllowed": "Only admins and managers can change templates.",
   "template.notYet": "Templates are not switched on yet: the database needs its latest update.",
   "template.stepsNotSaved": "The task was created, but its steps could not be added.",
+  // ---- search everything ------------------------------------------------------------------
+  "palette.group.comments": "Comments",
+  "palette.group.files": "Files",
+  "palette.group.chat": "Team chat",
+  "palette.group.messages": "Private messages",
+  "palette.group.notes": "My List",
 } as const;

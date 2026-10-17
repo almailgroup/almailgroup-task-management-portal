@@ -65,7 +65,7 @@ export const ar: Dictionary = {
   // ---- command palette --------------------------------------------------------
   "palette.title": "البحث والتنقل",
   "palette.description": "اكتب لتصفية الإجراءات والصفحات والمشاريع. الأسهم للتنقل وEnter للتنفيذ.",
-  "palette.placeholder": "ابحث في المهام والصفحات والأوامر...",
+  "palette.placeholder": "ابحث في المهام والتعليقات والملفات والرسائل والصفحات…",
   "palette.searching": "جارٍ البحث…",
   "palette.noMatch": "لا توجد نتائج لـ “{query}”.",
   "palette.move": "للتنقل",
@@ -1304,4 +1304,10 @@ export const ar: Dictionary = {
   "template.notAllowed": "يستطيع مدير النظام والمدير فقط تغيير القوالب.",
   "template.notYet": "القوالب غير مفعّلة بعد: قاعدة البيانات تحتاج آخر تحديث لها.",
   "template.stepsNotSaved": "أُنشئت المهمة، لكن تعذّرت إضافة خطواتها.",
+  // ---- search everything ------------------------------------------------------------------
+  "palette.group.comments": "التعليقات",
+  "palette.group.files": "الملفات",
+  "palette.group.chat": "دردشة الفريق",
+  "palette.group.messages": "الرسائل الخاصة",
+  "palette.group.notes": "قائمتي",
 };

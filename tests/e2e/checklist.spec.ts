@@ -30,7 +30,7 @@ test.describe("a task's steps", () => {
 
     for (const step of [first, second]) {
       await dialog.getByRole("textbox", { name: "Add a step…" }).fill(step);
-      await dialog.getByRole("button", { name: "Add" }).click();
+      await dialog.getByRole("button", { name: "Add", exact: true }).click();
       await expect(dialog.getByText(step)).toBeVisible({ timeout: 15_000 });
     }
 
@@ -55,7 +55,7 @@ test.describe("a task's steps", () => {
     });
 
     await dialog.getByRole("textbox", { name: "Add a step…" }).fill(step);
-    await dialog.getByRole("button", { name: "Add" }).click();
+    await dialog.getByRole("button", { name: "Add", exact: true }).click();
     await expect(dialog.getByText(step)).toBeVisible({ timeout: 15_000 });
 
     await page.reload();

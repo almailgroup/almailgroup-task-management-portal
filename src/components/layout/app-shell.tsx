@@ -403,7 +403,10 @@ export function AppShell({
 
       <BottomNav onOpenMore={() => setDrawerOpen(true)} />
 
-      <CommandPalette projects={projects} />
+      <CommandPalette
+        projects={projects}
+        canManage={profile.role === "admin" || profile.role === "manager"}
+      />
     </div>
   );
 }
