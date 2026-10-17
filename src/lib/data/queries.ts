@@ -7,9 +7,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   isMissingColumn,
+  isMissingFunction,
   isMissingRelationship,
   isMissingTable,
 } from "@/lib/supabase/missing";
+import type { WorkReport } from "@/lib/report";
 import {
   VERIFIED_MUST_CHANGE_PASSWORD,
   VERIFIED_USER,
@@ -235,6 +237,26 @@ export const getLabels = cache(async (): Promise<Label[]> => {
   const result = await supabase.from("labels").select("*").order("name");
   return orNothing(result, "labels") ?? [];
 });
+
+/**
+ * The Reports page's numbers, counted in the database over what this person
+ * can see. Null before migration 43, so the page can say what is missing.
+ */
+export const getWorkReport = cache(
+  async (first: string, last: string, grain: "week" | "month"): Promise<WorkReport | null> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("work_report", {
+      first_day: first,
+      last_day: last,
+      grain,
+    });
+    if (error) {
+      if (!isMissingFunction(error)) reportQueryError("work report", error);
+      return null;
+    }
+    return data as WorkReport;
+  },
+);
 
 /** Live and archived together, newest first, for managing them. */
 export const getAllProjects = cache(async (): Promise<Project[]> => {

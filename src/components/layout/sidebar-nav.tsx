@@ -5,6 +5,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  ChartColumn,
   ClipboardList,
   Hash,
   LayoutDashboard,
@@ -128,6 +129,15 @@ export function SidebarNav({
             badge={unreadMessages}
             onNavigate={onNavigate}
           />
+          {canManage && (
+            <NavLink
+              href="/reports"
+              icon={<ChartColumn />}
+              label={t("nav.reports")}
+              active={pathname === "/reports"}
+              onNavigate={onNavigate}
+            />
+          )}
           {canManage && (
             <NavLink
               href="/settings"

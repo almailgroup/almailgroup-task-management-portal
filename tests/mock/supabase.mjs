@@ -306,6 +306,88 @@ const sameDay = (iso) =>
   iso !== null && iso.slice(0, 10) === NOW.slice(0, 10);
 
 const RPC = {
+  /**
+   * public.work_report, roughly: finishing time is updated_at (the mock keeps
+   * no activity log), days are UTC, and "overdue" is against the seeded NOW.
+   * The real one is checked in supabase/tests/work-report.sql.
+   */
+  work_report({ first_day, last_day, grain = "week" }) {
+    const live = db.tasks.filter((task) => !task.deleted_at);
+    const day = (iso) => (iso ?? "").slice(0, 10);
+    const shift = (iso, days) => {
+      const date = new Date(`${iso}T12:00:00Z`);
+      date.setUTCDate(date.getUTCDate() + days);
+      return date.toISOString().slice(0, 10);
+    };
+    const length = (Date.parse(last_day) - Date.parse(first_day)) / 86_400_000 + 1;
+    const before = shift(first_day, -length);
+    const within = (iso, from, to) => day(iso) >= from && day(iso) <= to;
+    const done = live.filter((task) => task.status === "done");
+    const finishedIn = (from, to) => done.filter((task) => within(task.updated_at, from, to));
+    const onTime = (list) => list.filter((task) => task.due_at && task.updated_at <= task.due_at).length;
+    const late = (task) => task.status !== "done" && task.due_at && task.due_at < NOW;
+
+    const buckets = [];
+    let starts =
+      grain === "month"
+        ? `${first_day.slice(0, 7)}-01`
+        : shift(first_day, -new Date(`${first_day}T12:00:00Z`).getUTCDay());
+    while (starts <= last_day) {
+      const next =
+        grain === "month"
+          ? new Date(Date.UTC(+starts.slice(0, 4), +starts.slice(5, 7), 1)).toISOString().slice(0, 10)
+          : shift(starts, 7);
+      const end = shift(next, -1);
+      buckets.push({
+        starts,
+        added: live.filter((task) => within(task.created_at, starts, end)).length,
+        finished: finishedIn(starts, end).length,
+      });
+      starts = next;
+    }
+
+    const people = db.profiles
+      .map((person) => {
+        const open = db.task_assignments
+          .filter((a) => a.user_id === person.id)
+          .map((a) => live.find((task) => task.id === a.task_id))
+          .filter((task) => task && task.status !== "done");
+        return { id: person.id, name: person.full_name ?? person.email, open: open.length, overdue: open.filter(late).length };
+      })
+      .filter((person) => person.open > 0)
+      .sort((a, b) => b.open - a.open || a.name.localeCompare(b.name));
+
+    const projects = db.projects
+      .filter((project) => !project.archived_at)
+      .map((project) => {
+        const tasks = live.filter((task) => task.project_id === project.id);
+        return {
+          id: project.id,
+          name: project.name,
+          total: tasks.length,
+          done: tasks.filter((task) => task.status === "done").length,
+          overdue: tasks.filter(late).length,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const now = finishedIn(first_day, last_day);
+    const then = finishedIn(before, shift(first_day, -1));
+    return {
+      finished: now.length,
+      finishedBefore: then.length,
+      added: live.filter((task) => within(task.created_at, first_day, last_day)).length,
+      addedBefore: live.filter((task) => within(task.created_at, before, shift(first_day, -1))).length,
+      onTime: onTime(now),
+      withDue: now.filter((task) => task.due_at).length,
+      onTimeBefore: onTime(then),
+      withDueBefore: then.filter((task) => task.due_at).length,
+      overdueNow: live.filter(late).length,
+      buckets,
+      people,
+      projects,
+    };
+  },
   task_counts() {
     const live = db.tasks.filter((task) => !task.deleted_at);
     const count = (predicate) => live.filter(predicate).length;

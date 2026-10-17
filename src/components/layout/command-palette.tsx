@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
+  ChartColumn,
   CheckSquare,
   ClipboardList,
   CornerDownLeft,
@@ -209,7 +210,10 @@ export function CommandPalette({
       { id: "messages", label: t("nav.messages"), href: "/messages", icon: Send, group: t("palette.group.goTo") },
       { id: "profile", label: t("shell.profile"), href: "/profile", icon: User, group: t("palette.group.goTo") },
       ...(canManage
-        ? [{ id: "settings", label: t("nav.settings"), href: "/settings", icon: Settings, group: t("palette.group.goTo") }]
+        ? [
+            { id: "reports", label: t("nav.reports"), href: "/reports", icon: ChartColumn, group: t("palette.group.goTo") },
+            { id: "settings", label: t("nav.settings"), href: "/settings", icon: Settings, group: t("palette.group.goTo") },
+          ]
         : []),
       { id: "overdue", label: t("palette.overdue"), href: "/tasks?filter=overdue", icon: Search, group: t("palette.group.filters") },
       { id: "due-today", label: t("palette.dueToday"), href: "/tasks?filter=due_today", icon: Search, group: t("palette.group.filters") },

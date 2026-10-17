@@ -1120,6 +1120,11 @@ export type Database = {
       enqueue_task_reminders: { Args: Record<never, never>; Returns: number };
       /** One summary per person and channel for this office morning. */
       enqueue_morning_summaries: { Args: { as_of?: string }; Returns: number };
+      /** The Reports page's numbers, over what the caller can see. */
+      work_report: {
+        Args: { first_day: string; last_day: string; grain?: string };
+        Returns: unknown;
+      };
       /** Work sent to the bot by a linked chat, added as that person's. */
       add_from_chat: {
         Args: {
