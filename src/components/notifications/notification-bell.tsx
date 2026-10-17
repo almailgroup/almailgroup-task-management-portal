@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import {
   AtSign,
   Bell,
+  BellOff,
   CheckCheck,
   CircleCheck,
   Eye,
+  LockOpen,
   MessageSquare,
   Send,
   UserMinus,
@@ -45,6 +47,8 @@ const ICONS: Record<NotificationType, React.ComponentType<{ className?: string }
   task_review_requested: Eye,
   task_completed: CircleCheck,
   direct_message: Send,
+  reminder_failed: BellOff,
+  task_unblocked: LockOpen,
 };
 
 /**

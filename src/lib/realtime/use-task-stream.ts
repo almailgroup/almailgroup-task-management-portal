@@ -27,6 +27,7 @@ export function mergeTaskUpdate(
     assignees: previous.assignees,
     checklist: previous.checklist,
     labelIds: previous.labelIds,
+    waitingOn: previous.waitingOn,
   };
 }
 

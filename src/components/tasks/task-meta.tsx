@@ -1,6 +1,12 @@
 "use client";
 
-import { CalendarDays, Clock3, ListChecks, Repeat } from "lucide-react";
+import {
+  CalendarDays,
+  Clock3,
+  Hourglass,
+  ListChecks,
+  Repeat,
+} from "lucide-react";
 
 import {
   Avatar,
@@ -283,5 +289,32 @@ export function TaskProvenance({
         </time>
       </span>
     </div>
+  );
+}
+
+/**
+ * Shown while a task waits on others that are still open. Muted, not amber:
+ * waiting is a state of the plan, not lateness.
+ */
+export function WaitingBadge({
+  count,
+  status,
+  className,
+}: {
+  count: number;
+  status: TaskStatus;
+  className?: string;
+}) {
+  const { t, tn } = useI18n();
+  if (count === 0 || status === "done") return null;
+
+  return (
+    <span
+      className={cn("inline-flex items-center gap-1 text-xs text-muted-foreground", className)}
+      title={tn("dependency.waitingOnCount", count)}
+    >
+      <Hourglass className="size-3" aria-hidden />
+      {t("dependency.waiting")}
+    </span>
   );
 }

@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FieldError, FormError } from "@/components/auth/field-error";
 import { AssigneePicker } from "@/components/tasks/assignee-picker";
 import { LabelPicker } from "@/components/labels/label-picker";
+import { WaitingPanel } from "@/components/tasks/waiting-panel";
 import { LabelPills } from "@/components/labels/label-pills";
 import { TaskProvenance } from "@/components/tasks/task-meta";
 import { isoFromLocalInput, quickDateOptions, toLocalInput } from "@/lib/dates";
@@ -479,6 +480,15 @@ export function TaskDialog({
             {/* The steps inside the task, above the follow-up: one is what
                 the work is made of, the other is when to chase it. */}
             <ChecklistPanel taskId={task.id} canEdit={canEditDetails} />
+
+            <WaitingPanel
+              taskId={task.id}
+              canEdit={canEditDetails}
+              onOpenTask={(id) => {
+                onOpenChange(false);
+                router.push(`/tasks?filter=all&task=${id}`);
+              }}
+            />
 
             <FollowUpPanel task={task} canManage={canEditDetails} />
             <Separator />

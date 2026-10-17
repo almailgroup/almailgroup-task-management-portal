@@ -76,6 +76,23 @@ const FK = {
   project_status_updates: { project_id: "projects", author_id: "profiles" },
   labels: { created_by: "profiles" },
   task_labels: { task_id: "tasks", label_id: "labels" },
+  task_dependencies: { task_id: "tasks", blocked_by: "tasks", created_by: "profiles" },
+};
+
+/**
+ * Computed columns: Postgres functions on a row that PostgREST lets a select
+ * name like a column. Same answers, worked out here.
+ */
+const COMPUTED = {
+  tasks: {
+    // public.waiting_on(tasks): open, unbinned tasks this one waits on.
+    waiting_on: (row) =>
+      (db.task_dependencies ?? []).filter((link) => {
+        if (link.task_id !== row.id) return false;
+        const blocker = db.tasks.find((task) => task.id === link.blocked_by);
+        return blocker && blocker.status !== "done" && !blocker.deleted_at;
+      }).length,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -168,7 +185,9 @@ function shape(table, row, select) {
   const { columns, embeds } = parseSelect(select);
   const out = columns.includes("*") || columns.length === 0 ? { ...row } : {};
   for (const column of columns) {
-    if (column !== "*") out[column] = row[column];
+    if (column === "*") continue;
+    const computed = COMPUTED[table]?.[column];
+    out[column] = computed ? computed(row) : row[column];
   }
   for (const spec of embeds) out[spec.alias] = embed(table, row, spec);
   return out;
@@ -204,7 +223,11 @@ function matches(row, column, expression) {
     }
     case "like":
     case "ilike": {
-      const pattern = String(value).replace(/%/g, ".*");
+      // `%` in a query string, `*` inside an `or=(...)`: both are "anything".
+      const pattern = String(value)
+        .replace(/\\(.)/g, "$1")
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/[%*]/g, ".*");
       return new RegExp(`^${pattern}$`, op === "ilike" ? "i" : "").test(String(actual ?? ""));
     }
     case "not": return !matches(row, column, raw);
@@ -214,12 +237,42 @@ function matches(row, column, expression) {
 
 const RESERVED = new Set(["select", "order", "limit", "offset", "on_conflict", "columns"]);
 
+/** `or=(title.ilike."*x*",description.ilike."*x*")`: any one of them. */
+function matchesAny(row, expression) {
+  const inner = expression.replace(/^\(|\)$/g, "");
+  const parts = [];
+  let current = "";
+  let quoted = false;
+  for (let index = 0; index < inner.length; index += 1) {
+    const character = inner[index];
+    if (character === "\\") {
+      current += character + (inner[index + 1] ?? "");
+      index += 1;
+      continue;
+    }
+    if (character === '"') quoted = !quoted;
+    if (character === "," && !quoted) {
+      parts.push(current);
+      current = "";
+      continue;
+    }
+    current += character;
+  }
+  if (current) parts.push(current);
+  return parts.some((part) => {
+    const dot = part.indexOf(".");
+    return matches(row, part.slice(0, dot), part.slice(dot + 1));
+  });
+}
+
 function filtered(table, params) {
   let rows = [...(db[table] ?? [])];
 
   for (const [column, expression] of params) {
     if (RESERVED.has(column)) continue;
-    rows = rows.filter((row) => matches(row, column, expression));
+    rows = rows.filter((row) =>
+      column === "or" ? matchesAny(row, expression) : matches(row, column, expression),
+    );
   }
 
   const order = params.get("order");

@@ -251,6 +251,7 @@ export function seed() {
       { id: "99999999-9999-4999-8999-000000000001", name: "Bank", colour: "blue", created_by: IDS.admin, created_at: "2026-09-01T00:00:00Z" },
       { id: "99999999-9999-4999-8999-000000000002", name: "Ministry", colour: "green", created_by: IDS.admin, created_at: "2026-09-01T00:00:00Z" },
     ],
+    task_dependencies: [],
     task_labels: [
       {
         task_id: tasks.find((task) => task.title === "Meet with Kuwait banks").id,

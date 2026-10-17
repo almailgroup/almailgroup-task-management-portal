@@ -42,7 +42,9 @@ export type NotificationType =
   | "task_mentioned"
   | "task_review_requested"
   | "task_completed"
-  | "direct_message";
+  | "direct_message"
+  | "reminder_failed"
+  | "task_unblocked";
 
 /** `task_activity.action` — stored as text with a check constraint. */
 export type TaskActivityAction =
@@ -649,6 +651,40 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "company_holidays_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_dependencies: {
+        Row: {
+          task_id: string;
+          blocked_by: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          task_id: string;
+          blocked_by: string;
+          created_by?: string | null;
+        };
+        Update: Record<never, never>;
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey";
+            columns: ["task_id"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_dependencies_blocked_by_fkey";
+            columns: ["blocked_by"];
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_dependencies_created_by_fkey";
             columns: ["created_by"];
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -1280,6 +1316,8 @@ export type TaskWithAssignees = Task & {
   assignees: Profile[];
   /** The labels on it, by id; names and colours come from LabelsProvider. */
   labelIds: string[];
+  /** How many open tasks it waits on; 0 when nothing holds it up. */
+  waitingOn: number;
   /**
    * How far along its steps are.
    *

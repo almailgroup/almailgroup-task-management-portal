@@ -35,3 +35,16 @@ export function isMissingRelationship(error: { code?: string; message?: string }
   if (!error) return false;
   return error.code === "PGRST200" || /could not find a relationship/i.test(error.message ?? "");
 }
+
+/**
+ * True when a select named a column — or a computed column, a function on the
+ * row — that the database does not have yet.
+ */
+export function isMissingColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /column .* does not exist|could not find the .* column/i.test(error.message ?? "")
+  );
+}

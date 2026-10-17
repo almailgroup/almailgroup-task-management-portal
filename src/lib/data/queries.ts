@@ -5,7 +5,11 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { isMissingRelationship, isMissingTable } from "@/lib/supabase/missing";
+import {
+  isMissingColumn,
+  isMissingRelationship,
+  isMissingTable,
+} from "@/lib/supabase/missing";
 import {
   VERIFIED_MUST_CHANGE_PASSWORD,
   VERIFIED_USER,
@@ -276,32 +280,44 @@ type AssignmentEmbed = { user: Profile | null }[] | null;
  * list to quietly come back without its avatars.
  */
 const LABELS_EMBED = ", labels:task_labels(label_id)";
+/** How many open tasks it waits on: a computed column (migration 40). */
+const WAITING_FIELD = ", waiting_on";
 
 const TASK_WITH_ASSIGNEES =
   "*, assignments:task_assignments(user:profiles(*)), checklist:task_checklist_items(done)" +
-  LABELS_EMBED;
+  LABELS_EMBED +
+  WAITING_FIELD;
 
 /** The same, but `!inner` drops tasks nobody is assigned to. */
 const TASK_ASSIGNED_TO_SOMEONE =
   "*, assignments:task_assignments!inner(user:profiles(*)), checklist:task_checklist_items(done)" +
-  LABELS_EMBED;
+  LABELS_EMBED +
+  WAITING_FIELD;
 
 /**
- * Run a task query with its labels — and once more without them when the
- * database is a migration behind the code.
+ * Run a task query with everything newer migrations add to a task — and
+ * again with less when the database is behind the code.
  *
- * PostgREST refuses the whole query if it is asked to embed a table it has
- * never heard of, so between this deploying and migration 39 being run every
- * board would have failed to load. The retry costs a round trip only in that
- * window; once the table exists the first answer is the answer.
+ * PostgREST refuses the whole query if it is asked for a table or a column it
+ * has never heard of, so between this deploying and migrations 39 and 40
+ * being run every board would have failed to load. Newest first: without
+ * the waiting count, then without labels too. The retries cost a round trip
+ * only in that window; once the database has caught up, the first answer is
+ * the answer.
  */
 async function withLabels<R extends { error: { code?: string; message: string } | null }>(
   run: (select: string) => PromiseLike<R>,
   select: string = TASK_WITH_ASSIGNEES,
 ): Promise<R> {
-  const result = await run(select);
-  if (result.error && isMissingRelationship(result.error)) {
-    return run(select.replace(LABELS_EMBED, ""));
+  const behind = (error: { code?: string; message: string } | null) =>
+    isMissingRelationship(error) || isMissingColumn(error);
+
+  let result = await run(select);
+  if (result.error && behind(result.error)) {
+    result = await run(select.replace(WAITING_FIELD, ""));
+  }
+  if (result.error && behind(result.error)) {
+    result = await run(select.replace(WAITING_FIELD, "").replace(LABELS_EMBED, ""));
   }
   return result;
 }
@@ -318,13 +334,15 @@ function withAssignees<
     assignments: AssignmentEmbed;
     checklist?: { done: boolean }[];
     labels?: { label_id: string }[] | null;
+    waiting_on?: number | null;
   },
 >(row: T): TaskWithAssignees {
-  const { assignments, checklist, labels, ...task } = row;
+  const { assignments, checklist, labels, waiting_on, ...task } = row;
   const steps = checklist ?? [];
   return {
     ...task,
     labelIds: (labels ?? []).map((label) => label.label_id),
+    waitingOn: waiting_on ?? 0,
     assignees: (assignments ?? [])
       .map((a) => a.user)
       .filter((p): p is Profile => p !== null),

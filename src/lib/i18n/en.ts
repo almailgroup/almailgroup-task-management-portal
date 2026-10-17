@@ -1150,4 +1150,18 @@ export const en = {
   "label.exists": "There is already a label with that name.",
   "label.unknown": "That label no longer exists.",
   "label.notAllowed": "Only admins and managers can change labels.",
+  // ---- waiting on other tasks -------------------------------------------------------------
+  "dependency.title": "Waiting on",
+  "dependency.allDone": "all done",
+  "dependency.openCount": "{n} still open",
+  "dependency.remove": "Stop waiting on {title}",
+  "dependency.find": "Find a task this one waits on…",
+  "dependency.results": "Matching tasks",
+  "dependency.holdingUp": "Waiting for this one",
+  "dependency.waiting": "Waiting",
+  "dependency.waitingOnCount_one": "Waiting on {n} open task",
+  "dependency.waitingOnCount_other": "Waiting on {n} open tasks",
+  "dependency.unknownTask": "That task could not be found.",
+  "dependency.itself": "A task cannot wait on itself.",
+  "dependency.cycle": "That would go round in a circle: the other task already waits on this one.",
 } as const;

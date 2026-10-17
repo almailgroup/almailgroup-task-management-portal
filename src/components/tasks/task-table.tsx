@@ -16,6 +16,7 @@ import {
   DueDate,
   PriorityIndicator,
   ChecklistProgressBadge,
+  WaitingBadge,
   RepeatBadge,
 } from "@/components/tasks/task-meta";
 import { StatusBadge } from "@/components/tasks/task-meta";
@@ -272,6 +273,7 @@ export function TaskTable({
                   <DueDate dueAt={task.due_at} status={task.status} />
                   <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                   <ChecklistProgressBadge progress={task.checklist} />
+                  <WaitingBadge count={task.waitingOn} status={task.status} />
                 </td>
                 <td className="px-4 py-3.5">
                   <div className="flex justify-end">
@@ -366,6 +368,7 @@ export function TaskTable({
                   <DueDate dueAt={task.due_at} status={task.status} />
                   <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                   <ChecklistProgressBadge progress={task.checklist} />
+                  <WaitingBadge count={task.waitingOn} status={task.status} />
                 </div>
               </div>
             </li>

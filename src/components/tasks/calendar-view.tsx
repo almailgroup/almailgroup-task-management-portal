@@ -22,6 +22,7 @@ import {
   PriorityIndicator,
   StatusBadge,
   ChecklistProgressBadge,
+  WaitingBadge,
   RepeatBadge,
 } from "@/components/tasks/task-meta";
 import { isOverdue } from "@/lib/dates";
@@ -474,6 +475,7 @@ export function CalendarView({
                       <DueDate dueAt={task.due_at} status={task.status} />
                   <RepeatBadge every={task.repeat_every} interval={task.repeat_interval} />
                   <ChecklistProgressBadge progress={task.checklist} />
+                  <WaitingBadge count={task.waitingOn} status={task.status} />
                       <StatusBadge status={task.status} />
                       <AssigneeStack assignees={task.assignees} max={2} />
                     </span>
