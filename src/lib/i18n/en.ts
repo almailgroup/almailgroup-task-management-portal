@@ -288,9 +288,9 @@ export const en = {
   "compact.days": "{n}d",
   "compact.weeks": "{n}w",
   "quick.laterToday": "Later today",
-  "quick.tomorrow": "Tomorrow",
-  "quick.in3Days": "In 3 days",
-  "quick.nextMonday": "Next Monday",
+  "quick.nextWorkingDay": "Next working day",
+  "quick.in3WorkingDays": "In 3 working days",
+  "quick.nextWeek": "Start of next week",
   "quick.inAWeek": "In a week",
 
   // ---- more counts ---------------------------------------------------------------------------

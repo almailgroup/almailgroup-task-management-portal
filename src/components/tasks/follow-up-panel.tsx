@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { setFollowUp } from "@/lib/data/task-actions";
+import { useHolidaySet } from "@/components/work-calendar/holidays-provider";
 import {
-  atHourToday,
   isoFromLocalInput,
-  nextMonday,
+  quickDateOptions,
   relativeDay,
   toLocalInput,
 } from "@/lib/dates";
@@ -36,6 +36,7 @@ export function FollowUpPanel({
   const router = useRouter();
   const i18n = useI18n();
   const { t, tm, tag, timeZone } = i18n;
+  const holidays = useHolidaySet();
   const [editing, setEditing] = React.useState(false);
   const [when, setWhen] = React.useState(toLocalInput(task.follow_up_at));
   const [note, setNote] = React.useState(task.follow_up_note ?? "");
@@ -154,12 +155,7 @@ export function FollowUpPanel({
           autoFocus
         />
         <div className="flex flex-wrap gap-1.5">
-          {[
-            { label: t("quick.tomorrow"), value: () => atHourToday(9, 1) },
-            { label: t("quick.in3Days"), value: () => atHourToday(9, 3) },
-            { label: t("quick.nextMonday"), value: () => nextMonday(9) },
-            { label: t("quick.inAWeek"), value: () => atHourToday(9, 7) },
-          ].map((option) => (
+          {quickDateOptions(i18n, holidays, { hour: 9, includeToday: false }).map((option) => (
             <button
               key={option.label}
               type="button"

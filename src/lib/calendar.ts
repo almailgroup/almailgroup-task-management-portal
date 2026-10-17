@@ -1,3 +1,5 @@
+import { FIRST_DAY_OF_WEEK } from "@/lib/work-week";
+
 /**
  * Calendar arithmetic, in the viewer's own timezone.
  *
@@ -64,17 +66,19 @@ export function addMonths(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
-/** Monday-first weekday index, 0–6. `getDay()` is Sunday-first. */
+/**
+ * Where a day sits in the company's week, 0–6. The week starts on Sunday, as
+ * Kuwait's does (lib/work-week); `getDay()` happens to number it the same way,
+ * but the start day is read from there so the two can never drift apart.
+ */
 export function weekdayIndex(date: Date): number {
-  return (date.getDay() + 6) % 7;
+  return (date.getDay() - FIRST_DAY_OF_WEEK + 7) % 7;
 }
 
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
-
 /**
- * Monday-first weekday names in the reader's language, from Intl rather than
- * a dictionary — abbreviations are a per-language matter, and Arabic has none.
- * 2024-01-01 was a Monday.
+ * Weekday names in the reader's language, in the company's week order, from
+ * Intl rather than a dictionary — abbreviations are a per-language matter, and
+ * Arabic has none. 2024-01-07 was a Sunday.
  */
 export function weekdayLabels(
   tag: string | undefined,
@@ -82,13 +86,14 @@ export function weekdayLabels(
 ): string[] {
   const format = new Intl.DateTimeFormat(tag, { weekday: style });
   return Array.from({ length: 7 }, (_, index) =>
-    format.format(new Date(2024, 0, 1 + index)),
+    format.format(new Date(2024, 0, 7 + FIRST_DAY_OF_WEEK + index)),
   );
 }
 
 /**
- * The six-week grid for a month, Monday-first, padded with the adjacent
- * months' days so every row is full and the grid never changes height.
+ * The six-week grid for a month, from the first day of the company's week,
+ * padded with the adjacent months' days so every row is full and the grid
+ * never changes height.
  */
 export function monthGrid(month: Date): Date[] {
   const first = startOfMonth(month);

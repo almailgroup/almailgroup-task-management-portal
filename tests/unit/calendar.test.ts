@@ -12,7 +12,7 @@ import {
 } from "@/lib/calendar";
 
 describe("monthGrid", () => {
-  it("is always six full weeks, Monday first", () => {
+  it("is always six full weeks, Sunday first, as Kuwait's week is", () => {
     for (const month of [new Date(2026, 1, 1), new Date(2026, 8, 1), new Date(2024, 1, 1)]) {
       const grid = monthGrid(month);
       expect(grid).toHaveLength(42);
@@ -27,10 +27,11 @@ describe("monthGrid", () => {
     expect(inMonth).toEqual(Array.from({ length: 30 }, (_, i) => i + 1));
   });
 
-  it("starts on the Monday on or before the first", () => {
-    // 1 September 2026 is a Tuesday, so the grid opens on Monday 31 August.
+  it("starts on the Sunday on or before the first", () => {
+    // 1 September 2026 is a Tuesday, so the grid opens on Sunday 30 August.
     const [first] = monthGrid(new Date(2026, 8, 1));
-    expect([first.getMonth(), first.getDate()]).toEqual([7, 31]);
+    expect([first.getMonth(), first.getDate()]).toEqual([7, 30]);
+    expect(first.getDay()).toBe(0);
   });
 });
 

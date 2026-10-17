@@ -323,9 +323,9 @@ export const ar: Dictionary = {
   "compact.days": "{n} ي",
   "compact.weeks": "{n} أ",
   "quick.laterToday": "لاحقاً اليوم",
-  "quick.tomorrow": "غداً",
-  "quick.in3Days": "بعد 3 أيام",
-  "quick.nextMonday": "الاثنين القادم",
+  "quick.nextWorkingDay": "يوم العمل التالي",
+  "quick.in3WorkingDays": "بعد 3 أيام عمل",
+  "quick.nextWeek": "بداية الأسبوع القادم",
   "quick.inAWeek": "بعد أسبوع",
 
   // ---- more counts ---------------------------------------------------------------------------

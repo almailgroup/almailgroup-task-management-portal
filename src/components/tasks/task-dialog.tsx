@@ -42,6 +42,7 @@ import {
   updateTask,
 } from "@/lib/data/task-actions";
 import { REPEAT_UNITS, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { useHolidaySet } from "@/components/work-calendar/holidays-provider";
 import { useI18n } from "@/lib/i18n/client";
 import type { ActionResult } from "@/lib/action-result";
 import type { TranslationKey } from "@/lib/i18n";
@@ -80,6 +81,7 @@ export function TaskDialog({
 }) {
   const router = useRouter();
   const i18n = useI18n();
+  const holidays = useHolidaySet();
   const { t, tm } = i18n;
   const editing = Boolean(task);
   const canComplete =
@@ -322,7 +324,7 @@ export function TaskDialog({
                     evening" should not take five taps through a calendar. */}
                 {canEditDetails && (
                   <div className="chip-strip" aria-label={t("task.quickDates")}>
-                    {quickDateOptions(i18n).map((option) => (
+                    {quickDateOptions(i18n, holidays).map((option) => (
                       <button
                         key={option.key}
                         type="button"

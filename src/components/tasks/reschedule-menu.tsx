@@ -22,6 +22,7 @@ import {
   relativeDay,
   toLocalInput,
 } from "@/lib/dates";
+import { useHolidaySet } from "@/components/work-calendar/holidays-provider";
 import { useI18n } from "@/lib/i18n/client";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 
@@ -41,6 +42,7 @@ export function RescheduleMenu({
 }) {
   const router = useRouter();
   const i18n = useI18n();
+  const holidays = useHolidaySet();
   const { t, tm, tag, timeZone } = i18n;
   const [pending, setPending] = React.useState(false);
   const [picking, setPicking] = React.useState(false);
@@ -116,7 +118,7 @@ export function RescheduleMenu({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel>{t("resched.moveDueDate")}</DropdownMenuLabel>
 
-        {quickDateOptions(i18n).map((option) => (
+        {quickDateOptions(i18n, holidays).map((option) => (
           <DropdownMenuItem
             key={option.key}
             onSelect={() => apply(option.value())}

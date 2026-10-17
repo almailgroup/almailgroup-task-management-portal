@@ -37,6 +37,7 @@ import {
   todayIn,
   weekdayLabels,
 } from "@/lib/calendar";
+import { isWeekend } from "@/lib/work-week";
 import { useI18n } from "@/lib/i18n/client";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
@@ -312,7 +313,8 @@ export function CalendarView({
             const list = byDay.get(key) ?? [];
             const isToday = today !== null && isSameDay(day, today);
             const selected = dayOpen && selectedDay !== null && isSameDay(day, selectedDay);
-            const weekend = day.getDay() === 0 || day.getDay() === 6;
+            // Friday and Saturday, the company's weekend (lib/work-week).
+            const weekend = isWeekend(day);
             const late = list.filter((task) => isOverdue(task.due_at, task.status)).length;
 
             return (

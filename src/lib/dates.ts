@@ -1,5 +1,12 @@
 import { createTranslator, type Translator } from "@/lib/i18n";
 import type { TaskStatus } from "@/lib/supabase/database.types";
+import {
+  addWorkingDays,
+  nextWorkingDay,
+  onOrAfterWorkingDay,
+  startOfNextWeek,
+  type HolidaySet,
+} from "@/lib/work-week";
 
 /** Date helpers shared by the task views, the reschedule and follow-up controls. */
 
@@ -187,28 +194,60 @@ export function atHourToday(hour: number, daysAhead = 0): string {
   return date.toISOString();
 }
 
-/** Start of the coming Monday at the given hour. */
-export function nextMonday(hour = 9): string {
-  const date = new Date();
-  const daysUntilMonday = (8 - date.getDay()) % 7 || 7;
-  date.setDate(date.getDate() + daysUntilMonday);
-  date.setHours(hour, 0, 0, 0);
-  return date.toISOString();
+/** A local date at a given hour, as an ISO instant. */
+function atHour(date: Date, hour: number): string {
+  const at = new Date(date);
+  at.setHours(hour, 0, 0, 0);
+  return at.toISOString();
 }
 
 /**
- * Quick reschedule choices, in the order people reach for them.
- * 17:00 is the default hour — end of the working day, not midnight, so
- * "tomorrow" means tomorrow evening rather than the instant it begins.
+ * Quick date choices, in the order people reach for them, counted in working
+ * days — Sunday to Thursday, around company holidays (lib/work-week).
+ *
+ * "Tomorrow" and "Next Monday" were the old choices: on a Thursday the first
+ * landed on the weekend, and Monday is not where a Kuwaiti week starts.
+ *
+ * `hour` is when the chosen day's deadline falls. 17:00 for a due date — end
+ * of the working day, not midnight, so the day is the whole day. A follow-up
+ * is a morning check-in, so it asks for 09:00. The start of next week is
+ * always 09:00: it means "first thing", whatever it is for.
  */
-export function quickDateOptions({ t }: Speaker = english) {
-  return [
-    { key: "laterToday", label: t("quick.laterToday"), value: () => atHourToday(17) },
-    { key: "tomorrow", label: t("quick.tomorrow"), value: () => atHourToday(17, 1) },
-    { key: "in3Days", label: t("quick.in3Days"), value: () => atHourToday(17, 3) },
-    { key: "nextMonday", label: t("quick.nextMonday"), value: () => nextMonday(9) },
-    { key: "inAWeek", label: t("quick.inAWeek"), value: () => atHourToday(17, 7) },
+export function quickDateOptions(
+  { t }: Speaker = english,
+  holidays: HolidaySet = new Set(),
+  { hour = 17, includeToday = true }: { hour?: number; includeToday?: boolean } = {},
+) {
+  const now = () => new Date();
+  const options = [
+    {
+      key: "nextWorkingDay",
+      label: t("quick.nextWorkingDay"),
+      value: () => atHour(nextWorkingDay(now(), holidays), hour),
+    },
+    {
+      key: "in3WorkingDays",
+      label: t("quick.in3WorkingDays"),
+      value: () => atHour(addWorkingDays(now(), 3, holidays), hour),
+    },
+    {
+      key: "nextWeek",
+      label: t("quick.nextWeek"),
+      value: () => atHour(startOfNextWeek(now(), holidays), 9),
+    },
+    {
+      key: "inAWeek",
+      label: t("quick.inAWeek"),
+      value: () => {
+        const weekOn = now();
+        weekOn.setDate(weekOn.getDate() + 7);
+        return atHour(onOrAfterWorkingDay(weekOn, holidays), hour);
+      },
+    },
   ];
+  return includeToday
+    ? [{ key: "laterToday", label: t("quick.laterToday"), value: () => atHourToday(hour) }, ...options]
+    : options;
 }
 
 /**
