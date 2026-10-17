@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard, ProgressBar } from "@/components/dashboard/metric-card";
 import { WorkloadCard } from "@/components/dashboard/workload-card";
 import { NeedsAttention } from "@/components/dashboard/needs-attention";
+import { GettingStarted } from "@/components/dashboard/getting-started";
 import {
   AssigneeStack,
   DueDate,
@@ -25,14 +26,20 @@ import {
   StatusBadge,
 } from "@/components/tasks/task-meta";
 import {
+  getHolidays,
   getMyOpenTasks,
+  getNotificationPreferences,
   getOverdueTasks,
   getProjectHealth,
   getProjects,
   getTaskCounts,
+  getTeam,
   getWorkload,
   requireProfile,
 } from "@/lib/data/queries";
+import { signedInWithSecondStep } from "@/lib/auth/second-step";
+import { createClient } from "@/lib/supabase/server";
+import type { GuideFacts } from "@/lib/guide";
 import type { TaskWithAssignees } from "@/lib/supabase/database.types";
 import { getI18n } from "@/lib/i18n/server";
 
@@ -45,7 +52,7 @@ export default async function DashboardPage() {
   // Five bounded reads instead of "fetch every task, then reduce it here".
   // The counts and the workload are aggregated in Postgres; the two lists ask
   // for the six rows they show rather than everything and a slice.
-  const [profile, metrics, workload, myTasks, attention, projects, health] =
+  const [profile, metrics, workload, myTasks, attention, projects, health, preferences, holidays] =
     await Promise.all([
       requireProfile(),
       getTaskCounts(),
@@ -54,6 +61,8 @@ export default async function DashboardPage() {
       getOverdueTasks(6),
       getProjects(),
       getProjectHealth(),
+      getNotificationPreferences(),
+      getHolidays(),
     ]);
 
   // Reporting on projects is a manager's and an admin's job; a member's
@@ -62,6 +71,20 @@ export default async function DashboardPage() {
 
   const { t, tn } = await getI18n();
   const firstName = profile.full_name?.split(" ")[0];
+
+  // What the getting-started guide can tick on its own. The team and the
+  // second step only matter to an admin's list, so only an admin asks.
+  const isAdmin = profile.role === "admin";
+  const [team, twoStep] = isAdmin
+    ? await Promise.all([getTeam(), createClient().then(signedInWithSecondStep)])
+    : [[], false];
+  const facts: GuideFacts = {
+    telegramLinked: Boolean(preferences?.telegram_chat_id),
+    twoStep,
+    holidays: holidays.length,
+    teamSize: team.length,
+    projects: projects.length,
+  };
 
   return (
     <PageShell>
@@ -74,6 +97,8 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      <GettingStarted me={profile.id} role={profile.role} facts={facts} />
 
       {projects.length === 0 ? (
         <NoProjects canCreate={profile.role !== "member"} />

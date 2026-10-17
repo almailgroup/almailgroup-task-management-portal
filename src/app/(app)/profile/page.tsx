@@ -90,7 +90,7 @@ export default async function ProfilePage() {
       </Card>
 
       {preferences && (
-        <Card>
+        <Card id="reminders" className="scroll-mt-24">
           <CardHeader>
             <CardTitle>{t("profile.reminders")}</CardTitle>
           </CardHeader>
