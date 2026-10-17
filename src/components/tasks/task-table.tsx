@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { BulkActionBar } from "@/components/tasks/bulk-action-bar";
 import { RescheduleMenu } from "@/components/tasks/reschedule-menu";
+import { SwipeCard } from "@/components/tasks/swipe-card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteTask, moveTask, restoreTask } from "@/lib/data/task-actions";
@@ -305,11 +306,17 @@ export function TaskTable({
           const isSelected = selected.has(task.id);
 
           return (
-            <li
+            <SwipeCard
               key={task.id}
+              task={task}
+              projectId={projectId}
+              canComplete={canComplete}
+              canReschedule={canReschedule}
               className={cn(
                 "lift relative rounded-[1.75rem] bg-card p-3.5 shadow-[var(--shadow-sm)]",
-                isSelected && "bg-primary/[0.07] shadow-[var(--shadow-md)]",
+                // Opaque, unlike a tint: what a swipe reveals sits beneath.
+                isSelected &&
+                  "bg-[color-mix(in_srgb,var(--primary)_7%,var(--card))] shadow-[var(--shadow-md)]",
               )}
             >
               <button
@@ -371,7 +378,7 @@ export function TaskTable({
                   <WaitingBadge count={task.waitingOn} status={task.status} />
                 </div>
               </div>
-            </li>
+            </SwipeCard>
           );
         })}
       </ul>

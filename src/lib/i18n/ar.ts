@@ -1421,4 +1421,8 @@ export const ar: Dictionary = {
   "milestone.dateNeeded": "اختر موعد المرحلة.",
   "milestone.otherProject": "هذه المرحلة تتبع مشروعًا آخر.",
   "milestone.staysInProject": "تبقى المرحلة في مشروعها.",
+  "swipe.done": "تم",
+  "swipe.start": "ابدأ",
+  "swipe.review": "أرسل للمراجعة",
+  "swipe.moved": "{title}: الآن {status}",
 };

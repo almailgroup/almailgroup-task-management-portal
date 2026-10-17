@@ -1301,4 +1301,8 @@ export const en = {
   "milestone.dateNeeded": "Choose the date it is due.",
   "milestone.otherProject": "That milestone belongs to another project.",
   "milestone.staysInProject": "A milestone stays in its own project.",
+  "swipe.done": "Done",
+  "swipe.start": "Start",
+  "swipe.review": "Send for review",
+  "swipe.moved": "{title}: now {status}",
 } as const;
