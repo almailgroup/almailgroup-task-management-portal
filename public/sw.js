@@ -9,12 +9,12 @@
  * somebody's private workspace, and a cache is shared by everyone who uses
  * the device: cache /today and the next person to open the app on a shared
  * phone reads it, signed in or not. So only two things are kept — the
- * offline page and the immutable build assets — and a page is always
- * fetched from the network.
+ * offline page with everything it needs, and the immutable build assets —
+ * and a page is always fetched from the network.
  *
  * Bumping CACHE retires everything from the previous one on activate.
  */
-const CACHE = "almail-v1";
+const CACHE = "almail-v2";
 const OFFLINE_URL = "/offline";
 
 /** Immutable, content-hashed, and safe to serve to anybody. */
@@ -25,7 +25,24 @@ self.addEventListener("install", (event) => {
     (async () => {
       const cache = await caches.open(CACHE);
       // `reload` so an update is not itself served from the HTTP cache.
-      await cache.add(new Request(OFFLINE_URL, { cache: "reload" }));
+      const response = await fetch(new Request(OFFLINE_URL, { cache: "reload" }));
+      if (!response.ok) throw new Error(`The offline page answered ${response.status}.`);
+      await cache.put(OFFLINE_URL, response.clone());
+
+      // And what it needs to draw and come to life: its scripts, styles and
+      // fonts. Cached only as other pages happened to ask for them, the ones
+      // only this page uses were never there, and with no connection the page
+      // arrived as bare HTML — no offline bar, no language, nothing that
+      // answered a tap. They are content-hashed, so they are read from the
+      // page itself rather than listed here and left to go stale.
+      const html = await response.text();
+      const assets = new Set(html.match(/\/_next\/static\/[^"'\s\\]+/g) ?? []);
+      await Promise.all(
+        [...assets].map((asset) =>
+          // One that will not come is no reason to have no offline page.
+          cache.add(asset).catch(() => undefined),
+        ),
+      );
       // A new worker should take over at the next navigation rather than
       // waiting for every tab to close; nothing here is version-coupled to
       // the page.

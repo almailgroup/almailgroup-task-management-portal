@@ -34,20 +34,32 @@ test.describe("with no connection", () => {
     context,
   }) => {
     await signIn(page);
-    await expect
-      .poll(
-        () =>
-          page.evaluate(async () => {
-            const cache = await caches.open("almail-v1");
-            return Boolean(await cache.match("/offline"));
-          }),
-        { timeout: 20_000 },
-      )
-      .toBe(true);
+
+    /** What the worker's cache holds, by path. */
+    const cached = () =>
+      page.evaluate(async () => {
+        const name = (await caches.keys()).find((key) => key.startsWith("almail-"));
+        if (!name) return [];
+        const cache = await caches.open(name);
+        return (await cache.keys()).map((request) => new URL(request.url).pathname);
+      });
+
+    await expect.poll(cached, { timeout: 20_000 }).toContain("/offline");
 
     // A page that only works with a connection would be a poor offline page.
     const response = await context.request.get("/offline");
     expect(response.status()).toBe(200);
+
+    // And everything it needs to draw and come to life — its scripts, styles
+    // and fonts — is in the cache with it. Without them the page arrived as
+    // bare HTML: no offline bar, no language, nothing that answered a tap.
+    // Playwright's offline switch does not reach the worker's own requests,
+    // so a test that only went offline could not see this; the cache can.
+    const html = await response.text();
+    const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s\\]+/g) ?? [])];
+    expect(assets.length).toBeGreaterThan(0);
+    const held = await cached();
+    expect(assets.filter((asset) => !held.includes(decodeURI(asset)))).toEqual([]);
   });
 
   test("a navigation lands on it rather than on a browser error", async ({
